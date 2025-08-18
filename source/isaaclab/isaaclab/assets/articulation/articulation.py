@@ -16,16 +16,9 @@ from typing import TYPE_CHECKING, Literal
 import omni.log
 import warp as wp
 from isaacsim.core.simulation_manager import SimulationManager
-from newton import (
-    JOINT_FIXED,
-    JOINT_FREE,
-    JOINT_MODE_NONE,
-    JOINT_MODE_TARGET_POSITION,
-    JOINT_MODE_TARGET_VELOCITY,
-    Model,
-)
-from newton.solvers import MuJoCoSolver
-from newton.utils.selection import ArticulationView as NewtonArticulationView
+from newton import JointMode, JointType, Model
+from newton.selection import ArticulationView as NewtonArticulationView
+from newton.solvers import SolverMuJoCo
 from pxr import UsdPhysics
 
 import isaaclab.sim as sim_utils
@@ -124,8 +117,7 @@ class Articulation(AssetBase):
     @property
     def is_fixed_base(self) -> bool:
         """Whether the articulation is a fixed-base or floating-base system."""
-        # TODO: check if the articulation is fixed-base or floating-base
-        return False
+        return self._root_newton_view.is_fixed_base
 
     @property
     def num_joints(self) -> int:
@@ -135,7 +127,6 @@ class Articulation(AssetBase):
     @property
     def num_fixed_tendons(self) -> int:
         """Number of fixed tendons in articulation."""
-        # TODO: check if the articulation has fixed tendons
         return 0
 
     @property
@@ -211,8 +202,8 @@ class Articulation(AssetBase):
         """
         # write external wrench
         if self.has_external_wrench:
-            wrenches_b = torch.cat([self._external_force_b, self._external_force_b], dim=1)
-            self._root_newton_view.set_attribute("body_f", NewtonManager.get_state_0(), wrenches_b)
+            wrenches_b = torch.cat([self._external_force_b, self._external_force_b], dim=-1)
+            self._root_newton_view.set_attribute("body_f", NewtonManager.get_state_0(), wp.from_torch(wrenches_b))
 
         # apply actuator models
         self._apply_actuator_model()
@@ -653,12 +644,12 @@ class Articulation(AssetBase):
             env_ids = env_ids[:, None]
         # set into internal buffers
         if control_mode == "position":
-            self._data.joint_control_mode[env_ids, joint_ids] = JOINT_MODE_TARGET_POSITION
+            self._data.joint_control_mode[env_ids, joint_ids] = JointMode.TARGET_POSITION
         elif control_mode == "velocity":
-            self._data.joint_control_mode[env_ids, joint_ids] = JOINT_MODE_TARGET_VELOCITY
+            self._data.joint_control_mode[env_ids, joint_ids] = JointMode.TARGET_VELOCITY
         elif (control_mode is None) or (control_mode == "none"):
             # Set the control mode to None when using explicit actuators
-            self._data.joint_control_mode[env_ids, joint_ids] = JOINT_MODE_NONE
+            self._data.joint_control_mode[env_ids, joint_ids] = JointMode.NONE
         else:
             raise ValueError(f"Invalid control mode: {control_mode}")
 
@@ -822,7 +813,7 @@ class Articulation(AssetBase):
             env_ids: The environment indices to set the max velocity for. Defaults to None (all environments).
         """
         # Warn if using Mujoco solver
-        if isinstance(NewtonManager._solver, MuJoCoSolver):
+        if isinstance(NewtonManager._solver, SolverMuJoCo):
             omni.log.warn("write_joint_velocity_limit_to_sim is ignored when using the Mujoco solver.")
 
         # resolve indices
@@ -1347,14 +1338,15 @@ class Articulation(AssetBase):
                     " Please ensure that there is only one articulation in the prim path tree."
                 )
 
-        # resolve articulation root prim back into regex expression
-        first_env_root_prim_path = first_env_root_prims[0].GetPath().pathString
-        root_prim_path_relative_to_prim_path = first_env_root_prim_path[len(first_env_matching_prim_path) :]
-        root_prim_path_expr = self.cfg.prim_path + root_prim_path_relative_to_prim_path
+            # resolve articulation root prim back into regex expression
+            first_env_root_prim_path = first_env_root_prims[0].GetPath().pathString
+            root_prim_path_relative_to_prim_path = first_env_root_prim_path[len(first_env_matching_prim_path) :]
+            root_prim_path_expr = self.cfg.prim_path + root_prim_path_relative_to_prim_path
+
         prim_path = root_prim_path_expr.replace(".*", "*")
 
         self._root_newton_view = NewtonArticulationView(
-            NewtonManager.get_model(), prim_path, verbose=True, exclude_joint_types=[JOINT_FREE, JOINT_FIXED]
+            NewtonManager.get_model(), prim_path, verbose=True, exclude_joint_types=[JointType.FREE, JointType.FIXED]
         )
 
         # log information about the articulation
@@ -1407,16 +1399,12 @@ class Articulation(AssetBase):
             ),
             dim=2,
         ).clone()
-        self._data.default_joint_stiffness = (
-            wp.to_torch(self._root_newton_view.get_attribute("joint_target_ke", NewtonManager.get_model()))
-            .clone()
-            .clone()
-        )
-        self._data.default_joint_damping = (
-            wp.to_torch(self._root_newton_view.get_attribute("joint_target_kd", NewtonManager.get_model()))
-            .clone()
-            .clone()
-        )
+        self._data.default_joint_stiffness = wp.to_torch(
+            self._root_newton_view.get_attribute("joint_target_ke", NewtonManager.get_model())
+        ).clone()
+        self._data.default_joint_damping = wp.to_torch(
+            self._root_newton_view.get_attribute("joint_target_kd", NewtonManager.get_model())
+        ).clone()
         self._data.default_joint_armature = wp.to_torch(
             self._root_newton_view.get_attribute("joint_armature", NewtonManager.get_model())
         ).clone()
@@ -1502,17 +1490,6 @@ class Articulation(AssetBase):
         )
         self._data.default_joint_vel[:, indices_list] = torch.tensor(values_list, device=self.device)
 
-        # FIXME: This is a hack to force the articulation position to match the initial state prior to the first reset.
-        # We should not need to do this, but Newton (or more likely MJWarp) does not like spawning assets in the
-        # ground and if stepped, there is a residual force that can cause the asset to shoot violently into the air.
-
-        # Forces the articulation position to match the initial state.
-        root_state_w = self._data.default_root_state
-        # convert root quaternion from wxyz to xyzw
-        root_poses_xyzw = root_state_w[:, :7].clone()
-        root_poses_xyzw[:, 3:] = math_utils.convert_quat(root_poses_xyzw[:, 3:], to="xyzw")
-        self._root_newton_view.set_root_transforms(NewtonManager.get_state_0(), root_poses_xyzw, mask=self._mask)
-
     """
     Internal simulation callbacks.
     """
@@ -1593,7 +1570,7 @@ class Articulation(AssetBase):
                 # Set the control mode to None when using explicit actuators
                 self.write_joint_control_mode_to_sim(None, joint_ids=actuator.joint_indices)
 
-            # # Set common properties into the simulation
+            # Set common properties into the simulation
             self.write_joint_effort_limit_to_sim(actuator.effort_limit_sim, joint_ids=actuator.joint_indices)
             self.write_joint_velocity_limit_to_sim(actuator.velocity_limit_sim, joint_ids=actuator.joint_indices)
             self.write_joint_armature_to_sim(actuator.armature, joint_ids=actuator.joint_indices)

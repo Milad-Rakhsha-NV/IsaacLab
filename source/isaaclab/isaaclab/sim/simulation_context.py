@@ -149,11 +149,23 @@ class SimulationContext(_SimulationContext):
 
         # note: we read this once since it is not expected to change during runtime
         # read flag for whether a local GUI is enabled
-        self._local_gui = self.carb_settings.get("/app/window/enabled")
+        self._local_gui = (
+            self.carb_settings.get("/app/window/enabled")
+            if self.carb_settings.get("/app/window/enabled") is not None
+            else False
+        )
         # read flag for whether livestreaming GUI is enabled
-        self._livestream_gui = self.carb_settings.get("/app/livestream/enabled")
+        self._livestream_gui = (
+            self.carb_settings.get("/app/livestream/enabled")
+            if self.carb_settings.get("/app/livestream/enabled") is not None
+            else False
+        )
         # read flag for whether XR GUI is enabled
-        self._xr_gui = self.carb_settings.get("/app/xr/enabled")
+        self._xr_gui = (
+            self.carb_settings.get("/app/xr/enabled")
+            if self.carb_settings.get("/app/xr/enabled") is not None
+            else False
+        )
 
         # read flags anim recording config and init timestamps
         self._setup_anim_recording()
@@ -254,19 +266,8 @@ class SimulationContext(_SimulationContext):
         # flatten out the simulation dictionary
         sim_params = self.cfg.to_dict()
         if sim_params is not None:
-            if "physx" in sim_params:
-                physx_params = sim_params.pop("physx")
-                sim_params.update(physx_params)
-            if "solver_cfg" in sim_params:
-                solver_params = sim_params.pop("solver_cfg")
-
-        # add warning about enabling stabilization for large step sizes
-        if not self.cfg.physx.enable_stabilization and (self.cfg.dt > 0.0333):
-            omni.log.warn(
-                "Large simulation step size (> 0.0333 seconds) is not recommended without enabling stabilization."
-                " Consider setting the `enable_stabilization` flag to True in the PhysxCfg, or reducing the"
-                " simulation step size if you run into physics issues."
-            )
+            if "newton_cfg" in sim_params:
+                newton_params = sim_params.pop("newton_cfg")
 
         # create a simulation context to control the simulator
         if float(".".join(self._isaacsim_version[2])) < 5:
@@ -293,11 +294,14 @@ class SimulationContext(_SimulationContext):
             )
         self.set_setting("/app/player/playSimulations", False)
         NewtonManager.set_simulation_dt(self.cfg.dt)
-        NewtonManager.set_solver_settings(solver_params)
+        NewtonManager.set_solver_settings(newton_params)
         physx_sim_interface = omni.physx.get_physx_simulation_interface()
         physx_sim_interface.detach_stage()
         get_physics_stage_update_node_interface().detach_node()
-        NewtonManager._clone_physics_only = not (self.has_gui() or self.has_rtx_sensors())
+        # Disable USD cloning if we are not rendering or using RTX sensors
+        NewtonManager._clone_physics_only = (
+            self.render_mode == self.RenderMode.NO_GUI_OR_RENDERING or self.render_mode == self.RenderMode.NO_RENDERING
+        )
 
     def _apply_physics_settings(self):
         """Sets various carb physics settings."""
@@ -560,6 +564,7 @@ class SimulationContext(_SimulationContext):
 
     def forward(self) -> None:
         """Updates articulation kinematics and fabric for rendering."""
+        NewtonManager.forward_kinematics()
         NewtonManager.sync_fabric_transforms()
 
     def get_initial_stage(self) -> Usd.Stage:
@@ -643,21 +648,25 @@ class SimulationContext(_SimulationContext):
         # step the simulation
         if self.stage is None:
             raise Exception("There is no stage currently opened, init_stage needed before calling this func")
+
         if render:
             # physics dt is zero, no need to step physics, just render
+            if self.is_playing():
+                NewtonManager.step()
             if self.get_physics_dt() == 0:  # noqa: SIM114
                 SimulationContext.render(self)
             # rendering dt is zero, but physics is not, call step and then render
             elif self.get_rendering_dt() == 0 and self.get_physics_dt() != 0:  # noqa: SIM114
-                # if self.is_playing():
-                # self._physics_context._step(current_time=self.current_time)
                 SimulationContext.render(self)
             else:
                 self._app.update()
         else:
             if self.is_playing():
-                # self._physics_context._step(current_time=self.current_time)
                 NewtonManager.step()
+
+        # Use the NewtonManager to render the scene if enabled
+        if self.cfg.enable_newton_rendering:
+            NewtonManager.render()
 
         # app.update() may be changing the cuda device in step, so we force it back to our desired device here
         if "cuda" in self.device:
@@ -699,7 +708,6 @@ class SimulationContext(_SimulationContext):
         else:
             # manually flush the fabric data to update Hydra textures
             self.forward()
-            # NewtonManager.render()
             # render the simulation
             # note: we don't call super().render() anymore because they do above operation inside
             #  and we don't want to do it twice. We may remove it once we drop support for Isaac Sim 2022.2.
@@ -758,6 +766,7 @@ class SimulationContext(_SimulationContext):
                 cls._instance._app_control_on_stop_handle = None
         # call parent to clear the instance
         super().clear_instance()
+        NewtonManager.clear()
 
     """
     Helper Functions
@@ -772,13 +781,6 @@ class SimulationContext(_SimulationContext):
         if physx_scene_api is None:
             raise RuntimeError("Physics scene API is None! Please create the scene first.")
         # set parameters not directly supported by the constructor
-        # -- Continuous Collision Detection (CCD)
-        # ref: https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/AdvancedCollisionDetection.html?highlight=ccd#continuous-collision-detection
-        self._physics_context.enable_ccd(self.cfg.physx.enable_ccd)
-        # -- GPU collision stack size
-        physx_scene_api.CreateGpuCollisionStackSizeAttr(self.cfg.physx.gpu_collision_stack_size)
-        # -- Improved determinism by PhysX
-        physx_scene_api.CreateEnableEnhancedDeterminismAttr(self.cfg.physx.enable_enhanced_determinism)
 
         # -- Gravity
         # note: Isaac sim only takes the "up-axis" as the gravity direction. But physics allows any direction so we
@@ -794,13 +796,6 @@ class SimulationContext(_SimulationContext):
 
         physics_scene.CreateGravityDirectionAttr(Gf.Vec3f(*gravity_direction))
         physics_scene.CreateGravityMagnitudeAttr(gravity_magnitude)
-
-        # position iteration count
-        physx_scene_api.CreateMinPositionIterationCountAttr(self.cfg.physx.min_position_iteration_count)
-        physx_scene_api.CreateMaxPositionIterationCountAttr(self.cfg.physx.max_position_iteration_count)
-        # velocity iteration count
-        physx_scene_api.CreateMinVelocityIterationCountAttr(self.cfg.physx.min_velocity_iteration_count)
-        physx_scene_api.CreateMaxVelocityIterationCountAttr(self.cfg.physx.max_velocity_iteration_count)
 
         # create the default physics material
         # this material is used when no material is specified for a primitive
@@ -1025,8 +1020,10 @@ def build_simulation_context(
             # Set up gravity
             if gravity_enabled:
                 sim_cfg.gravity = (0.0, 0.0, -9.81)
+                NewtonManager.gravity_vector = (0.0, 0.0, -9.81)
             else:
                 sim_cfg.gravity = (0.0, 0.0, 0.0)
+                NewtonManager.gravity_vector = (0.0, 0.0, 0.0)
 
             # Set device
             sim_cfg.device = device

@@ -20,8 +20,6 @@ class NewtonSolverCfg:
 
     Used to select the right solver class.
     """
-    num_substeps: int = 1
-    """Number of substeps to use for the solver."""
 
 
 @configclass
@@ -86,10 +84,10 @@ class MJWarpSolverCfg(NewtonSolverCfg):
     If 0, the contact stiffness is not time-dependent.
     """
 
-    impratio: float = 100.0
+    impratio: float = 1.0
     """Frictional-to-normal constraint impedance ratio."""
 
-    cone: str = "elliptic"
+    cone: str = "pyramidal"
     """The type of contact friction cone. Can be "pyramidal" or "elliptic"."""
 
     ls_parallel: bool = False

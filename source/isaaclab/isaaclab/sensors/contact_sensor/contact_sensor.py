@@ -9,13 +9,12 @@
 from __future__ import annotations
 
 import torch
-import weakref
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-import omni.timeline
 import warp as wp
-from newton.utils.contact_sensor import ContactView
+from newton._src.utils.contact_sensor import MatchKind
+from newton.sensors import ContactSensor as NewtonContactSensor
 
 import isaaclab.utils.string as string_utils
 from isaaclab.markers import VisualizationMarkers
@@ -62,8 +61,6 @@ class ContactSensor(SensorBase):
 
     cfg: ContactSensorCfg
     """The configuration parameters."""
-    _contact_newton_view: ContactView
-    """The contact view for the sensor."""
 
     def __init__(self, cfg: ContactSensorCfg):
         """Initializes the contact sensor object.
@@ -72,34 +69,7 @@ class ContactSensor(SensorBase):
             cfg: The configuration parameters.
         """
         # initialize base class
-        # check that config is valid
-        if cfg.history_length < 0:
-            raise ValueError(f"History length must be greater than 0! Received: {cfg.history_length}")
-        # check that the config is valid
-        cfg.validate()
-        # store inputs
-        self.cfg = cfg.copy()
-        # flag for whether the sensor is initialized
-        self._is_initialized = False
-        # flag for whether the sensor is in visualization mode
-        self._is_visualizing = False
-
-        # note: Use weakref on callbacks to ensure that this object can be deleted when its destructor is called.
-        # add callbacks for stage play/stop
-        # The order is set to 10 which is arbitrary but should be lower priority than the default order of 0
-
-        NewtonManager.add_on_init_callback(self._initialize_impl)
-
-        timeline_event_stream = omni.timeline.get_timeline_interface().get_timeline_event_stream()
-        self._invalidate_initialize_handle = timeline_event_stream.create_subscription_to_pop_by_type(
-            int(omni.timeline.TimelineEventType.STOP),
-            lambda event, obj=weakref.proxy(self): obj._invalidate_initialize_callback(event),
-            order=10,
-        )
-        # add handle for debug visualization (this is set to a valid handle inside set_debug_vis)
-        self._debug_vis_handle = None
-        # set initial state of debug visualization
-        self.set_debug_vis(self.cfg.debug_vis)
+        super().__init__(cfg)
 
         # Create empty variables for storing output data
         self._data: ContactSensorData = ContactSensorData()
@@ -108,7 +78,6 @@ class ContactSensor(SensorBase):
         """Returns: A string containing information about the instance."""
         return (
             f"Contact sensor @ '{self.cfg.prim_path}': \n"
-            f"\tview type         : {self.contact_newton_view.__class__}\n"
             f"\tupdate period (s) : {self.cfg.update_period}\n"
             f"\tnumber of bodies  : {self.num_bodies}\n"
             f"\tbody names        : {self.body_names}\n"
@@ -145,9 +114,9 @@ class ContactSensor(SensorBase):
         return self._contact_partner_names
 
     @property
-    def contact_newton_view(self) -> ContactView:
+    def contact_newton_view(self) -> NewtonContactSensor:
         """View for the contact forces captured (Newton)."""
-        return self._contact_newton_view
+        return NewtonManager._newton_contact_sensor
 
     """
     Operations
@@ -265,51 +234,59 @@ class ContactSensor(SensorBase):
         super()._initialize_impl()
         """Initializes the sensor-related handles and internal buffers."""
         # construct regex expression for the body names
-        body_names_regex = self.cfg.prim_path
-        if self.cfg.shape_path is not None:
-            shape_names_regex = r"(" + "|".join(self.cfg.shape_path) + r")"
-        else:
-            shape_names_regex = None
-        if self.cfg.filter_prim_paths_expr is not None:
-            contact_partners_body_regex = r"(" + "|".join(self.cfg.filter_prim_paths_expr) + r")"
-        else:
-            contact_partners_body_regex = None
-        if self.cfg.filter_shape_paths_expr is not None:
-            contact_partners_shape_regex = r"(" + "|".join(self.cfg.filter_shape_paths_expr) + r")"
-        else:
-            contact_partners_shape_regex = None
 
         if self.cfg.filter_prim_paths_expr is not None or self.cfg.filter_shape_paths_expr is not None:
             self._generate_force_matrix = True
         else:
             self._generate_force_matrix = False
 
-        self._contact_newton_view = NewtonManager.add_contact_view(
+        body_names_regex = self.cfg.prim_path
+        if self.cfg.shape_path is not None:
+            shape_names_regex = "(" + "|".join(self.cfg.shape_path) + ")"
+        else:
+            shape_names_regex = None
+        if self.cfg.filter_prim_paths_expr is not None:
+            contact_partners_body_regex = "(" + "|".join(self.cfg.filter_prim_paths_expr) + ")"
+        else:
+            contact_partners_body_regex = None
+        if self.cfg.filter_shape_paths_expr is not None:
+            contact_partners_shape_regex = "(" + "|".join(self.cfg.filter_shape_paths_expr) + ")"
+        else:
+            contact_partners_shape_regex = None
+
+        NewtonManager.add_contact_sensor(
             body_names_expr=body_names_regex,
             shape_names_expr=shape_names_regex,
             contact_partners_body_expr=contact_partners_body_regex,
             contact_partners_shape_expr=contact_partners_shape_regex,
         )
-        NewtonManager.add_on_start_callback(self._create_buffers)
+        self._create_buffers()
 
     def _create_buffers(self):
         # resolve the true count of bodies
-        self._num_bodies = self._contact_newton_view.shape[0] // self._num_envs
+        self._num_bodies = self.contact_newton_view.shape[0] // self._num_envs
 
         # Check that number of bodies is an integer
-        if self._contact_newton_view.shape[0] % self._num_envs != 0:
+        if self.contact_newton_view.shape[0] % self._num_envs != 0:
             raise RuntimeError(
                 "Number of bodies is not an integer multiple of the number of environments. Received:"
                 f" {self._num_bodies} bodies and {self._num_envs} environments."
             )
         print(f"[INFO] Contact sensor initialized with {self._num_bodies} bodies.")
 
-        self._body_names = [
-            entity[1].split("/")[-1] for entity in self._contact_newton_view.sensor_keys[: self._num_bodies]
-        ]
-        self._contact_partner_names = [
-            entity[1].split("/")[-1] for entity in self._contact_newton_view.contact_partner_keys[1:]
-        ]
+        # Assume homogeneous envs, i.e. all envs have the same number of bodies / shapes
+        # Only get the names for the first env. Expected structure: /World/envs/env_.*/...
+        def get_name(idx, match_kind):
+            if match_kind == MatchKind.BODY:
+                return NewtonManager._model.body_key[idx].split("/")[-1]
+            if match_kind == MatchKind.SHAPE:
+                return NewtonManager._model.shape_key[idx].split("/")[-1]
+            return "MATCH_ANY"
+
+        self._body_names = [get_name(idx, kind) for idx, kind in self.contact_newton_view.sensing_objs]
+        # Assumes the environments are processed in order.
+        self._body_names = self._body_names[: self._num_bodies]
+        self._contact_partner_names = [get_name(idx, kind) for idx, kind in self.contact_newton_view.counterparts]
 
         # prepare data buffers
         self._data.net_forces_w = torch.zeros(self._num_envs, self._num_bodies, 3, device=self._device)
@@ -333,7 +310,7 @@ class ContactSensor(SensorBase):
             self._data.current_contact_time = torch.zeros(self._num_envs, self._num_bodies, device=self._device)
         # force matrix: (num_envs, num_bodies, num_filter_shapes, 3)
         if self._generate_force_matrix:
-            num_filters = self._contact_newton_view.shape[1]
+            num_filters = self.contact_newton_view.shape[1]
             self._data.force_matrix_w = torch.zeros(
                 self._num_envs, self._num_bodies, num_filters, 3, device=self._device
             )
@@ -346,7 +323,7 @@ class ContactSensor(SensorBase):
             env_ids = slice(None)
 
         # net_force is a matrix of shape (num_bodies * num_envs, num_filters, 3)
-        net_forces_w = wp.to_torch(self._contact_newton_view.net_force).clone()
+        net_forces_w = wp.to_torch(self.contact_newton_view.net_force).clone()
         self._data.net_forces_w[env_ids, :, :] = net_forces_w[:, 0, :].reshape(self._num_envs, self._num_bodies, 3)[
             env_ids
         ]
@@ -358,7 +335,7 @@ class ContactSensor(SensorBase):
         # obtain the contact force matrix
         if self._generate_force_matrix:
             # shape of the filtering matrix: (num_envs, num_bodies, num_filter_shapes, 3)
-            num_filters = self._contact_newton_view.shape[1] - 1  # -1 for the total force
+            num_filters = self.contact_newton_view.shape[1] - 1  # -1 for the total force
             # acquire and shape the force matrix
             self._data.force_matrix_w[env_ids] = net_forces_w[:, 1:, :].reshape(
                 self._num_envs, self._num_bodies, num_filters, 3
@@ -442,4 +419,4 @@ class ContactSensor(SensorBase):
         # call parent
         super()._invalidate_initialize_callback(event)
         # set all existing views to None to invalidate them
-        self._contact_newton_view = None
+        # TODO: invalidate NewtonManager if necessary
