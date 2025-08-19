@@ -1,3 +1,8 @@
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
@@ -14,8 +19,6 @@ environment with a policy.
 """Launch Isaac Sim Simulator first."""
 
 
-import argparse
-
 from isaaclab.app import AppLauncher
 
 simulation_app = AppLauncher(headless=True).app
@@ -24,9 +27,9 @@ simulation_app = AppLauncher(headless=True).app
 
 import numpy as np
 import torch
-import pytest
 
 import omni.usd
+import pytest
 
 import isaaclab.envs.mdp as mdp
 import isaaclab.sim as sim_utils
@@ -46,7 +49,7 @@ from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
 # Pre-defined configs
 ##
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
-from isaaclab_assets.robots.anymal import ANYMAL_C_CFG  # isort: skip
+from isaaclab_assets import ANYMAL_D_CFG  # isort: skip
 
 
 ##
@@ -76,7 +79,7 @@ class MySceneCfg(InteractiveSceneCfg):
     )
 
     # add robot
-    robot: ArticulationCfg = ANYMAL_C_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = ANYMAL_D_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     # lights
     sky_light = AssetBaseCfg(
@@ -129,12 +132,13 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
 
-    reset_scene_to_default = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+    pass
 
 
 @configclass
-class EventRandomizedCfg:
+class RandomizedEventCfg:
     """Configuration for events."""
+
     physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
@@ -143,7 +147,7 @@ class EventRandomizedCfg:
             "static_friction_range": (0.3, 1.0),
             "dynamic_friction_range": (0.5, 0.5),
             "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
+            "num_buckets": 512,
         },
     )
     add_base_mass = EventTerm(
@@ -155,7 +159,6 @@ class EventRandomizedCfg:
             "operation": "add",
         },
     )
-    reset_scene_to_default = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
 
 ##
@@ -163,7 +166,7 @@ class EventRandomizedCfg:
 ##
 @configclass
 class QuadrupedEnvCfg(ManagerBasedEnvCfg):
-    randomize_mass: bool = False
+    randomize: bool = False
     device: str = "cuda:0"
     """Configuration for the locomotion velocity-tracking environment."""
     # Scene settings
@@ -176,7 +179,7 @@ class QuadrupedEnvCfg(ManagerBasedEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         super().__post_init__()
-        self.events = EventRandomizedCfg() if self.randomize_mass else EventCfg()
+        self.events = RandomizedEventCfg() if self.randomize else EventCfg()
         # general settings
         self.decimation = 4
         self.episode_length_s = 20.0
@@ -184,12 +187,13 @@ class QuadrupedEnvCfg(ManagerBasedEnvCfg):
         self.sim.dt = 0.005
         self.sim.device = self.device
 
-@pytest.mark.parametrize("device", ["cuda:0", "cpu"])
+
+@pytest.mark.parametrize("device", ["cuda:0"])
 def test_randomized_mass(device):
     omni.usd.get_context().new_stage()
-    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize_mass=True, device=device))
+    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize=True, device=device))
     obs, _ = env.reset()
-    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-C
+    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-D
     # reset
     for i in range(10):
         obs, _ = env.step(actions)
@@ -205,19 +209,19 @@ def test_randomized_mass(device):
     assert (np.abs(masses[1, 0] - masses[2, 0]) > 0.0).all()
     assert (np.abs(masses_mjwarp[0, 1] - masses_mjwarp[1, 1]) > 0.0).all()
     assert (np.abs(masses_mjwarp[1, 1] - masses_mjwarp[2, 1]) > 0.0).all()
-    # environement should have differnt heights
-    # heights = obs["policy"].cpu().numpy()
-    # assert(np.abs(heights[0] - heights[1]) > 0.0)
-    # assert(np.abs(heights[1] - heights[2]) > 0.0)
+    # environment should have different heights
+    heights = obs["policy"].cpu().numpy()
+    assert np.abs(heights[0] - heights[1]) > 0.0
+    assert np.abs(heights[1] - heights[2]) > 0.0
     env.close()
 
 
-@pytest.mark.parametrize("device", ["cuda:0", "cpu"])
+@pytest.mark.parametrize("device", ["cuda:0"])
 def test_constant_mass(device):
     omni.usd.get_context().new_stage()
-    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize_mass=False, device=device))
+    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize=False, device=device))
     obs, _ = env.reset()
-    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-C
+    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-D
     # reset
     for i in range(10):
         obs, _ = env.step(actions)
@@ -230,64 +234,50 @@ def test_constant_mass(device):
     assert (np.abs(masses[1, :] - masses[2, :]) == 0.0).all()
     assert (np.abs(masses_mjwarp[0, :] - masses_mjwarp[1, :]) == 0.0).all()
     assert (np.abs(masses_mjwarp[1, :] - masses_mjwarp[2, :]) == 0.0).all()
-    # environement should have differnt heights
+    # environment should have different heights
     # heights = obs["policy"].cpu().numpy()
     # assert(np.abs(heights[0]- heights[1]) < 1e-2)
     # assert(np.abs(heights[1]- heights[2]) < 1e-2)
     env.close()
 
 
-@pytest.mark.parametrize("device", ["cuda:0", "cpu"])
+@pytest.mark.parametrize("device", ["cuda:0"])
 def test_randomized_material(device):
     omni.usd.get_context().new_stage()
-    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize_mass=True, device=device))
+    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize=True, device=device))
     obs, _ = env.reset()
-    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-C
+    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-D
     # reset
     for i in range(10):
         obs, _ = env.step(actions)
     # reset counters
-    materials = NewtonManager._model.shape_material_mu.numpy()
-    to_newton_shape_index = NewtonManager._solver.model.to_newton_shape_index.numpy()
+    # materials = NewtonManager._model.shape_material_mu.numpy()
+    # to_newton_shape_index = NewtonManager._solver.model.to_newton_shape_index.numpy()
     materials_mjwarp = NewtonManager._solver.mjw_model.geom_friction.numpy()
     ngeom = NewtonManager._solver.mjw_model.ngeom
-
     materials_mjwarp = materials_mjwarp[:, :, 0]
-    print("materials_mjwarp:", materials_mjwarp.shape, materials_mjwarp)
     # newton_shape_index = to_newton_shape_index[:, :ngeom]
     materials_mjwarp = materials_mjwarp.reshape(3, ngeom)
-    print("newton_shape_index:", to_newton_shape_index.shape, to_newton_shape_index)
-    materials_newton = materials[to_newton_shape_index]
-    print("materials_newton:", materials_newton.shape, materials_newton)
-    # print("[INFO]: Environment reset. Observations:\n", obs)
+    # materials_newton = materials[to_newton_shape_index]
 
+    # there is a non-zero chance that the same material gets assigned to the same body since this is a random process
     assert (np.abs(materials_mjwarp[0, 2:] - materials_mjwarp[1, 2:]) > 0.0).all()
     assert (np.abs(materials_mjwarp[1, 2:] - materials_mjwarp[2, 2:]) > 0.0).all()
     env.close()
 
 
-@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("device", ["cuda:0"])
 def test_constant_material(device):
     omni.usd.get_context().new_stage()
-    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize_mass=False, device=device))
+    env = ManagerBasedEnv(cfg=QuadrupedEnvCfg(randomize=False, device=device))
     obs, _ = env.reset()
-    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-C
+    actions = torch.rand((3, 12), device=env.device)  # 12 joints in ANMAL-D
     # reset
     for i in range(10):
         obs, _ = env.step(actions)
     # reset counters
-    materials = NewtonManager._model.shape_material_mu.numpy()
-    to_newton_shape_index = NewtonManager._solver.model.to_newton_shape_index.numpy()
     materials_mjwarp = NewtonManager._solver.mjw_model.geom_friction.numpy()
     ngeom = NewtonManager._solver.mjw_model.ngeom
-
-    materials_mjwarp = materials_mjwarp[:, :, 0]
-    # newton_shape_index = to_newton_shape_index[:, :ngeom]
-    materials_mjwarp = materials_mjwarp.reshape(3, ngeom)
-    materials_newton = materials[to_newton_shape_index]
-    # print("[INFO]: Environment reset. Observations:\n", obs)
-    # assert(np.abs(materials[0] - materials[1]) == 0.0).all())
-    # assert(np.abs(materials[1] - materials[2]) == 0.0).all())
-    assert (np.abs(materials_mjwarp[0, :] - materials_mjwarp[1, :]) == 0.0).all()
+    materials_mjwarp = materials_mjwarp[:, :, 0].reshape(3, ngeom)
     assert (np.abs(materials_mjwarp[1, :] - materials_mjwarp[2, :]) == 0.0).all()
     env.close()

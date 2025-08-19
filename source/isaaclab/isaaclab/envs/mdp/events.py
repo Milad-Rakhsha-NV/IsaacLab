@@ -50,15 +50,15 @@ class randomize_rigid_body_material(ManagerTermBase):
             env: The environment instance.
 
         Raises:
-            ValueError: If the asset is not a RigidObject or an Articulation.
+            ValueError: If the asset is not an Articulation.
         """
         super().__init__(cfg, env)
 
         # extract the used quantities (to enable type-hinting)
         self.asset_cfg: SceneEntityCfg = cfg.params["asset_cfg"]
-        self.asset: RigidObject | Articulation = env.scene[self.asset_cfg.name]
+        self.asset: Articulation = env.scene[self.asset_cfg.name]
 
-        if not isinstance(self.asset, (RigidObject, Articulation)):
+        if not isinstance(self.asset, (Articulation)):
             raise ValueError(
                 f"Randomization term 'randomize_rigid_body_material' not supported for asset: '{self.asset_cfg.name}'"
                 f" with type: '{type(self.asset)}'."
@@ -83,7 +83,9 @@ class randomize_rigid_body_material(ManagerTermBase):
         #   afterwards these are randomly assigned to the geometries of the asset
         range_list = [static_friction_range, dynamic_friction_range, restitution_range]
         ranges = torch.tensor(range_list, device=self.asset.device)
-        self.material_buckets = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (num_buckets, 3), device=self.asset.device)
+        self.material_buckets = math_utils.sample_uniform(
+            ranges[:, 0], ranges[:, 1], (num_buckets, 3), device=self.asset.device
+        )
 
         # ensure dynamic friction is always less than static friction
         make_consistent = cfg.params.get("make_consistent", False)
@@ -110,11 +112,13 @@ class randomize_rigid_body_material(ManagerTermBase):
         # randomly assign material IDs to the geometries
         total_num_shapes = sum(self.num_shapes_per_body)
         bucket_ids = torch.randint(0, num_buckets, (len(env_ids), total_num_shapes), device="cpu")
-        material_samples = torch.tensor(self.material_buckets[bucket_ids], device=env.device)
+        material_samples = torch.tensor(self.material_buckets[bucket_ids], device=self.asset.device)
 
         # retrieve material buffer from the physics simulation
         # materials = self.asset.root_physx_view.get_material_properties()
-        material_mu = wp.to_torch(self.asset.root_newton_view.get_attribute("shape_material_mu", self.asset.root_newton_model)).clone()
+        material_mu = wp.to_torch(
+            self.asset.root_newton_view.get_attribute("shape_material_mu", self.asset.root_newton_model)
+        ).clone()
         # print("material_mu before update:\n", material_mu.shape, material_mu)
         # update material buffer with new samples
         if self.num_shapes_per_body is not None:
@@ -125,18 +129,22 @@ class randomize_rigid_body_material(ManagerTermBase):
                 end_idx = start_idx + self.num_shapes_per_body[body_id]
                 # assign the new materials
                 # material samples are of shape: num_env_ids x total_num_shapes x 3
-                material_mu[env_ids, start_idx:end_idx] = material_samples[:, start_idx:end_idx,0]
+                material_mu[env_ids, start_idx:end_idx] = material_samples[:, start_idx:end_idx, 0]
         else:
             # assign all the materials
-            material_mu[env_ids] = material_samples[:,0]
+            material_mu[env_ids] = material_samples[:, 0]
 
         # apply to simulation
         mask = torch.zeros((env.scene.num_envs,), dtype=torch.bool, device=env.device)
         mask[env_ids] = True
-        self.asset.root_newton_view.set_attribute("shape_material_mu", self.asset.root_newton_model, wp.from_torch(material_mu), mask=mask)
-        NewtonManager._solver.notify_model_changed(newton.sim.NOTIFY_FLAG_SHAPE_PROPERTIES)
-        material_mu = wp.to_torch(self.asset.root_newton_view.get_attribute("shape_material_mu", self.asset.root_newton_model)).clone()
+        self.asset.root_newton_view.set_attribute(
+            "shape_material_mu", self.asset.root_newton_model, wp.from_torch(material_mu), mask=mask
+        )
+        NewtonManager._solver.notify_model_changed(SolverNotifyFlags.SHAPE_PROPERTIES)
+
+        # material_mu = wp.to_torch(self.asset.root_newton_view.get_attribute("shape_material_mu", self.asset.root_newton_model)).clone()
         # print("material_mu after update:\n", material_mu.shape, material_mu)
+
 
 def randomize_rigid_body_mass(
     env: ManagerBasedEnv,
