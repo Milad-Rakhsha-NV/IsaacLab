@@ -1,0 +1,60 @@
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+# Joint names in the target physics engine where policy is deployed (e.g., Newton/MJWarp)
+target_joint_names: 
+  - "index_joint_0"
+  - "index_joint_1"
+  - "index_joint_2"
+  - "index_joint_3"
+  - "middle_joint_0"
+  - "middle_joint_1"
+  - "middle_joint_2"
+  - "middle_joint_3"
+  - "ring_joint_0"
+  - "ring_joint_1"
+  - "ring_joint_2"
+  - "ring_joint_3"
+  - "thumb_joint_0"
+  - "thumb_joint_1"
+  - "thumb_joint_2"
+  - "thumb_joint_3"
+
+# Joint names in the source physics engine where policy is trained (e.g., PhysX)
+source_joint_names:
+  - "index_joint_0"
+  - "middle_joint_0"
+  - "ring_joint_0"
+  - "thumb_joint_0"
+  - "index_joint_1"
+  - "middle_joint_1"
+  - "ring_joint_1"
+  - "thumb_joint_1"
+  - "index_joint_2"
+  - "middle_joint_2"
+  - "ring_joint_2"
+  - "thumb_joint_2"
+  - "index_joint_3"
+  - "middle_joint_3"
+  - "ring_joint_3"
+  - "thumb_joint_3"
+
+robot_schema_joint_names:
+  - "index_joint_0"
+  - "index_joint_1"
+  - "index_joint_2"
+  - "index_joint_3"
+  - "middle_joint_0"
+  - "middle_joint_1"
+  - "middle_joint_2"
+  - "middle_joint_3"
+  - "ring_joint_0"
+  - "ring_joint_1"
+  - "ring_joint_2"
+  - "ring_joint_3"
+  - "thumb_joint_0"
+  - "thumb_joint_1"
+  - "thumb_joint_2"
+  - "thumb_joint_3"

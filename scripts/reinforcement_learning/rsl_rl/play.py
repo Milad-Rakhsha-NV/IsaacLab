@@ -184,6 +184,57 @@ def main():
         pass
     inference_device = env.unwrapped.device
 
+    # Debug: check normalization parameters presence and values
+    def _debug_enabled():
+        try:
+            return str(os.environ.get("SIM2SIM_DEBUG", "0")).lower() in ("1", "true", "yes")
+        except Exception:
+            return False
+
+    if _debug_enabled():
+        try:
+            ckpt = torch.load(resume_path, map_location="cpu")
+            print("[SIM2SIM][NORM] checkpoint keys:", list(ckpt.keys()))
+            if "obs_norm_state_dict" in ckpt:
+                on = ckpt["obs_norm_state_dict"]
+                for k in ("_mean", "_std", "_var", "count"):
+                    if k in on and hasattr(on[k], "shape"):
+                        t = on[k]
+                        print(f"[SIM2SIM][NORM] ckpt.obs_norm_state_dict.{k}.shape={tuple(t.shape)} head={t.flatten()[:8].tolist()}")
+            if "model_state_dict" in ckpt:
+                msd = ckpt["model_state_dict"]
+                norm_keys = [k for k in msd.keys() if "normalizer" in k]
+                print(f"[SIM2SIM][NORM] model_state_dict normalizer keys: {norm_keys}")
+        except Exception as e:
+            print(f"[SIM2SIM][NORM] failed to read checkpoint: {e}")
+
+        # runner / policy-side normalizers
+        try:
+            rn = getattr(ppo_runner, "obs_normalizer", None)
+            if rn is not None and hasattr(rn, "state_dict"):
+                sd = rn.state_dict()
+                for k in ("_mean", "_std", "_var", "count"):
+                    if k in sd and hasattr(sd[k], "shape"):
+                        t = sd[k]
+                        print(f"[SIM2SIM][NORM] runner.obs_normalizer.{k}.shape={tuple(t.shape)} head={t.flatten()[:8].tolist()}")
+        except Exception as e:
+            print(f"[SIM2SIM][NORM] runner normalizer read failed: {e}")
+        try:
+            if hasattr(policy_nn, "actor_obs_normalizer") and policy_nn.actor_obs_normalizer is not None:
+                sd = policy_nn.actor_obs_normalizer.state_dict()
+                for k in ("_mean", "_std", "_var", "count"):
+                    if k in sd and hasattr(sd[k], "shape"):
+                        t = sd[k]
+                        print(f"[SIM2SIM][NORM] policy.actor_obs_normalizer.{k}.shape={tuple(t.shape)} head={t.flatten()[:8].tolist()}")
+            if hasattr(policy_nn, "critic_obs_normalizer") and policy_nn.critic_obs_normalizer is not None:
+                sd = policy_nn.critic_obs_normalizer.state_dict()
+                for k in ("_mean", "_std", "_var", "count"):
+                    if k in sd and hasattr(sd[k], "shape"):
+                        t = sd[k]
+                        print(f"[SIM2SIM][NORM] policy.critic_obs_normalizer.{k}.shape={tuple(t.shape)} head={t.flatten()[:8].tolist()}")
+        except Exception as e:
+            print(f"[SIM2SIM][NORM] policy normalizer read failed: {e}")
+
     # export policy to onnx/jit (sim joint order)
     # Ensure we don't create nested "exported" directories
     checkpoint_dir = os.path.dirname(resume_path)
