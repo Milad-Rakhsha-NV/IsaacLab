@@ -1654,6 +1654,7 @@ class Articulation(AssetBase):
             actuator_cfg: ActuatorBaseCfg
             # create actuator group
             joint_ids, joint_names = self.find_joints(actuator_cfg.joint_names_expr)
+            print("joint_names", joint_names)
             # check if any joints are found
             if len(joint_names) == 0:
                 raise ValueError(

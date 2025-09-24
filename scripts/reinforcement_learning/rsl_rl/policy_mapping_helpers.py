@@ -39,6 +39,7 @@ class SchemaJointOrderHelperBase:
                 art = scene.articulations["robot"]
             else:
                 art = next(iter(scene.articulations.values()))
+            
             return art, list(art.joint_names)
         return None, None
 
@@ -68,6 +69,64 @@ class SchemaJointOrderHelperBase:
         except Exception:
             return None
 
+    def _debug_enabled(self) -> bool:
+        try:
+            return str(os.environ.get("SIM2SIM_DEBUG", "0")).lower() in ("1", "true", "yes")
+        except Exception:
+            return False
+
+    def _debug_print_mappings(
+        self,
+        where: str,
+        engine_joint_names: list[str],
+        schema_joint_names: list[str],
+        mappings: tuple[list[int] | None, list[int] | None],
+        term_names: list[str] | None,
+        term_dims: list[int] | None,
+        joint_related_indices: list[int] | None,
+        obs_perm: torch.Tensor | None,
+        action_indices: torch.Tensor | None,
+    ) -> None:
+        if not self._debug_enabled():
+            return
+        try:
+            print(f"[SIM2SIM][{where}] engine_joint_names ({len(engine_joint_names)}): {engine_joint_names}")
+            print(f"[SIM2SIM][{where}] schema_joint_names ({len(schema_joint_names)}): {schema_joint_names}")
+            if mappings and mappings[0] is not None and mappings[1] is not None:
+                _ets = cast(list[int], mappings[0])
+                _ste = cast(list[int], mappings[1])
+                pair_str = ", ".join(
+                    [
+                        f"{name}: eng={i} -> sch={_ets[i]} | sch->eng={_ste[_ets[i]]}"
+                        for i, name in enumerate(engine_joint_names)
+                    ]
+                )
+                print(f"[SIM2SIM][{where}] mapping pairs: {pair_str}")
+            if hasattr(self, "_direct_env_term_offsets"):
+                print(f"[SIM2SIM][{where}] direct env offsets: {getattr(self, '_direct_env_term_offsets')}")
+            if term_names is not None and term_dims is not None:
+                print(f"[SIM2SIM][{where}] term_names: {term_names}")
+                print(f"[SIM2SIM][{where}] term_dims: {term_dims}")
+            if joint_related_indices is not None:
+                print(f"[SIM2SIM][{where}] joint_related_indices: {joint_related_indices}")
+            if obs_perm is not None:
+                print(f"[SIM2SIM][{where}] obs_perm.shape: {tuple(obs_perm.shape)}")
+                # Print first 64 entries for brevity
+                print(f"[SIM2SIM][{where}] obs_perm[:64]: {obs_perm[:64].tolist()}")
+            if action_indices is not None:
+                print(f"[SIM2SIM][{where}] action_indices: {action_indices.tolist()}")
+            # Actuated DOFs info if present
+            try:
+                if hasattr(self.base_env, "actuated_dof_indices"):
+                    adi = list(getattr(self.base_env, "actuated_dof_indices"))
+                    adi_names = [engine_joint_names[i] for i in adi if i < len(engine_joint_names)]
+                    print(f"[SIM2SIM][{where}] actuated_dof_indices ({len(adi)}): {adi}")
+                    print(f"[SIM2SIM][{where}] actuated_dof_names: {adi_names}")
+            except Exception as e:
+                print(f"[SIM2SIM][{where}] actuated_dof_indices debug failed: {e}")
+        except Exception as e:
+            print(f"[SIM2SIM][{where}] debug print failed: {e}")
+
     def _get_observation_terms_info(self):
         """Extract observation manager information."""
         if hasattr(self.base_env, "observation_manager"):
@@ -77,6 +136,9 @@ class SchemaJointOrderHelperBase:
             term_names = list(obs_mgr.active_terms["policy"])  # list[str]
             term_dims = [int(np.prod(d)) for d in obs_mgr.group_obs_term_dim["policy"]]
             return term_names, term_dims
+        elif self._is_direct_env():
+            # Handle direct environments by analyzing the observation structure
+            return self._get_direct_env_observation_info()
         return None, None
 
     def _get_term_type(self, term_func):
@@ -96,38 +158,141 @@ class SchemaJointOrderHelperBase:
             
         return None
 
+    def _is_direct_env(self):
+        """Check if the environment is a direct environment."""
+        # Check if it's a direct environment (doesn't have observation_manager)
+        return not hasattr(self.base_env, "observation_manager") and hasattr(self.base_env, "_get_observations")
+
+    def _get_actuated_indices(self) -> list[int] | None:
+        """Return actuated DOF indices if available (for direct envs)."""
+        try:
+            if hasattr(self.base_env, "actuated_dof_indices"):
+                adi = list(getattr(self.base_env, "actuated_dof_indices"))
+                return [int(i) for i in adi]
+        except Exception:
+            pass
+        return None
+
+    def _get_direct_env_observation_info(self):
+        """Extract observation information from direct environments by analyzing observation structure."""
+        try:
+            # Get a sample observation to analyze structure
+            obs = self.base_env._get_observations()
+            if not isinstance(obs, dict) or "policy" not in obs:
+                return None, None
+            
+            policy_obs = obs["policy"]
+            if not hasattr(policy_obs, "shape") or len(policy_obs.shape) < 2:
+                return None, None
+            
+            # For direct environments, we need to manually identify joint-related segments
+            # This is environment-specific, so we'll use heuristics based on known patterns
+            return self._parse_direct_env_observation_structure(policy_obs.shape[-1])
+        except Exception:
+            return None, None
+
+    def _parse_direct_env_observation_structure(self, total_obs_dim):
+        """Parse direct environment observation structure to identify joint-related terms."""
+        # Get joint information from the environment
+        art, joint_names = self._get_scene_articulation_and_joint_names()
+        if art is None or not joint_names:
+            return None, None
+        
+        num_joints = len(joint_names)
+        
+        # Try to get the number of actions more reliably
+        num_actions = num_joints  # Default fallback
+        if hasattr(self.base_env, "num_actions"):
+            num_actions = self.base_env.num_actions
+        elif hasattr(self.base_env.cfg, "action_space"):
+            if isinstance(self.base_env.cfg.action_space, int):
+                num_actions = self.base_env.cfg.action_space
+            elif hasattr(self.base_env.cfg.action_space, "shape"):
+                shape = self.base_env.cfg.action_space.shape
+                num_actions = shape[0] if isinstance(shape, (list, tuple)) else shape
+        elif hasattr(self.base_env, "num_hand_dofs"):
+            num_actions = self.base_env.num_hand_dofs
+        
+        # For InHandManipulation environment, the structure is:
+        # [joint_pos(num_joints), joint_vel(num_joints), ..., actions(num_actions)]
+        # We know joint_pos and joint_vel are at the beginning, actions at the end
+        
+        joint_related_terms = []
+        
+        # Joint positions at offset 0
+        joint_related_terms.append(("joint_pos", num_joints, 0))
+        
+        # Joint velocities at offset num_joints
+        joint_related_terms.append(("joint_vel", num_joints, num_joints))
+        
+        # Actions at the end
+        action_offset = total_obs_dim - num_actions
+        if action_offset >= 2 * num_joints:  # Make sure there's space for joint_pos and joint_vel
+            joint_related_terms.append(("actions", num_actions, action_offset))
+        
+        if len(joint_related_terms) < 2:  # At least joint_pos and joint_vel
+            return None, None
+        
+        # Store the offsets for later use
+        self._direct_env_term_offsets = {term[0]: term[2] for term in joint_related_terms}
+        
+        # Convert to the format expected by the rest of the code
+        term_names = [term[0] for term in joint_related_terms]
+        term_dims = [term[1] for term in joint_related_terms]
+        
+        return term_names, term_dims
+
     def _validate_joint_terms(self, joint_names: list[str], term_names: list[str], term_dims: list[int]):
         """Find all joint-related observation terms (JointState and Action types)."""
-        if not hasattr(self.base_env, "observation_manager"):
-            return None
-            
-        obs_mgr = self.base_env.observation_manager
-        if "policy" not in obs_mgr._group_obs_term_cfgs:
-            return None
-            
-        term_cfgs = obs_mgr._group_obs_term_cfgs["policy"]
-        
-        # Find all joint-related terms (JointState and Action types)
-        joint_related_indices = []
-        
-        for i, (term_name, term_cfg) in enumerate(zip(term_names, term_cfgs)):
-            if not hasattr(term_cfg, 'func'):
-                continue
+        if hasattr(self.base_env, "observation_manager"):
+            # Manager-based environment
+            obs_mgr = self.base_env.observation_manager
+            if "policy" not in obs_mgr._group_obs_term_cfgs:
+                return None
                 
-            term_type = self._get_term_type(term_cfg.func)
+            term_cfgs = obs_mgr._group_obs_term_cfgs["policy"]
             
-            # All joint-related terms use the same permutation
-            if term_type in ['JointState', 'Action']:
-                # Validate size matches number of joints
-                num_joints = len(joint_names)
-                if term_dims[i] == num_joints:
+            # Find all joint-related terms (JointState and Action types)
+            joint_related_indices = []
+            
+            for i, (term_name, term_cfg) in enumerate(zip(term_names, term_cfgs)):
+                if not hasattr(term_cfg, 'func'):
+                    continue
+                    
+                term_type = self._get_term_type(term_cfg.func)
+                
+                # All joint-related terms use the same permutation
+                if term_type in ['JointState', 'Action']:
+                    # Validate size matches number of joints
+                    num_joints = len(joint_names)
+                    if term_dims[i] == num_joints:
+                        joint_related_indices.append(i)
+            
+            # Need at least one joint-related term
+            if not joint_related_indices:
+                return None
+            
+            return joint_related_indices
+        elif self._is_direct_env():
+            # Direct environment - identify joint-related terms by name and size
+            joint_related_indices = []
+            num_joints = len(joint_names)
+            
+            for i, (term_name, term_dim) in enumerate(zip(term_names, term_dims)):
+                # Check if this is a joint-related term
+                if term_name in ['joint_pos', 'joint_vel'] and term_dim == num_joints:
                     joint_related_indices.append(i)
+                elif term_name == 'actions':
+                    # Actions are joint-related for manipulation tasks
+                    joint_related_indices.append(i)
+            
+            # Need at least one joint-related term
+            if not joint_related_indices:
+                return None
+            
+            return joint_related_indices
         
-        # Need at least one joint-related term
-        if not joint_related_indices:
-            return None
-        
-        return joint_related_indices
+        return None
 
     def _build_joint_index_mappings(self, engine_joint_names: list[str], schema_joint_names: list[str]):
         """Build bidirectional mappings between engine and schema joint orders."""
@@ -151,21 +316,58 @@ class SchemaJointOrderHelperBase:
         engine_to_schema, schema_to_engine = mappings
 
         # Build flat observation permutation
-        offsets = np.cumsum([0] + term_dims[:-1]).tolist()
-        total_obs = int(np.sum(term_dims))
+        if self._is_direct_env() and hasattr(self, '_direct_env_term_offsets'):
+            # For direct environments, use the actual offsets from parsed structure
+            offsets = [self._direct_env_term_offsets.get(term_name, 0) for term_name in term_names]
+            # For direct envs, total_obs should be the actual observation dimension, not sum of joint terms
+            total_obs = max(offsets[i] + term_dims[i] for i in range(len(term_names)))
+        else:
+            # For manager-based environments, use cumulative sum
+            offsets = np.cumsum([0] + term_dims[:-1]).tolist()
+            total_obs = int(np.sum(term_dims))
+        
         obs_perm = np.arange(total_obs)
 
-        # Apply same permutation to all joint-related terms
+        # Apply permutation to joint-related terms, handling 'actions' specially for direct envs
+        actuated_indices = self._get_actuated_indices() if self._is_direct_env() else None
+        pos_in_act = None
+        if actuated_indices is not None:
+            pos_in_act = {int(e): int(k) for k, e in enumerate(actuated_indices)}
+
         for term_index in joint_related_indices:
             start = offsets[term_index]
             length = term_dims[term_index]
             
-            if for_import:
-                # For importing: build schema-ordered obs by selecting engine indices per schema index
-                perm_slice = np.array(schema_to_engine, dtype=np.int64)
+            if length == 0:
+                print(f"[WARN] Skipping term {term_names[term_index]} with zero length")
+                continue
+                
+            if start + length > total_obs:
+                print(f"[WARN] Term {term_names[term_index]} extends beyond observation bounds: start={start}, length={length}, total={total_obs}")
+                continue
+            
+            term_name = term_names[term_index] if term_names is not None else ""
+            if term_name == 'actions' and actuated_indices is not None and pos_in_act is not None:
+                # Special handling: actions are in actuated order in direct envs
+                if for_import:
+                    # We want schema-ordered previous actions from actuated-ordered input
+                    # perm_slice[s] = position k in actuated where engine index == schema_to_engine[s]
+                    perm_slice = np.array([pos_in_act[int(schema_to_engine[s])] for s in range(length)], dtype=np.int64)
+                else:
+                    # We want actuated-ordered actions from schema-ordered input
+                    # perm_slice[k] = schema index for engine index of actuated[k]
+                    perm_slice = np.array([engine_to_schema[int(actuated_indices[k])] for k in range(length)], dtype=np.int64)
             else:
-                # For exporting: build sim-ordered obs using inverse mapping (engine index -> schema index)  
-                perm_slice = np.array(engine_to_schema, dtype=np.int64)
+                if for_import:
+                    # For importing: build schema-ordered obs by selecting engine indices per schema index
+                    perm_slice = np.array(schema_to_engine, dtype=np.int64)
+                else:
+                    # For exporting: build sim-ordered obs using inverse mapping (engine index -> schema index)  
+                    perm_slice = np.array(engine_to_schema, dtype=np.int64)
+            
+            if len(perm_slice) != length:
+                print(f"[WARN] Permutation slice length {len(perm_slice)} doesn't match term length {length} for {term_names[term_index]}")
+                continue
             
             obs_perm[start : start + length] = start + perm_slice
 
@@ -214,8 +416,27 @@ class SchemaImportHelper(SchemaJointOrderHelperBase):
         self.obs_perm, engine_to_schema, schema_to_engine = self._compute_observation_permutation(
             mappings, term_names, term_dims, joint_related_indices, for_import=True
         )
-        # For import: action_perm maps schema actions -> engine actions
-        self.action_perm = torch.as_tensor(engine_to_schema, dtype=torch.long)
+        # For import: map schema actions -> env actions
+        # In direct envs, actions are ordered by actuated_dof_indices
+        actuated_indices = self._get_actuated_indices() if self._is_direct_env() else None
+        if actuated_indices is not None:
+            action_indices = [engine_to_schema[int(actuated_indices[k])] for k in range(len(actuated_indices))]
+        else:
+            action_indices = list(engine_to_schema)
+        self.action_perm = torch.as_tensor(action_indices, dtype=torch.long)
+
+        # Debug info
+        self._debug_print_mappings(
+            where="IMPORT",
+            engine_joint_names=engine_joint_names,
+            schema_joint_names=schema_joint_names,
+            mappings=(engine_to_schema, schema_to_engine),
+            term_names=term_names,
+            term_dims=term_dims,
+            joint_related_indices=joint_related_indices,
+            obs_perm=self.obs_perm,
+            action_indices=self.action_perm,
+        )
         
         # print("obs_perm", self.obs_perm)
         # print("action_perm", self.action_perm)
@@ -265,8 +486,28 @@ class SchemaExportHelper(SchemaJointOrderHelperBase):
             mappings, term_names, term_dims, joint_related_indices, for_import=False
         )
         # For export: action_out_indices maps sim actions -> schema order
-        # Original used: schema_to_sim, which is equivalent to our schema_to_engine
-        self.action_out_indices = torch.as_tensor(schema_to_engine, dtype=torch.long)
+        # In direct envs, sim actions are in actuated_dof_indices order
+        actuated_indices = self._get_actuated_indices() if self._is_direct_env() else None
+        if actuated_indices is not None:
+            pos_in_act = {int(e): int(k) for k, e in enumerate(actuated_indices)}
+            action_indices = [pos_in_act[int(schema_to_engine[s])] for s in range(len(schema_to_engine))]
+        else:
+            # Original used: schema_to_sim, which is equivalent to our schema_to_engine
+            action_indices = list(schema_to_engine)
+        self.action_out_indices = torch.as_tensor(action_indices, dtype=torch.long)
+
+        # Debug info
+        self._debug_print_mappings(
+            where="EXPORT",
+            engine_joint_names=sim_joint_names,
+            schema_joint_names=schema_joint_names,
+            mappings=(engine_to_schema, schema_to_engine),
+            term_names=term_names,
+            term_dims=term_dims,
+            joint_related_indices=joint_related_indices,
+            obs_perm=self.obs_perm,
+            action_indices=self.action_out_indices,
+        )
         
         # print("obs_perm", self.obs_perm)
         # print("action_out_indices", self.action_out_indices)
@@ -393,6 +634,12 @@ def export_robot_schema_policy(
                 # Apply schema mapping to the checkpoint weights
                 schema_checkpoint = copy.deepcopy(checkpoint)
                 temp_policy = copy.deepcopy(policy_nn)
+                
+                # Debug: show what keys are in the original checkpoint
+                print(f"[DEBUG] Original checkpoint keys: {list(checkpoint.keys())}")
+                if "model_state_dict" in checkpoint:
+                    model_keys = [k for k in checkpoint["model_state_dict"].keys() if 'norm' in k]
+                    print(f"[DEBUG] Normalizer-related keys in model_state_dict: {model_keys}")
 
                 obs_perm = perm_helper.obs_perm
                 action_out_indices = perm_helper.action_out_indices
@@ -403,22 +650,8 @@ def export_robot_schema_policy(
                     obs_perm.numel(), device=obs_perm.device, dtype=obs_perm.dtype
                 )
 
-                # Reorder normalizer if present
-                if hasattr(temp_policy, "actor_obs_normalizer"):
-                    norm = temp_policy.actor_obs_normalizer
-                    if norm is not None:
-                        try:
-                            sd = norm.state_dict()
-                            for k, v in list(sd.items()):
-                                if (
-                                    isinstance(v, torch.Tensor)
-                                    and v.dim() == 1
-                                    and v.numel() == inv_obs_perm.numel()
-                                ):
-                                    sd[k] = v.index_select(0, inv_obs_perm.to(v.device))
-                            norm.load_state_dict(sd, strict=False)
-                        except Exception:
-                            pass
+                # Skip normalizer reordering since we're excluding all normalizer keys
+                # The target environment will initialize its own normalizers
 
                 # Reorder first and last linear layers in actor/student
                 actor_module = getattr(temp_policy, "actor", None) or getattr(temp_policy, "student", None)
@@ -442,7 +675,145 @@ def export_robot_schema_policy(
                             if last_linear.bias is not None:
                                 last_linear.bias.data = last_linear.bias.data.index_select(0, aidx)
 
-                schema_checkpoint["model_state_dict"] = temp_policy.state_dict()
+                # Completely remove all normalizer keys to avoid compatibility issues
+                # The target environment will use its own normalizer structure
+                temp_state_dict = temp_policy.state_dict()
+                filtered_state_dict = {}
+                
+                normalizer_keys_excluded = []
+                
+                for k, v in temp_state_dict.items():
+                    # Completely skip all normalizer keys to avoid compatibility issues
+                    if 'normalizer' in k:
+                        normalizer_keys_excluded.append(k)
+                        continue
+                    else:
+                        filtered_state_dict[k] = v
+                
+                print(f"[INFO] Excluded {len(normalizer_keys_excluded)} normalizer keys from schema checkpoint")
+                print(f"[INFO] Target environment will use its own normalizer structure")
+                
+                schema_checkpoint["model_state_dict"] = filtered_state_dict
+                
+                # Handle obs_norm_state_dict - either reorder existing or create from runner
+                if "obs_norm_state_dict" in checkpoint:
+                    print(f"[INFO] Found obs_norm_state_dict in original checkpoint")
+                    original_obs_norm = checkpoint["obs_norm_state_dict"]
+                    reordered_obs_norm = {}
+                    
+                    # Apply the same observation permutation to the normalizer statistics
+                    for k, v in original_obs_norm.items():
+                        if isinstance(v, torch.Tensor) and v.dim() == 1 and v.numel() == obs_perm.numel():
+                            # This is likely a per-observation statistic that needs reordering
+                            reordered_obs_norm[k] = v.index_select(0, obs_perm.to(v.device))
+                            print(f"[INFO] Reordered obs_norm key: {k}")
+                        else:
+                            # Keep scalar values as-is
+                            reordered_obs_norm[k] = v
+                    
+                    schema_checkpoint["obs_norm_state_dict"] = reordered_obs_norm
+                    print(f"[INFO] Preserved and reordered obs_norm_state_dict")
+                else:
+                    # Create obs_norm_state_dict from the policy's normalizer or runner's normalizer
+                    print(f"[INFO] No obs_norm_state_dict in original checkpoint, creating from available normalizer")
+                    
+                    # Try to get normalizer from different sources
+                    normalizer_source = None
+                    original_obs_norm = None
+                    
+                    # First try: runner's obs_normalizer
+                    if hasattr(runner, 'obs_normalizer') and runner.obs_normalizer is not None:
+                        normalizer_source = "runner.obs_normalizer"
+                        original_obs_norm = runner.obs_normalizer.state_dict()
+                    # Second try: policy's actor_obs_normalizer 
+                    elif hasattr(policy_nn, 'actor_obs_normalizer') and policy_nn.actor_obs_normalizer is not None:
+                        normalizer_source = "policy.actor_obs_normalizer"
+                        original_obs_norm = policy_nn.actor_obs_normalizer.state_dict()
+                    # Third try: extract from original checkpoint's model_state_dict
+                    elif any(k.startswith('actor_obs_normalizer.') for k in checkpoint["model_state_dict"].keys()):
+                        normalizer_source = "original_checkpoint_actor_normalizer"
+                        original_obs_norm = {}
+                        for k, v in checkpoint["model_state_dict"].items():
+                            if k.startswith('actor_obs_normalizer.'):
+                                # Remove the prefix to get the normalizer key
+                                norm_key = k.replace('actor_obs_normalizer.', '')
+                                original_obs_norm[norm_key] = v
+                    
+                    if original_obs_norm is not None:
+                        try:
+                            print(f"[INFO] Using normalizer from: {normalizer_source}")
+                            reordered_obs_norm = {}
+                            
+                            # Apply the same observation permutation to the normalizer statistics
+                            for k, v in original_obs_norm.items():
+                                if isinstance(v, torch.Tensor) and v.dim() == 1 and v.numel() == obs_perm.numel():
+                                    # This is likely a per-observation statistic that needs reordering
+                                    reordered_obs_norm[k] = v.index_select(0, obs_perm.to(v.device))
+                                    print(f"[INFO] Reordered obs_norm key: {k}")
+                                else:
+                                    # Keep scalar values as-is
+                                    reordered_obs_norm[k] = v
+                            
+                            schema_checkpoint["obs_norm_state_dict"] = reordered_obs_norm
+                            print(f"[INFO] Created and reordered obs_norm_state_dict from {normalizer_source}")
+                        except Exception as e:
+                            print(f"[WARN] Failed to create obs_norm_state_dict from {normalizer_source}: {e}")
+                    else:
+                        print(f"[WARN] No normalizer found in runner, policy, or checkpoint")
+                
+                # Handle privileged_obs_norm_state_dict if needed
+                if "privileged_obs_norm_state_dict" in checkpoint:
+                    print(f"[INFO] Found privileged_obs_norm_state_dict in original checkpoint")
+                    # Preserve the privileged normalizer as-is (may not need reordering)
+                    schema_checkpoint["privileged_obs_norm_state_dict"] = checkpoint["privileged_obs_norm_state_dict"]
+                    print(f"[INFO] Preserved privileged_obs_norm_state_dict")
+                else:
+                    # Try to create privileged_obs_norm_state_dict from critic normalizer
+                    print(f"[INFO] No privileged_obs_norm_state_dict in original checkpoint, checking for critic normalizer")
+                    
+                    # Try to get critic normalizer from different sources
+                    critic_normalizer_source = None
+                    critic_obs_norm = None
+                    
+                    # First try: extract from original checkpoint's model_state_dict
+                    if any(k.startswith('critic_obs_normalizer.') for k in checkpoint["model_state_dict"].keys()):
+                        critic_normalizer_source = "original_checkpoint_critic_normalizer"
+                        critic_obs_norm = {}
+                        for k, v in checkpoint["model_state_dict"].items():
+                            if k.startswith('critic_obs_normalizer.'):
+                                # Remove the prefix to get the normalizer key
+                                norm_key = k.replace('critic_obs_normalizer.', '')
+                                critic_obs_norm[norm_key] = v
+                    # Second try: policy's critic_obs_normalizer
+                    elif hasattr(policy_nn, 'critic_obs_normalizer') and policy_nn.critic_obs_normalizer is not None:
+                        critic_normalizer_source = "policy.critic_obs_normalizer"
+                        critic_obs_norm = policy_nn.critic_obs_normalizer.state_dict()
+                    
+                    if critic_obs_norm is not None:
+                        try:
+                            print(f"[INFO] Using critic normalizer from: {critic_normalizer_source}")
+                            # For privileged obs, we might not need reordering if it's state-based
+                            # But apply the same reordering to be safe
+                            reordered_critic_norm = {}
+                            for k, v in critic_obs_norm.items():
+                                if isinstance(v, torch.Tensor) and v.dim() == 1 and v.numel() == obs_perm.numel():
+                                    reordered_critic_norm[k] = v.index_select(0, obs_perm.to(v.device))
+                                    print(f"[INFO] Reordered privileged_obs_norm key: {k}")
+                                else:
+                                    reordered_critic_norm[k] = v
+                            
+                            schema_checkpoint["privileged_obs_norm_state_dict"] = reordered_critic_norm
+                            print(f"[INFO] Created and reordered privileged_obs_norm_state_dict from {critic_normalizer_source}")
+                        except Exception as e:
+                            print(f"[WARN] Failed to create privileged_obs_norm_state_dict from {critic_normalizer_source}: {e}")
+                    else:
+                        # Create empty privileged normalizer as fallback
+                        if "obs_norm_state_dict" in schema_checkpoint:
+                            print(f"[INFO] Creating privileged_obs_norm_state_dict as copy of obs_norm_state_dict")
+                            schema_checkpoint["privileged_obs_norm_state_dict"] = schema_checkpoint["obs_norm_state_dict"].copy()
+                        else:
+                            print(f"[WARN] No critic normalizer found and no obs_norm_state_dict to copy")
+                
                 torch.save(schema_checkpoint, runner_ckpt_path)
                 print("[INFO] Exported schema-ordered runner checkpoint to:", runner_ckpt_path)
             except Exception as e:
