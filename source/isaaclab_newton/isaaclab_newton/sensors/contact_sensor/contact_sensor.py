@@ -346,43 +346,42 @@ class ContactSensor(BaseContactSensor):
         body_labels = self._get_model_labels("body")
         shape_labels = self._get_model_labels("shape")
 
-        def get_name(idx, kind):
-            kind_name = getattr(kind, "name", None)
-            kind_value = getattr(kind, "value", kind)
-            if kind_name == "BODY" or kind_value == 2:
-                return body_labels[int(idx)].split("/")[-1]
-            if kind_name == "SHAPE" or kind_value == 1:
-                return shape_labels[int(idx)].split("/")[-1]
-            return "MATCH_ANY"
+        # Newton's ``SensorContact`` reports a single ``sensing_obj_type`` /
+        # ``counterpart_type`` ("body" or "shape") for the whole sensor and
+        # per-row indices in ``sensing_obj_idx`` (list[int]) /
+        # ``counterpart_indices`` (list[list[int]] grouped by world).
+        def _labels_for(obj_type) -> list[str] | None:
+            if obj_type == "body":
+                return body_labels
+            if obj_type == "shape":
+                return shape_labels
+            return None
 
-        def flatten_metadata(values):
-            if isinstance(values, wp.array):
-                values = values.numpy()
-            flat_values = np.asarray(values, dtype=object).reshape(-1).tolist()
-            if flat_values and isinstance(flat_values[0], list | tuple | np.ndarray):
-                return [
-                    value
-                    for nested_values in flat_values
-                    for value in np.asarray(nested_values, dtype=object).reshape(-1).tolist()
-                ]
-            return flat_values
+        def _bare_name(label: str) -> str:
+            return label.split("/")[-1]
 
-        flat_sensing = list(
-            zip(
-                flatten_metadata(self.contact_view.sensing_obj_idx),
-                flatten_metadata(self.contact_view.sensing_obj_type),
+        sensing_type = self.contact_view.sensing_obj_type
+        sensing_labels = _labels_for(sensing_type)
+        if sensing_labels is None:
+            raise RuntimeError(
+                f"Unsupported SensorContact.sensing_obj_type {sensing_type!r}; expected 'body' or 'shape'."
             )
-        )
-        self._sensor_names = [get_name(idx, kind) for idx, kind in flat_sensing]
+        sensing_indices = list(self.contact_view.sensing_obj_idx)
+        self._sensor_names = [_bare_name(sensing_labels[int(i)]) for i in sensing_indices]
         # Assumes the environments are processed in order.
         self._sensor_names = self._sensor_names[: self._num_sensors]
-        flat_counterparts = list(
-            zip(
-                flatten_metadata(self.contact_view.counterpart_indices),
-                flatten_metadata(self.contact_view.counterpart_type),
-            )
-        )
-        self._filter_object_names = [get_name(idx, kind) for idx, kind in flat_counterparts]
+
+        counterpart_type = self.contact_view.counterpart_type
+        counterpart_labels = _labels_for(counterpart_type)
+        counterpart_indices = self.contact_view.counterpart_indices or []
+        if counterpart_labels is None:
+            self._filter_object_names = []
+        else:
+            self._filter_object_names = [
+                _bare_name(counterpart_labels[int(j)])
+                for row in counterpart_indices
+                for j in row
+            ]
 
         force_matrix = self.contact_view.force_matrix
         force_matrix_shape = force_matrix.shape if force_matrix is not None else (total_sensor_count, 0)
