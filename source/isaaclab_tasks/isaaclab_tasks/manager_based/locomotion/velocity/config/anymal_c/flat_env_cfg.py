@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_newton.physics import ChronoSolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
 from isaaclab_physx.physics import PhysxCfg
 
 from isaaclab.sim import SimulationCfg
@@ -27,6 +27,22 @@ class PhysicsCfg(PresetCfg):
         ),
         num_substeps=1,
         debug_mode=False,
+    )
+    newton_chrono = NewtonCfg(
+        solver_cfg=ChronoSolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_max_iterations=50,
+            contact_solver_type="sparse_jacobi",
+            contact_max_iterations=50,
+            contact_recovery_speed=1.0,
+            angular_damping=0.05,
+            use_implicit_pd=True,
+            max_velocity=20.0,
+        ),
+        num_substeps=4,
+        debug_mode=False,
+        use_cuda_graph=False,
+        default_shape_cfg=NewtonShapeCfg(margin=0.001, gap=0.01),
     )
     physx = default
 
