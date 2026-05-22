@@ -70,6 +70,15 @@ class NewtonChronoManager(NewtonManager):
     def _build_solver(cls, model: Model, solver_cfg: ChronoSolverCfg) -> None:
         """Construct :class:`SolverChrono` and set base-class slots."""
 
+        # Propagate rigid_contact_max from collision_cfg to model BEFORE
+        # building the solver.  SolverChrono reads model.rigid_contact_max
+        # to allocate its internal lambda buffer, but _initialize_contacts
+        # (which normally sets this) runs AFTER _build_solver.
+        collision_cfg = cls._collision_cfg
+        if collision_cfg is not None and getattr(collision_cfg, "rigid_contact_max", None):
+            model.rigid_contact_max = collision_cfg.rigid_contact_max
+            logger.info(f"Chrono: set model.rigid_contact_max = {model.rigid_contact_max}")
+
         joint_config = _make_numerical_config(
             solver_type_str=solver_cfg.joint_solver_type,
             max_iterations=solver_cfg.joint_max_iterations,
