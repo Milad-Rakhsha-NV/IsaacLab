@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 
-import torch
 import warp as wp
 from newton import Contacts, Control, Model, State, eval_fk, eval_ik
 from newton.solvers import SolverChrono, SolverType, NumericalSolverConfig
@@ -36,7 +35,9 @@ def _make_numerical_config(
     omega: float,
     relax: float,
     reg: float,
+    alpha: float = 0.005,
     recovery_speed: float = -1.0,
+    position_correction: bool = False,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -45,14 +46,25 @@ def _make_numerical_config(
             f"Unknown solver type '{solver_type_str}'. "
             f"Available: {list(_SOLVER_TYPE_MAP.keys())}"
         )
+    # Build position correction config if requested (same solver type, fewer iters)
+    pos_cfg = None
+    if position_correction:
+        pos_solver_type = _SOLVER_TYPE_MAP.get(solver_type_str, SolverType.SPARSE_JACOBI)
+        pos_cfg = NumericalSolverConfig(
+            solver_type=pos_solver_type,
+            max_iterations=max(max_iterations // 2, 10),
+            alpha=alpha,
+            recovery_speed=recovery_speed,
+        )
     return NumericalSolverConfig(
         solver_type=solver_type,
         max_iterations=max_iterations,
         omega=omega,
         relax=relax,
         reg=reg,
+        alpha=alpha,
         recovery_speed=recovery_speed,
-        position_correction=None,
+        position_correction=pos_cfg,
     )
 
 
@@ -85,6 +97,9 @@ class NewtonChronoManager(NewtonManager):
             omega=solver_cfg.joint_omega,
             relax=solver_cfg.joint_relax,
             reg=solver_cfg.joint_reg,
+            alpha=solver_cfg.joint_alpha,
+            recovery_speed=solver_cfg.joint_recovery_speed,
+            position_correction=solver_cfg.joint_position_correction,
         )
 
         contact_config = _make_numerical_config(
@@ -93,7 +108,9 @@ class NewtonChronoManager(NewtonManager):
             omega=solver_cfg.contact_omega,
             relax=solver_cfg.contact_relax,
             reg=solver_cfg.contact_reg,
+            alpha=solver_cfg.contact_alpha,
             recovery_speed=solver_cfg.contact_recovery_speed,
+            position_correction=solver_cfg.contact_position_correction,
         )
 
         NewtonManager._solver = SolverChrono(
@@ -120,6 +137,60 @@ class NewtonChronoManager(NewtonManager):
         )
 
     @classmethod
+    def initialize_solver(cls) -> None:
+        """Override to pre-run prepare_for_capture before CUDA graph capture.
+
+        The block-sparse LDL symbolic factorization reads joint topology
+        from the model via ``.numpy()`` (CPU transfer).  This must happen
+        before CUDA graph capture starts.  We call it after the base
+        ``initialize_solver`` has built the solver and contacts but before
+        it captures the graph.
+        """
+        from isaaclab_newton.physics.newton_manager import NewtonManager
+        from isaaclab.physics import PhysicsManager
+
+        cfg = PhysicsManager._cfg
+        if cfg is None:
+            return
+
+        # --- Run base logic EXCEPT the graph capture ---
+        from isaaclab.utils.timer import Timer
+        with Timer(name="newton_initialize_solver", msg="Initialize solver took:"):
+            NewtonManager._num_substeps = cfg.num_substeps
+            NewtonManager._solver_dt = cls.get_physics_dt() / cls._num_substeps
+            NewtonManager._collision_cfg = cfg.collision_cfg
+
+            cls._build_solver(cls._model, cfg.solver_cfg)
+            if NewtonManager._solver is None:
+                raise RuntimeError(
+                    f"{cls.__name__}._build_solver did not assign NewtonManager._solver."
+                )
+            cls._initialize_contacts()
+
+        if cls._usdrt_stage is not None:
+            cls._setup_cubric_bindings()
+
+        # --- Pre-run finalize_for_capture (CPU work) BEFORE graph capture ---
+        # The block-sparse LDL symbolic factorization reads joint topology
+        # via .numpy() (CPU transfer). This must happen before CUDA graph
+        # capture starts. SolverChrono.finalize_for_capture() calls
+        # prepare_for_capture on all sub-solvers; the methods are idempotent
+        # so subsequent calls during capture short-circuit.
+        solver = NewtonManager._solver
+        state_0 = cls._state_0
+        if state_0 is not None and hasattr(solver, 'finalize_for_capture'):
+            solver.finalize_for_capture(state_0)
+            logger.info("Chrono: pre-ran finalize_for_capture (joint + contact solvers)")
+
+        # --- Now capture CUDA graph (all prepare_for_capture will short-circuit) ---
+        device = PhysicsManager._device
+        use_cuda_graph = cfg.use_cuda_graph and "cuda" in device
+        if use_cuda_graph:
+            cls._capture_or_defer_cuda_graph()
+        else:
+            NewtonManager._graph = None
+
+    @classmethod
     def _step_solver(cls, state_0: State, state_1: State, control: Control, substep_dt: float) -> None:
         """Run one Chrono substep: collide → step → eval_ik.
 
@@ -134,32 +205,44 @@ class NewtonChronoManager(NewtonManager):
         # Step the solver with contacts
         cls._solver.step(state_0, state_1, control, cls._contacts, substep_dt)
 
-        # Clamp body velocities to prevent catastrophic divergence
-        # The DVI solver can produce extreme velocities from deep penetration.
-        # Clamp BEFORE eval_ik to avoid propagating bad velocities to joint space.
+        # Clamp body velocities to prevent catastrophic divergence.
+        # Use warp kernels (not torch) to stay on the warp CUDA stream
+        # and remain CUDA-graph safe.
         max_vel = cls._chrono_max_velocity
         if max_vel > 0:
-            body_qd_torch = wp.to_torch(state_1.body_qd)
-            torch.clamp_(body_qd_torch, min=-max_vel, max=max_vel)
+            wp.launch(
+                _clamp_and_sanitize_spatial,
+                dim=state_1.body_qd.shape[0],
+                inputs=[max_vel],
+                outputs=[state_1.body_qd],
+                device=state_1.body_qd.device,
+            )
 
         # Chrono works in maximal coordinates — sync joint coords from body state
         eval_ik(cls._model, state_1, state_1.joint_q, state_1.joint_qd)
 
-        # Also clamp joint velocities (eval_ik derives them from body_qd)
+        # Clamp + sanitize joint velocities and positions
         if max_vel > 0:
-            joint_qd_torch = wp.to_torch(state_1.joint_qd)
-            torch.clamp_(joint_qd_torch, min=-max_vel, max=max_vel)
-
-        # Sanitize: replace any NaN/Inf values with zero
-        # This is a safety net for edge cases the clamping misses
-        body_q_torch = wp.to_torch(state_1.body_q)
-        body_qd_torch2 = wp.to_torch(state_1.body_qd)
-        joint_q_torch = wp.to_torch(state_1.joint_q)
-        joint_qd_torch2 = wp.to_torch(state_1.joint_qd)
-        torch.nan_to_num_(body_q_torch, nan=0.0, posinf=0.0, neginf=0.0)
-        torch.nan_to_num_(body_qd_torch2, nan=0.0, posinf=0.0, neginf=0.0)
-        torch.nan_to_num_(joint_q_torch, nan=0.0, posinf=0.0, neginf=0.0)
-        torch.nan_to_num_(joint_qd_torch2, nan=0.0, posinf=0.0, neginf=0.0)
+            wp.launch(
+                _clamp_and_sanitize_float,
+                dim=state_1.joint_qd.shape[0],
+                inputs=[max_vel],
+                outputs=[state_1.joint_qd],
+                device=state_1.joint_qd.device,
+            )
+        # Sanitize NaN/Inf in body and joint state arrays
+        wp.launch(
+            _sanitize_transform,
+            dim=state_1.body_q.shape[0],
+            outputs=[state_1.body_q],
+            device=state_1.body_q.device,
+        )
+        wp.launch(
+            _sanitize_float,
+            dim=state_1.joint_q.shape[0],
+            outputs=[state_1.joint_q],
+            device=state_1.joint_q.device,
+        )
 
     @classmethod
     def _simulate_physics_only(cls) -> None:
@@ -197,47 +280,39 @@ class NewtonChronoManager(NewtonManager):
         # Populate contacts for contact sensors
         if cls._report_contacts:
             eval_contacts = cls._contacts
-            # SolverChrono.update_contacts populates rigid_contact_force but NOT
-            # contacts.force (spatial_vector).  SensorContact reads contacts.force,
-            # so we need to bridge the gap.
-            cls._safe_update_contacts(eval_contacts)
+            # Compute contact forces on GPU (replaces solver.update_contacts
+            # which uses CPU numpy loops).
+            cls._gpu_update_contact_forces(eval_contacts)
+            # Bridge rigid_contact_force → contacts.force (spatial_vector)
+            # with impulse→force scaling.
             cls._populate_spatial_forces(eval_contacts)
             for sensor in cls._newton_contact_sensors.values():
                 sensor.update(cls._state_0, eval_contacts)
 
     # ------------------------------------------------------------------
-    # Safe update_contacts wrapper
+    # GPU contact force update (replaces solver.update_contacts)
     # ------------------------------------------------------------------
 
     @classmethod
-    def _safe_update_contacts(cls, contacts: Contacts) -> None:
-        """Call solver.update_contacts with bounds protection.
+    def _gpu_update_contact_forces(cls, contacts: Contacts) -> None:
+        """Compute rigid_contact_force from solver lambda on GPU.
 
-        The Chrono ContactSolver.update_contacts iterates ``contact_count`` times
-        and indexes into ``lambda_[i*3]``. If ``contact_count`` exceeds the lambda
-        buffer size (allocated at solver creation time), it crashes with an
-        IndexError.  We clamp the count to avoid this.
+        Replaces :meth:`SolverChrono.update_contacts` which uses a CPU numpy
+        loop.  This version is CUDA-graph safe.
         """
-        try:
-            cls._solver.update_contacts(contacts)
-        except IndexError:
-            # Lambda buffer overflow — too many contacts for the allocated size.
-            # Clamp the count so the solver can still partially update.
-            contact_count = int(contacts.rigid_contact_count.numpy()[0])
-            constraint = cls._solver._contact_solver._constraint
-            max_lambda = constraint.lambda_.shape[0] // 3
-            logger.warning(
-                f"Chrono contact buffer overflow: {contact_count} contacts but "
-                f"lambda buffer only holds {max_lambda}. Clamping."
-            )
-            import numpy as np
-            contacts.rigid_contact_count.assign(np.array([max_lambda], dtype=np.int32))
-            try:
-                cls._solver.update_contacts(contacts)
-            except Exception:
-                pass  # Give up on force reporting for this step
-            # Restore the real count
-            contacts.rigid_contact_count.assign(np.array([contact_count], dtype=np.int32))
+        constraint = cls._solver._contact_solver._constraint
+        wp.launch(
+            _compute_contact_force_from_lambda,
+            dim=constraint.contact_max,
+            inputs=[
+                contacts.rigid_contact_count,
+                contacts.rigid_contact_normal,
+                constraint.lambda_,
+                constraint.contact_max,
+            ],
+            outputs=[contacts.rigid_contact_force],
+            device=contacts.device,
+        )
 
     # ------------------------------------------------------------------
     # Bridge: rigid_contact_force (vec3) → contacts.force (spatial_vector)
@@ -272,6 +347,30 @@ class NewtonChronoManager(NewtonManager):
 
 
 @wp.kernel
+def _compute_contact_force_from_lambda(
+    num_contacts: wp.array(dtype=wp.int32),
+    normal: wp.array(dtype=wp.vec3f),
+    lambda_: wp.array(dtype=wp.float32),
+    contact_max: int,
+    # output
+    force: wp.array(dtype=wp.vec3f),
+):
+    """Compute rigid_contact_force = normal * lambda (normal component).
+
+    Each contact has 3 lambda rows (normal + 2 friction).  The normal
+    impulse is at index ``i * 3``.  Contacts beyond ``num_contacts`` or
+    ``contact_max`` are zeroed.
+    """
+    i = wp.tid()
+    if i >= num_contacts[0] or i >= contact_max:
+        force[i] = wp.vec3(0.0, 0.0, 0.0)
+        return
+    # Normal impulse is at lambda_[i*3]; friction at i*3+1, i*3+2
+    lam_n = lambda_[i * 3]
+    force[i] = normal[i] * lam_n
+
+
+@wp.kernel
 def _copy_rigid_force_to_spatial(
     num_contacts: wp.array(dtype=wp.int32),
     rigid_force: wp.array(dtype=wp.vec3f),
@@ -288,3 +387,68 @@ def _copy_rigid_force_to_spatial(
     f = rigid_force[i] * scale
     # spatial_vector: top = linear force, bottom = torque (zero for point contacts)
     spatial_force[i] = wp.spatial_vector(f[0], f[1], f[2], 0.0, 0.0, 0.0)
+
+
+@wp.kernel
+def _clamp_and_sanitize_spatial(
+    max_val: float,
+    # in/out
+    arr: wp.array(dtype=wp.spatial_vectorf),
+):
+    """Clamp and sanitize a spatial_vector array (6 floats per entry)."""
+    i = wp.tid()
+    v = arr[i]
+    out = wp.spatial_vector(
+        wp.clamp(v[0], -max_val, max_val),
+        wp.clamp(v[1], -max_val, max_val),
+        wp.clamp(v[2], -max_val, max_val),
+        wp.clamp(v[3], -max_val, max_val),
+        wp.clamp(v[4], -max_val, max_val),
+        wp.clamp(v[5], -max_val, max_val),
+    )
+    arr[i] = out
+
+
+@wp.kernel
+def _clamp_and_sanitize_float(
+    max_val: float,
+    # in/out
+    arr: wp.array(dtype=wp.float32),
+):
+    """Clamp and sanitize a float array."""
+    i = wp.tid()
+    v = arr[i]
+    arr[i] = wp.clamp(v, -max_val, max_val)
+
+
+@wp.kernel
+def _sanitize_float(
+    # in/out
+    arr: wp.array(dtype=wp.float32),
+):
+    """Replace NaN/Inf with zero in a float array."""
+    i = wp.tid()
+    v = arr[i]
+    if wp.isnan(v) or wp.isinf(v):
+        arr[i] = 0.0
+
+
+@wp.kernel
+def _sanitize_transform(
+    # in/out
+    arr: wp.array(dtype=wp.transformf),
+):
+    """Replace NaN/Inf components with identity transform."""
+    i = wp.tid()
+    t = arr[i]
+    p = wp.transform_get_translation(t)
+    q = wp.transform_get_rotation(t)
+    bad = False
+    for c in range(3):
+        if wp.isnan(p[c]) or wp.isinf(p[c]):
+            bad = True
+    for c in range(4):
+        if wp.isnan(q[c]) or wp.isinf(q[c]):
+            bad = True
+    if bad:
+        arr[i] = wp.transform(wp.vec3(0.0, 0.0, 0.0), wp.quat(0.0, 0.0, 0.0, 1.0))

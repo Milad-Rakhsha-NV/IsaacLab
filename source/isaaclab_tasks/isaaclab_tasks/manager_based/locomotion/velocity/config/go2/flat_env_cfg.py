@@ -33,18 +33,23 @@ class PhysicsCfg(PresetCfg):
         solver_cfg=ChronoSolverCfg(
             joint_solver_type="sparse_ldl",
             joint_max_iterations=50,
+            joint_alpha=0.0,
+            joint_recovery_speed=100000.0,
+            joint_position_correction=False,
             contact_solver_type="sparse_jacobi",
             contact_max_iterations=50,
+            contact_alpha=0.0,
             contact_recovery_speed=1.0,
+            contact_position_correction=False,
             angular_damping=0.05,
             use_implicit_pd=True,
             max_velocity=20.0,
         ),
-        num_substeps=4,
+        num_substeps=1,
         debug_mode=False,
-        use_cuda_graph=False,
+        use_cuda_graph=True,
         default_shape_cfg=NewtonShapeCfg(margin=0.001, gap=0.01),
-        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=65536),
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
     physx = default
 

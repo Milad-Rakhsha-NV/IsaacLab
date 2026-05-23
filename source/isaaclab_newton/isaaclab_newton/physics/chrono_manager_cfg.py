@@ -55,6 +55,17 @@ class ChronoSolverCfg(NewtonSolverCfg):
     joint_reg: float = 1e-6
     """Regularization for joint solver."""
 
+    joint_alpha: float = 0.0
+    """Baumgarte damping for joint constraints.  correction = phi / (dt + alpha).
+    0 = full correction each step, large value (1e6) = effectively disabled."""
+
+    joint_recovery_speed: float = 100000.0
+    """Max Baumgarte recovery speed for joints (rad/s or m/s).
+    Very large = effectively unlimited."""
+
+    joint_position_correction: bool = False
+    """Enable position-level correction for joint drift."""
+
     # -- Contact solver config --
     contact_solver_type: str = "sparse_jacobi"
     """Numerical solver type for contact forces."""
@@ -71,8 +82,15 @@ class ChronoSolverCfg(NewtonSolverCfg):
     contact_reg: float = 1e-4
     """Regularization for contact solver."""
 
+    contact_alpha: float = 0.0
+    """Baumgarte damping for contact constraints.  correction = phi / (dt + alpha).
+    0 = full correction each step."""
+
     contact_recovery_speed: float = 1.0
-    """Contact recovery speed (Baumgarte stabilization)."""
+    """Max Baumgarte recovery speed for contacts (m/s)."""
+
+    contact_position_correction: bool = False
+    """Enable position-level correction for contact penetration."""
 
     # -- General solver params --
     angular_damping: float = 0.01

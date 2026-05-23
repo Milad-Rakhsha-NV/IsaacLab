@@ -41,7 +41,7 @@ class PhysicsCfg(PresetCfg):
         ),
         num_substeps=4,
         debug_mode=False,
-        use_cuda_graph=False,
+        use_cuda_graph=True,
         default_shape_cfg=NewtonShapeCfg(margin=0.001, gap=0.01),
     )
     physx = default
