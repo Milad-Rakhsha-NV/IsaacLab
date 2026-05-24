@@ -106,7 +106,7 @@ class NewtonCfg(PhysicsCfg):
     If set to False, the simulation performance will be severely degraded.
     """
 
-    collapse_fixed_joints: bool = False
+    collapse_fixed_joints: bool = True
     """Whether to collapse fixed joints during model building.
 
     If True, fixed joints are removed and the respective bodies are merged,

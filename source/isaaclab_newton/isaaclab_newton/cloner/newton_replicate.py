@@ -16,7 +16,14 @@ from isaaclab_newton.physics import NewtonManager
 
 
 def _get_collapse_fixed_joints() -> bool:
-    """Check if collapse_fixed_joints is enabled via env var NEWTON_COLLAPSE_FIXED_JOINTS."""
+    """Check if collapse_fixed_joints is enabled via NewtonCfg or env var fallback."""
+    from isaaclab.physics import PhysicsManager
+    from isaaclab_newton.physics.newton_manager_cfg import NewtonCfg
+
+    cfg = PhysicsManager._cfg
+    if isinstance(cfg, NewtonCfg):
+        return cfg.collapse_fixed_joints
+    # Env var fallback for non-Newton configs (should not happen in practice)
     import os
     return os.environ.get("NEWTON_COLLAPSE_FIXED_JOINTS", "").lower() in ("1", "true", "yes")
 

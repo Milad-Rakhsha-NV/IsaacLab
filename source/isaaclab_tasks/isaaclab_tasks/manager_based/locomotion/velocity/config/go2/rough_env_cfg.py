@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
-from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.utils import configclass
 
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg
@@ -15,16 +14,6 @@ from isaaclab_tasks.utils import preset
 ##
 from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG  # isort: skip
 
-# Implicit actuator for Chrono — PD handled by sim (implicit PD in mass matrix)
-GO2_IMPLICIT_ACTUATOR_CFG = ImplicitActuatorCfg(
-    joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
-    effort_limit=23.5,
-    velocity_limit=30.0,
-    stiffness=25.0,
-    damping=0.5,
-    armature=0.02,
-)
-
 
 @configclass
 class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
@@ -33,12 +22,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
 
         self.scene.robot = UNITREE_GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        # Chrono: use implicit actuator (PD in sim via implicit PD)
-        self.scene.robot.actuators["base_legs"] = preset(
-            default=self.scene.robot.actuators["base_legs"],
-            newton_chrono=GO2_IMPLICIT_ACTUATOR_CFG,
-        )
-        self.scene.robot.actuators["base_legs"].armature = preset(default=0.0, newton_mjwarp=0.02)
+        self.scene.robot.actuators["base_legs"].armature = preset(default=0.0, newton_mjwarp=0.02, newton_chrono=0.02)
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/base"
         # scale down the terrains because the robot is small
         self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.1)
@@ -49,7 +33,10 @@ class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.actions.joint_pos.scale = 0.25
 
         # rewards
-        self.rewards.feet_air_time.params["sensor_cfg"].body_names = ".*_foot"
+        # With collapse_fixed_joints (Newton default), foot bodies merge into calf
+        self.rewards.feet_air_time.params["sensor_cfg"].body_names = preset(
+            default=".*_foot", newton_chrono=".*_calf",
+        )
         self.rewards.feet_air_time.weight = 0.01
         self.rewards.undesired_contacts = None
         self.rewards.dof_torques_l2.weight = -0.0002
