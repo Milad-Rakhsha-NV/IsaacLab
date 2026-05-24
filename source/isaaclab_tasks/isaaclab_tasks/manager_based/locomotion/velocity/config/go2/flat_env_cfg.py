@@ -39,16 +39,15 @@ class PhysicsCfg(PresetCfg):
             contact_solver_type="sparse_jacobi",
             contact_max_iterations=50,
             contact_alpha=0.0,
-            contact_recovery_speed=1.0,
+            contact_recovery_speed=1000.0,
             contact_position_correction=False,
-            angular_damping=0.05,
+            angular_damping=0.01,
             use_implicit_pd=True,
             max_velocity=20.0,
         ),
         num_substeps=1,
         debug_mode=False,
         use_cuda_graph=True,
-        default_shape_cfg=NewtonShapeCfg(margin=0.001, gap=0.01),
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
     physx = default
@@ -62,18 +61,15 @@ class UnitreeGo2FlatEnvCfg(UnitreeGo2RoughEnvCfg):
         # post init of parent
         super().__post_init__()
 
-        # override rewards
+        # override rewards — same weights for all solvers
         self.rewards.flat_orientation_l2.weight = -2.5
-        self.rewards.feet_air_time.weight = preset(default=0.25, newton_chrono=0.5)
-        self.rewards.feet_air_time.params["threshold"] = preset(default=0.5, newton_chrono=0.3)
-
-        # Chrono DVI has noisier accelerations and vertical bouncing;
-        # reduce corresponding penalties so the optimizer focuses on locomotion.
-        self.rewards.dof_acc_l2.weight = preset(default=-2.5e-7, newton_chrono=-5.0e-8)
-        self.rewards.lin_vel_z_l2.weight = preset(default=-2.0, newton_chrono=-1.0)
-        self.rewards.action_rate_l2.weight = preset(default=-0.01, newton_chrono=-0.005)
-        self.rewards.track_lin_vel_xy_exp.weight = preset(default=1.5, newton_chrono=2.0)
-        self.rewards.track_ang_vel_z_exp.weight = preset(default=0.75, newton_chrono=1.0)
+        self.rewards.feet_air_time.weight = 0.25
+        self.rewards.feet_air_time.params["threshold"] = 0.5
+        self.rewards.dof_acc_l2.weight = -2.5e-7
+        self.rewards.lin_vel_z_l2.weight = -2.0
+        self.rewards.action_rate_l2.weight = -0.01
+        self.rewards.track_lin_vel_xy_exp.weight = 1.5
+        self.rewards.track_ang_vel_z_exp.weight = 0.75
 
         # change terrain to flat
         self.scene.terrain.terrain_type = "plane"
