@@ -15,6 +15,12 @@ from pxr import Usd
 from isaaclab_newton.physics import NewtonManager
 
 
+def _get_collapse_fixed_joints() -> bool:
+    """Check if collapse_fixed_joints is enabled via env var NEWTON_COLLAPSE_FIXED_JOINTS."""
+    import os
+    return os.environ.get("NEWTON_COLLAPSE_FIXED_JOINTS", "").lower() in ("1", "true", "yes")
+
+
 def _build_newton_builder_from_mapping(
     stage: Usd.Stage,
     sources: list[str],
@@ -49,12 +55,17 @@ def _build_newton_builder_from_mapping(
         quaternions[:, 3] = 1.0
 
     schema_resolvers = [SchemaResolverNewton(), SchemaResolverPhysx()]
+    collapse_fixed_joints = _get_collapse_fixed_joints()
+    if collapse_fixed_joints:
+        import logging
+        logging.getLogger(__name__).info("collapse_fixed_joints=True — merging fixed-joint bodies")
 
     builder = NewtonManager.create_builder(up_axis=up_axis)
     stage_info = builder.add_usd(
         stage,
         ignore_paths=["/World/envs"] + sources,
         schema_resolvers=schema_resolvers,
+        collapse_fixed_joints=collapse_fixed_joints,
     )
 
     # The prototype is built from env_0 in absolute world coordinates.
@@ -70,6 +81,7 @@ def _build_newton_builder_from_mapping(
             load_visual_shapes=True,
             skip_mesh_approximation=True,
             schema_resolvers=schema_resolvers,
+            collapse_fixed_joints=collapse_fixed_joints,
         )
         if simplify_meshes:
             p.approximate_meshes("convex_hull", keep_visual_shapes=True)

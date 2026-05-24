@@ -39,7 +39,7 @@ class PhysicsCfg(PresetCfg):
             contact_solver_type="sparse_jacobi",
             contact_max_iterations=50,
             contact_alpha=0.0,
-            contact_recovery_speed=1000.0,
+            contact_recovery_speed=10.0,
             contact_position_correction=False,
             angular_damping=0.01,
             use_implicit_pd=True,
@@ -48,6 +48,7 @@ class PhysicsCfg(PresetCfg):
         num_substeps=1,
         debug_mode=False,
         use_cuda_graph=True,
+        default_shape_cfg=NewtonShapeCfg(gap=0.005),
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
     physx = default

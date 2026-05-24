@@ -106,6 +106,14 @@ class NewtonCfg(PhysicsCfg):
     If set to False, the simulation performance will be severely degraded.
     """
 
+    collapse_fixed_joints: bool = False
+    """Whether to collapse fixed joints during model building.
+
+    If True, fixed joints are removed and the respective bodies are merged,
+    reducing the number of simulated bodies. This can improve performance
+    but changes the body topology.
+    """
+
     solver_cfg: NewtonSolverCfg | None = None
     """Solver configuration. If None (default), MJWarpSolverCfg is used by default."""
 

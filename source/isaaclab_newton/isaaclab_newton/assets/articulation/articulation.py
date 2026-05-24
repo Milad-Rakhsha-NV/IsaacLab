@@ -3493,32 +3493,39 @@ class Articulation(BaseArticulation):
             joint_ids = actuator.joint_indices
             if joint_ids == slice(None):
                 joint_ids = self._ALL_JOINT_INDICES
-            wp.launch(
-                shared_kernels.write_2d_data_to_buffer_with_indices,
-                dim=(self.num_instances, joint_ids.shape[0]),
-                inputs=[
-                    actuator.stiffness,
-                    self._ALL_INDICES,
-                    joint_ids,
-                ],
-                outputs=[
-                    self.data._sim_bind_joint_stiffness_sim,
-                ],
-                device=self.device,
-            )
-            wp.launch(
-                shared_kernels.write_2d_data_to_buffer_with_indices,
-                dim=(self.num_instances, joint_ids.shape[0]),
-                inputs=[
-                    actuator.damping,
-                    self._ALL_INDICES,
-                    joint_ids,
-                ],
-                outputs=[
-                    self.data._sim_bind_joint_damping_sim,
-                ],
-                device=self.device,
-            )
+            # BUG FIX: _sim_bind_joint_stiffness_sim and _sim_bind_joint_damping_sim are direct
+            # references to model.joint_target_ke/kd. For explicit actuators (DCMotor, IdealPD),
+            # we already zeroed these above. Writing the actuator's configured stiffness/damping
+            # back here would undo the zeroing, causing double-PD when implicit_pd is enabled
+            # in the solver (the solver folds ke/kd into the mass matrix AND the explicit actuator
+            # applies PD torques via joint_f). Only write for implicit actuators.
+            if isinstance(actuator, ImplicitActuator):
+                wp.launch(
+                    shared_kernels.write_2d_data_to_buffer_with_indices,
+                    dim=(self.num_instances, joint_ids.shape[0]),
+                    inputs=[
+                        actuator.stiffness,
+                        self._ALL_INDICES,
+                        joint_ids,
+                    ],
+                    outputs=[
+                        self.data._sim_bind_joint_stiffness_sim,
+                    ],
+                    device=self.device,
+                )
+                wp.launch(
+                    shared_kernels.write_2d_data_to_buffer_with_indices,
+                    dim=(self.num_instances, joint_ids.shape[0]),
+                    inputs=[
+                        actuator.damping,
+                        self._ALL_INDICES,
+                        joint_ids,
+                    ],
+                    outputs=[
+                        self.data._sim_bind_joint_damping_sim,
+                    ],
+                    device=self.device,
+                )
             wp.launch(
                 shared_kernels.write_2d_data_to_buffer_with_indices,
                 dim=(self.num_instances, joint_ids.shape[0]),

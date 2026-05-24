@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.utils import configclass
 
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg
@@ -14,6 +15,16 @@ from isaaclab_tasks.utils import preset
 ##
 from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG  # isort: skip
 
+# Implicit actuator for Chrono — PD handled by sim (implicit PD in mass matrix)
+GO2_IMPLICIT_ACTUATOR_CFG = ImplicitActuatorCfg(
+    joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
+    effort_limit=23.5,
+    velocity_limit=30.0,
+    stiffness=25.0,
+    damping=0.5,
+    armature=0.02,
+)
+
 
 @configclass
 class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
@@ -22,7 +33,12 @@ class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
 
         self.scene.robot = UNITREE_GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.robot.actuators["base_legs"].armature = preset(default=0.0, newton_mjwarp=0.02, newton_chrono=0.02)
+        # Chrono: use implicit actuator (PD in sim via implicit PD)
+        self.scene.robot.actuators["base_legs"] = preset(
+            default=self.scene.robot.actuators["base_legs"],
+            newton_chrono=GO2_IMPLICIT_ACTUATOR_CFG,
+        )
+        self.scene.robot.actuators["base_legs"].armature = preset(default=0.0, newton_mjwarp=0.02)
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/base"
         # scale down the terrains because the robot is small
         self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.1)

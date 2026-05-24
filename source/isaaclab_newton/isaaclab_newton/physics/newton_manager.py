@@ -830,9 +830,17 @@ class NewtonManager(PhysicsManager):
 
         schema_resolvers = [SchemaResolverNewton(), SchemaResolverPhysx()]
 
+        # Check if collapse_fixed_joints is requested via config
+        collapse_fixed_joints = False
+        cfg = PhysicsManager._cfg
+        if isinstance(cfg, NewtonCfg) and getattr(cfg, "collapse_fixed_joints", False):
+            collapse_fixed_joints = True
+            logger.info("collapse_fixed_joints=True requested via NewtonCfg")
+
         if not env_paths:
             # No env Xforms — flat loading
-            builder.add_usd(stage, schema_resolvers=schema_resolvers)
+            builder.add_usd(stage, schema_resolvers=schema_resolvers,
+                            collapse_fixed_joints=collapse_fixed_joints)
         else:
             # Load everything except the env subtrees (ground plane, lights, etc.)
             ignore_paths = [path for _, path in env_paths]
@@ -845,6 +853,7 @@ class NewtonManager(PhysicsManager):
                 stage,
                 root_path=proto_path,
                 schema_resolvers=schema_resolvers,
+                collapse_fixed_joints=collapse_fixed_joints,
             )
 
             # Inject registered sites into the proto before replication

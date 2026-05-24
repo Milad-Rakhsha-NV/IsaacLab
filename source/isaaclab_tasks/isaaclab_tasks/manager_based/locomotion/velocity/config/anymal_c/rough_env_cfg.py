@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.utils import configclass
 
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg
@@ -12,7 +13,18 @@ from isaaclab_tasks.utils import preset
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.anymal import ANYMAL_C_CFG  # isort: skip
+from isaaclab_assets.robots.anymal import ANYMAL_C_CFG, ANYDRIVE_3_SIMPLE_ACTUATOR_CFG  # isort: skip
+
+# Implicit actuator for Chrono — PD handled by sim (implicit PD in mass matrix)
+# Gains: 2x Isaac Lab defaults (similar ratio to Go2 implicit), armature from robot yaml
+ANYDRIVE_3_IMPLICIT_ACTUATOR_CFG = ImplicitActuatorCfg(
+    joint_names_expr=[".*HAA", ".*HFE", ".*KFE"],
+    effort_limit=80.0,
+    velocity_limit=7.5,
+    stiffness={".*": 80.0},
+    damping={".*": 5.0},
+    armature=0.06,
+)
 
 
 @configclass
@@ -23,6 +35,11 @@ class AnymalCRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # switch robot to anymal-c
         self.scene.robot = ANYMAL_C_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.robot.actuators["legs"].armature = preset(default=0.0, newton_mjwarp=0.01, physx=0.0)
+        # Newton/Chrono: swap LSTM for implicit actuator (PD in sim via implicit PD)
+        self.scene.robot.actuators["legs"] = preset(
+            default=self.scene.robot.actuators["legs"],
+            newton_chrono=ANYDRIVE_3_IMPLICIT_ACTUATOR_CFG,
+        )
 
 
 @configclass
