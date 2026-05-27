@@ -40,7 +40,7 @@ class AnymalCRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             default=self.scene.robot.actuators["legs"],
             newton_chrono=ANYDRIVE_3_IMPLICIT_ACTUATOR_CFG,
         )
-        # With collapse_fixed_joints (Newton default), FOOT bodies merge into SHANK
+        # With collapse_fixed_joints=True, FOOT bodies merge into SHANK
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = preset(
             default=".*FOOT", newton_chrono=".*SHANK",
         )

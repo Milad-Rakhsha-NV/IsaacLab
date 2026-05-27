@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-from isaaclab_newton.physics import KaminoSolverCfg, MJWarpSolverCfg, NewtonCfg
-from isaaclab_ovphysx.physics import OvPhysxCfg
+from isaaclab_newton.physics import ChronoSolverCfg, KaminoSolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
+from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
 
 import isaaclab.sim as sim_utils
@@ -60,7 +60,28 @@ class AntPhysicsCfg(PresetCfg):
         debug_mode=False,
         use_cuda_graph=True,
     )
-    ovphysx: OvPhysxCfg = OvPhysxCfg()
+    newton_chrono: NewtonCfg = NewtonCfg(
+        solver_cfg=ChronoSolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_max_iterations=50,
+            joint_alpha=0.0,
+            joint_recovery_speed=100000.0,
+            joint_position_correction=False,
+            contact_solver_type="sparse_jacobi",
+            contact_max_iterations=20,
+            contact_alpha=0.0,
+            contact_recovery_speed=10.0,
+            contact_position_correction=False,
+            angular_damping=0.01,
+            use_implicit_pd=True,
+            joint_limit_ke_scale=0.01,
+        ),
+        num_substeps=1,
+        debug_mode=False,
+        use_cuda_graph=True,
+        default_shape_cfg=NewtonShapeCfg(gap=0.005),
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
+    )
 
 
 @configclass

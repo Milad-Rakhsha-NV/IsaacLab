@@ -8,10 +8,16 @@
 from __future__ import annotations
 
 import logging
+import os
 
 import warp as wp
 from newton import Contacts, Control, Model, State, eval_fk, eval_ik
-from newton.solvers import SolverChrono, SolverType, NumericalSolverConfig
+from newton.solvers import FrictionProjection, SolverChrono, SolverType, NumericalSolverConfig
+
+_FRICTION_PROJECTION_MAP = {
+    "cone": FrictionProjection.CONE,
+    "tangential": FrictionProjection.TANGENTIAL,
+}
 
 from isaaclab.physics import PhysicsManager
 
@@ -38,6 +44,9 @@ def _make_numerical_config(
     alpha: float = 0.005,
     recovery_speed: float = -1.0,
     position_correction: bool = False,
+    diagonal_precondition: bool = False,
+    precond_reg: float = 1e-4,
+    friction_projection: FrictionProjection = FrictionProjection.CONE,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -65,6 +74,9 @@ def _make_numerical_config(
         alpha=alpha,
         recovery_speed=recovery_speed,
         position_correction=pos_cfg,
+        diagonal_precondition=diagonal_precondition,
+        precond_reg=precond_reg,
+        friction_projection=friction_projection,
     )
 
 
@@ -100,7 +112,21 @@ class NewtonChronoManager(NewtonManager):
             alpha=solver_cfg.joint_alpha,
             recovery_speed=solver_cfg.joint_recovery_speed,
             position_correction=solver_cfg.joint_position_correction,
+            diagonal_precondition=solver_cfg.diagonal_precondition,
+            precond_reg=solver_cfg.precond_reg,
         )
+
+        # Resolve friction projection mode (env var overrides config)
+        fp_str = os.environ.get(
+            "NEWTON_FRICTION_PROJECTION",
+            solver_cfg.contact_friction_projection,
+        ).lower()
+        fp = _FRICTION_PROJECTION_MAP.get(fp_str)
+        if fp is None:
+            raise ValueError(
+                f"Unknown contact_friction_projection '{fp_str}'. "
+                f"Available: {list(_FRICTION_PROJECTION_MAP.keys())}"
+            )
 
         contact_config = _make_numerical_config(
             solver_type_str=solver_cfg.contact_solver_type,
@@ -111,6 +137,7 @@ class NewtonChronoManager(NewtonManager):
             alpha=solver_cfg.contact_alpha,
             recovery_speed=solver_cfg.contact_recovery_speed,
             position_correction=solver_cfg.contact_position_correction,
+            friction_projection=fp,
         )
 
         NewtonManager._solver = SolverChrono(
@@ -122,18 +149,17 @@ class NewtonChronoManager(NewtonManager):
             enable_contacts=solver_cfg.enable_contacts,
             enable_gyroscopic=solver_cfg.enable_gyroscopic,
             use_implicit_pd=solver_cfg.use_implicit_pd,
+            joint_limit_ke_scale=solver_cfg.joint_limit_ke_scale,
             enable_timers=False,
         )
         NewtonManager._use_single_state = False
         NewtonManager._needs_collision_pipeline = True
-        # Store max velocity for clamping
-        NewtonManager._chrono_max_velocity = solver_cfg.max_velocity
-
         logger.info(
             f"Chrono solver: joint={solver_cfg.joint_solver_type} "
             f"contact={solver_cfg.contact_solver_type} "
             f"implicit_pd={solver_cfg.use_implicit_pd} "
-            f"angular_damping={solver_cfg.angular_damping}"
+            f"angular_damping={solver_cfg.angular_damping} "
+            f"friction_projection={fp_str}"
         )
 
     @classmethod
@@ -205,31 +231,9 @@ class NewtonChronoManager(NewtonManager):
         # Step the solver with contacts
         cls._solver.step(state_0, state_1, control, cls._contacts, substep_dt)
 
-        # Clamp body velocities to prevent catastrophic divergence.
-        # Use warp kernels (not torch) to stay on the warp CUDA stream
-        # and remain CUDA-graph safe.
-        max_vel = cls._chrono_max_velocity
-        if max_vel > 0:
-            wp.launch(
-                _clamp_and_sanitize_spatial,
-                dim=state_1.body_qd.shape[0],
-                inputs=[max_vel],
-                outputs=[state_1.body_qd],
-                device=state_1.body_qd.device,
-            )
-
         # Chrono works in maximal coordinates — sync joint coords from body state
         eval_ik(cls._model, state_1, state_1.joint_q, state_1.joint_qd)
 
-        # Clamp + sanitize joint velocities and positions
-        if max_vel > 0:
-            wp.launch(
-                _clamp_and_sanitize_float,
-                dim=state_1.joint_qd.shape[0],
-                inputs=[max_vel],
-                outputs=[state_1.joint_qd],
-                device=state_1.joint_qd.device,
-            )
         # Sanitize NaN/Inf in body and joint state arrays
         wp.launch(
             _sanitize_transform,
@@ -387,38 +391,6 @@ def _copy_rigid_force_to_spatial(
     f = rigid_force[i] * scale
     # spatial_vector: top = linear force, bottom = torque (zero for point contacts)
     spatial_force[i] = wp.spatial_vector(f[0], f[1], f[2], 0.0, 0.0, 0.0)
-
-
-@wp.kernel
-def _clamp_and_sanitize_spatial(
-    max_val: float,
-    # in/out
-    arr: wp.array(dtype=wp.spatial_vectorf),
-):
-    """Clamp and sanitize a spatial_vector array (6 floats per entry)."""
-    i = wp.tid()
-    v = arr[i]
-    out = wp.spatial_vector(
-        wp.clamp(v[0], -max_val, max_val),
-        wp.clamp(v[1], -max_val, max_val),
-        wp.clamp(v[2], -max_val, max_val),
-        wp.clamp(v[3], -max_val, max_val),
-        wp.clamp(v[4], -max_val, max_val),
-        wp.clamp(v[5], -max_val, max_val),
-    )
-    arr[i] = out
-
-
-@wp.kernel
-def _clamp_and_sanitize_float(
-    max_val: float,
-    # in/out
-    arr: wp.array(dtype=wp.float32),
-):
-    """Clamp and sanitize a float array."""
-    i = wp.tid()
-    v = arr[i]
-    arr[i] = wp.clamp(v, -max_val, max_val)
 
 
 @wp.kernel

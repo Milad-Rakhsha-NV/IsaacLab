@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from isaaclab.utils import configclass
@@ -101,6 +102,13 @@ class ChronoSolverCfg(NewtonSolverCfg):
     Allows larger timesteps for stiff springs.
     """
 
+    joint_limit_ke_scale: float = 1.0
+    """Scale factor for joint limit stiffness (ke) and damping (kd).
+    USD/MJCF importers produce limit stiffness tuned for implicit constraint solvers
+    (e.g. 10,000).  For penalty-based enforcement, lower values (0.01-0.1) keep limit
+    forces proportional to actuator effort.  Default 1.0 = no scaling.
+    """
+
     enable_gyroscopic: bool = True
     """Whether to include gyroscopic torque."""
 
@@ -110,8 +118,31 @@ class ChronoSolverCfg(NewtonSolverCfg):
     enable_actuation: bool = True
     """Whether to enable PD control actuation."""
 
-    max_velocity: float = 20.0
-    """Maximum allowed body/joint velocity component. Values exceeding this are clamped.
-    Prevents catastrophic divergence from deep penetration events.
-    Set to 0 or negative to disable clamping.
+    diagonal_precondition: bool = True
+    """Enable diagonal (Jacobi) preconditioning for the LDL joint solver.
+
+    Scales the Schur complement N by S = diag(1/sqrt(N_ii)) before LDL
+    factorization. Improves numerical stability for systems with high mass
+    ratios across fixed joints. Only effective with sparse_ldl joint solver.
     """
+
+    precond_reg: float = 1e-4
+    """Post-preconditioning regularization for the scaled LDL system.
+
+    After diagonal scaling brings all N diagonal entries to ~1.0, this adds
+    fresh regularization. Prevents near-zero pivots during LDL factorization.
+    Only used when diagonal_precondition=True.
+    """
+
+    contact_friction_projection: str = "cone"
+    """Friction cone projection mode for contact solver.
+
+    - ``"cone"`` (default): Anitescu-Tasora minimum-norm cone projection.
+      Classical CCP formulation. Inflates normal impulse by
+      (1 + 2μ²) / (1 + μ²) when friction is saturated.
+    - ``"tangential"``: Tangential-only clamp. Preserves normal component,
+      only clamps tangential magnitude. Gives exact normal forces and
+      correct Coulomb sliding velocity.
+    """
+
+
