@@ -107,7 +107,37 @@ class ChronoSolverCfg(NewtonSolverCfg):
     USD/MJCF importers produce limit stiffness tuned for implicit constraint solvers
     (e.g. 10,000).  For penalty-based enforcement, lower values (0.01-0.1) keep limit
     forces proportional to actuator effort.  Default 1.0 = no scaling.
+    Only used in penalty mode (when no ``joint_limit_*`` solver fields are set).
     """
+
+    # -- Joint limit constraint solver config (optional) --
+    # When joint_limit_solver_type is set, joint limits switch from penalty
+    # (spring-damper in actuation) to constraint-based enforcement
+    # (unilateral λ≥0 solver before bilateral joints).
+
+    joint_limit_solver_type: str | None = None
+    """Numerical solver type for joint limit constraints.
+    When set (e.g. ``"sparse_jacobi"``), enables constraint-based joint limits.
+    When None (default), joint limits use penalty-based spring-damper forces.
+    """
+
+    joint_limit_max_iterations: int = 10
+    """Maximum iterations for joint limit constraint solver."""
+
+    joint_limit_omega: float = 0.3
+    """Relaxation parameter for joint limit solver."""
+
+    joint_limit_relax: float = 0.9
+    """SOR relaxation for joint limit solver."""
+
+    joint_limit_reg: float = 1e-8
+    """Regularization for joint limit solver."""
+
+    joint_limit_alpha: float = 0.0
+    """Baumgarte damping for joint limit constraints."""
+
+    joint_limit_recovery_speed: float = 10.0
+    """Max Baumgarte recovery speed for joint limits (rad/s)."""
 
     enable_gyroscopic: bool = True
     """Whether to include gyroscopic torque."""

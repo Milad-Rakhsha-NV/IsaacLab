@@ -44,6 +44,7 @@ class PhysicsCfg(PresetCfg):
             angular_damping=0.01,
             use_implicit_pd=True,
             joint_limit_ke_scale=0.1,
+            joint_limit_solver_type="sparse_jacobi",
             joint_iterative_refinement_steps=1,
         ),
         num_substeps=1,

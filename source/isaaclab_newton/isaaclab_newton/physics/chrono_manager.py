@@ -149,6 +149,19 @@ class NewtonChronoManager(NewtonManager):
             block_precondition=solver_cfg.contact_block_precondition,
         )
 
+        # Build joint limit solver config if constraint-based limits requested
+        joint_limit_config = None
+        if solver_cfg.joint_limit_solver_type is not None:
+            joint_limit_config = _make_numerical_config(
+                solver_type_str=solver_cfg.joint_limit_solver_type,
+                max_iterations=solver_cfg.joint_limit_max_iterations,
+                omega=solver_cfg.joint_limit_omega,
+                relax=solver_cfg.joint_limit_relax,
+                reg=solver_cfg.joint_limit_reg,
+                alpha=solver_cfg.joint_limit_alpha,
+                recovery_speed=solver_cfg.joint_limit_recovery_speed,
+            )
+
         NewtonManager._solver = SolverChrono(
             model,
             joint_solver=joint_config,
@@ -159,16 +172,19 @@ class NewtonChronoManager(NewtonManager):
             enable_gyroscopic=solver_cfg.enable_gyroscopic,
             use_implicit_pd=solver_cfg.use_implicit_pd,
             joint_limit_ke_scale=solver_cfg.joint_limit_ke_scale,
+            joint_limit_solver=joint_limit_config,
             enable_timers=False,
         )
         NewtonManager._use_single_state = False
         NewtonManager._needs_collision_pipeline = True
+        limit_mode = "constraint" if joint_limit_config is not None else "penalty"
         logger.info(
             f"Chrono solver: joint={solver_cfg.joint_solver_type} "
             f"contact={solver_cfg.contact_solver_type} "
             f"implicit_pd={solver_cfg.use_implicit_pd} "
             f"angular_damping={solver_cfg.angular_damping} "
-            f"friction_projection={fp_str}"
+            f"friction_projection={fp_str} "
+            f"joint_limits={limit_mode}"
         )
 
     @classmethod

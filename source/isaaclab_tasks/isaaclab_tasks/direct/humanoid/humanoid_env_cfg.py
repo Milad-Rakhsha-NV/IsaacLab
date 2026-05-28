@@ -53,6 +53,7 @@ class HumanoidPhysicsCfg(PresetCfg):
             angular_damping=0.01,
             use_implicit_pd=True,
             joint_limit_ke_scale=0.01,
+            joint_limit_solver_type="sparse_jacobi",
         ),
         num_substeps=2,
         debug_mode=False,
