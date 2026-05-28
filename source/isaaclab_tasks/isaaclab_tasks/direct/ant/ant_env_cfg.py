@@ -69,6 +69,7 @@ class AntPhysicsCfg(PresetCfg):
             joint_position_correction=False,
             contact_solver_type="sparse_jacobi",
             contact_max_iterations=20,
+            contact_omega=0.3,
             contact_alpha=0.0,
             contact_recovery_speed=10.0,
             contact_position_correction=False,

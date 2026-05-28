@@ -134,6 +134,35 @@ class ChronoSolverCfg(NewtonSolverCfg):
     Only used when diagonal_precondition=True.
     """
 
+    contact_backtrack_iterations: int = 5
+    """Number of backtracking line-search iterations per APGD outer iteration.
+
+    Only used when ``contact_solver_type`` is ``"sparse_apgd"``.
+    Each backtracking step performs a full Schur product, so this is the
+    main cost multiplier for APGD.  Set to 1 to disable backtracking
+    (pure Nesterov APGD with ``L *= 0.9`` decay).  Default 5.
+    """
+
+    joint_iterative_refinement_steps: int = 0
+    """Number of iterative refinement steps after joint LDL factorization.
+
+    Each step computes residual r = b - N@x matrix-free, re-solves using
+    existing L/D factors, and updates x += dx. Recovers ~3-4 digits of
+    precision per step in float32. Only used by SparseLDL solver.
+    Typical values: 0 (disabled), 1-2 (recommended for high mass-ratio systems).
+    """
+
+    contact_block_precondition: bool = True
+    """Use block-3x3 inverse preconditioner for contact Jacobi/GS solvers.
+
+    When ``True`` (default), computes the full 3x3 diagonal block of
+    J M^{-1} J^T per contact and inverts it, capturing cross-coupling
+    between normal and tangential directions.
+
+    When ``False``, uses a scalar trace-based approximation:
+    D_eff = trace(diag_block) / 3. Cheaper but less stable for some envs.
+    """
+
     contact_friction_projection: str = "cone"
     """Friction cone projection mode for contact solver.
 

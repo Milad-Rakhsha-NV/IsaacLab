@@ -38,7 +38,7 @@ class PhysicsCfg(PresetCfg):
             joint_position_correction=False,
             contact_solver_type="sparse_jacobi",
             contact_max_iterations=40,
-            contact_omega=0.5,
+            contact_omega=0.3,
             contact_alpha=0.0,
             contact_recovery_speed=1.0,
             contact_position_correction=False,
@@ -46,7 +46,7 @@ class PhysicsCfg(PresetCfg):
             use_implicit_pd=True,
             joint_limit_ke_scale=0.1,
         ),
-        num_substeps=2,
+        num_substeps=1,  # Match MuJoCo substeps
         debug_mode=False,
         use_cuda_graph=True,
         collapse_fixed_joints=True,

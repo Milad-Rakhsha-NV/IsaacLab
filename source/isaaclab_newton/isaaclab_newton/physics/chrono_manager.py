@@ -47,6 +47,9 @@ def _make_numerical_config(
     diagonal_precondition: bool = False,
     precond_reg: float = 1e-4,
     friction_projection: FrictionProjection = FrictionProjection.CONE,
+    backtrack_iterations: int = 5,
+    block_precondition: bool = True,
+    iterative_refinement_steps: int = 0,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -77,6 +80,9 @@ def _make_numerical_config(
         diagonal_precondition=diagonal_precondition,
         precond_reg=precond_reg,
         friction_projection=friction_projection,
+        backtrack_iterations=backtrack_iterations,
+        block_precondition=block_precondition,
+        iterative_refinement_steps=iterative_refinement_steps,
     )
 
 
@@ -114,6 +120,7 @@ class NewtonChronoManager(NewtonManager):
             position_correction=solver_cfg.joint_position_correction,
             diagonal_precondition=solver_cfg.diagonal_precondition,
             precond_reg=solver_cfg.precond_reg,
+            iterative_refinement_steps=solver_cfg.joint_iterative_refinement_steps,
         )
 
         # Resolve friction projection mode (env var overrides config)
@@ -138,6 +145,8 @@ class NewtonChronoManager(NewtonManager):
             recovery_speed=solver_cfg.contact_recovery_speed,
             position_correction=solver_cfg.contact_position_correction,
             friction_projection=fp,
+            backtrack_iterations=solver_cfg.contact_backtrack_iterations,
+            block_precondition=solver_cfg.contact_block_precondition,
         )
 
         NewtonManager._solver = SolverChrono(
