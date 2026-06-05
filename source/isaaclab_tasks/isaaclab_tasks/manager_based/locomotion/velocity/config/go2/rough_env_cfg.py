@@ -35,7 +35,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # rewards
         # With collapse_fixed_joints (Newton default), foot bodies merge into calf
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = preset(
-            default=".*_foot", newton_chrono=".*_calf",
+            default=".*_foot", newton_mjwarp=".*_calf", newton_chrono=".*_calf",
         )
         self.rewards.feet_air_time.weight = 0.01
         self.rewards.undesired_contacts = None

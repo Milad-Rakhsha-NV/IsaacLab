@@ -71,7 +71,7 @@ class AntPhysicsCfg(PresetCfg):
             contact_max_iterations=20,
             contact_omega=0.3,
             contact_alpha=0.0,
-            contact_recovery_speed=10.0,
+            contact_recovery_speed=1.0,
             contact_position_correction=False,
             angular_damping=0.01,
             use_implicit_pd=True,

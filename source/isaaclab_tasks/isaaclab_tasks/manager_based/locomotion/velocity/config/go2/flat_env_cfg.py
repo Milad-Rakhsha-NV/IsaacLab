@@ -28,6 +28,7 @@ class PhysicsCfg(PresetCfg):
         ),
         num_substeps=1,
         debug_mode=False,
+        collapse_fixed_joints=True,
     )
     newton_chrono = NewtonCfg(
         solver_cfg=ChronoSolverCfg(

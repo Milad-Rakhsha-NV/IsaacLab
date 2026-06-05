@@ -115,10 +115,10 @@ class ChronoSolverCfg(NewtonSolverCfg):
     # (spring-damper in actuation) to constraint-based enforcement
     # (unilateral λ≥0 solver before bilateral joints).
 
-    joint_limit_solver_type: str | None = None
+    joint_limit_solver_type: str | None = "sparse_jacobi"
     """Numerical solver type for joint limit constraints.
     When set (e.g. ``"sparse_jacobi"``), enables constraint-based joint limits.
-    When None (default), joint limits use penalty-based spring-damper forces.
+    When None, joint limits use penalty-based spring-damper forces.
     """
 
     joint_limit_max_iterations: int = 10
