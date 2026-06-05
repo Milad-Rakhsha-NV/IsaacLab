@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from isaaclab_newton.physics import ChronoSolverCfg, KaminoSolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
+from isaaclab_newton.physics import DVISolverCfg, KaminoSolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
 from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
 
@@ -60,8 +60,8 @@ class AntPhysicsCfg(PresetCfg):
         debug_mode=False,
         use_cuda_graph=True,
     )
-    newton_chrono: NewtonCfg = NewtonCfg(
-        solver_cfg=ChronoSolverCfg(
+    newton_dvi: NewtonCfg = NewtonCfg(
+        solver_cfg=DVISolverCfg(
             joint_solver_type="sparse_ldl",
             joint_max_iterations=50,
             joint_alpha=0.0,

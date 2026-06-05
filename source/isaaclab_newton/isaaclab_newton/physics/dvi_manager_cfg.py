@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Configuration for Newton Chrono solver."""
+"""Configuration for Newton DVI solver."""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 
 
 @configclass
-class ChronoSolverCfg(NewtonSolverCfg):
-    """Configuration for the Chrono DVI (Differential Variational Inequality) solver.
+class DVISolverCfg(NewtonSolverCfg):
+    """Configuration for the DVI (Differential Variational Inequality) solver.
 
     This solver uses a maximal coordinate formulation with cone complementarity
     for frictional contact dynamics. Joint constraints and contacts are solved
@@ -31,10 +31,10 @@ class ChronoSolverCfg(NewtonSolverCfg):
           solving large-scale, nonsmooth, rigid body dynamics." CMAME, 2011.
     """
 
-    class_type: type[NewtonManager] | str = "{DIR}.chrono_manager:NewtonChronoManager"
-    """Manager class for the Chrono solver."""
+    class_type: type[NewtonManager] | str = "{DIR}.dvi_manager:NewtonDVIManager"
+    """Manager class for the DVI solver."""
 
-    solver_type: str = "chrono"
+    solver_type: str = "dvi"
     """Solver type metadata."""
 
     # -- Joint solver config --

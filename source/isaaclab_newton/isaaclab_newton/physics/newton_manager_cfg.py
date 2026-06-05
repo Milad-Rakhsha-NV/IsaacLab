@@ -111,8 +111,8 @@ class NewtonCfg(PhysicsCfg):
 
     If True, fixed joints are removed and the respective bodies are merged,
     reducing the number of simulated bodies. This can improve performance
-    and avoids numerical issues with zero-DOF constraints in the Chrono solver.
-    Recommended True for ChronoSolverCfg, False for MJWarpSolverCfg.
+    and avoids numerical issues with zero-DOF constraints in the DVI solver.
+    Recommended True for DVISolverCfg, False for MJWarpSolverCfg.
     """
 
     solver_cfg: NewtonSolverCfg | None = None

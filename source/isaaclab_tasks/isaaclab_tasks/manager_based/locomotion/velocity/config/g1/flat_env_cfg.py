@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from isaaclab_newton.physics import ChronoSolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
+from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
 from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
 
@@ -31,8 +31,8 @@ class PhysicsCfg(PresetCfg):
         num_substeps=1,
         debug_mode=False,
     )
-    newton_chrono = NewtonCfg(
-        solver_cfg=ChronoSolverCfg(
+    newton_dvi = NewtonCfg(
+        solver_cfg=DVISolverCfg(
             joint_solver_type="sparse_ldl",
             joint_max_iterations=50,
             joint_alpha=0.0,

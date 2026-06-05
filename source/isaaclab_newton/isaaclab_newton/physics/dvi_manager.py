@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Chrono Newton manager — maximal-coordinate DVI solver for Isaac Lab."""
+"""DVI Newton manager — maximal-coordinate DVI solver for Isaac Lab."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import os
 
 import warp as wp
 from newton import Contacts, Control, Model, State, eval_fk, eval_ik
-from newton.solvers import FrictionProjection, SolverChrono, SolverType, NumericalSolverConfig
+from newton.solvers import FrictionProjection, SolverDVI, SolverType, NumericalSolverConfig
 
 _FRICTION_PROJECTION_MAP = {
     "cone": FrictionProjection.CONE,
@@ -21,7 +21,7 @@ _FRICTION_PROJECTION_MAP = {
 
 from isaaclab.physics import PhysicsManager
 
-from .chrono_manager_cfg import ChronoSolverCfg
+from .dvi_manager_cfg import DVISolverCfg
 from .newton_manager import NewtonManager
 
 logger = logging.getLogger(__name__)
@@ -86,10 +86,10 @@ def _make_numerical_config(
     )
 
 
-class NewtonChronoManager(NewtonManager):
-    """:class:`NewtonManager` specialization for the Chrono DVI solver.
+class NewtonDVIManager(NewtonManager):
+    """:class:`NewtonManager` specialization for the DVI solver.
 
-    The Chrono solver operates in maximal coordinates (body_q/body_qd) and
+    The DVI solver operates in maximal coordinates (body_q/body_qd) and
     requires:
       - Newton's CollisionPipeline for contact detection (per substep)
       - eval_ik after stepping to sync joint_q/joint_qd from body state
@@ -97,17 +97,17 @@ class NewtonChronoManager(NewtonManager):
     """
 
     @classmethod
-    def _build_solver(cls, model: Model, solver_cfg: ChronoSolverCfg) -> None:
-        """Construct :class:`SolverChrono` and set base-class slots."""
+    def _build_solver(cls, model: Model, solver_cfg: DVISolverCfg) -> None:
+        """Construct :class:`SolverDVI` and set base-class slots."""
 
         # Propagate rigid_contact_max from collision_cfg to model BEFORE
-        # building the solver.  SolverChrono reads model.rigid_contact_max
+        # building the solver.  SolverDVI reads model.rigid_contact_max
         # to allocate its internal lambda buffer, but _initialize_contacts
         # (which normally sets this) runs AFTER _build_solver.
         collision_cfg = cls._collision_cfg
         if collision_cfg is not None and getattr(collision_cfg, "rigid_contact_max", None):
             model.rigid_contact_max = collision_cfg.rigid_contact_max
-            logger.info(f"Chrono: set model.rigid_contact_max = {model.rigid_contact_max}")
+            logger.info(f"DVI: set model.rigid_contact_max = {model.rigid_contact_max}")
 
         joint_config = _make_numerical_config(
             solver_type_str=solver_cfg.joint_solver_type,
@@ -162,7 +162,7 @@ class NewtonChronoManager(NewtonManager):
                 recovery_speed=solver_cfg.joint_limit_recovery_speed,
             )
 
-        NewtonManager._solver = SolverChrono(
+        NewtonManager._solver = SolverDVI(
             model,
             joint_solver=joint_config,
             contact_solver=contact_config,
@@ -179,7 +179,7 @@ class NewtonChronoManager(NewtonManager):
         NewtonManager._needs_collision_pipeline = True
         limit_mode = "constraint" if joint_limit_config is not None else "penalty"
         logger.info(
-            f"Chrono solver: joint={solver_cfg.joint_solver_type} "
+            f"DVI solver: joint={solver_cfg.joint_solver_type} "
             f"contact={solver_cfg.contact_solver_type} "
             f"implicit_pd={solver_cfg.use_implicit_pd} "
             f"angular_damping={solver_cfg.angular_damping} "
@@ -224,14 +224,14 @@ class NewtonChronoManager(NewtonManager):
         # --- Pre-run finalize_for_capture (CPU work) BEFORE graph capture ---
         # The block-sparse LDL symbolic factorization reads joint topology
         # via .numpy() (CPU transfer). This must happen before CUDA graph
-        # capture starts. SolverChrono.finalize_for_capture() calls
+        # capture starts. SolverDVI.finalize_for_capture() calls
         # prepare_for_capture on all sub-solvers; the methods are idempotent
         # so subsequent calls during capture short-circuit.
         solver = NewtonManager._solver
         state_0 = cls._state_0
         if state_0 is not None and hasattr(solver, 'finalize_for_capture'):
             solver.finalize_for_capture(state_0)
-            logger.info("Chrono: pre-ran finalize_for_capture (joint + contact solvers)")
+            logger.info("DVI: pre-ran finalize_for_capture (joint + contact solvers)")
 
         # --- Now capture CUDA graph (all prepare_for_capture will short-circuit) ---
         device = PhysicsManager._device
@@ -243,10 +243,10 @@ class NewtonChronoManager(NewtonManager):
 
     @classmethod
     def _step_solver(cls, state_0: State, state_1: State, control: Control, substep_dt: float) -> None:
-        """Run one Chrono substep: collide → step → eval_ik.
+        """Run one DVI substep: collide → step → eval_ik.
 
         Overrides the base to:
-          1. Run collision detection per substep (Chrono needs fresh contacts each step)
+          1. Run collision detection per substep (DVI needs fresh contacts each step)
           2. Step the solver
           3. Run eval_ik to sync joint_q/joint_qd from body_q/body_qd
         """
@@ -256,7 +256,7 @@ class NewtonChronoManager(NewtonManager):
         # Step the solver with contacts
         cls._solver.step(state_0, state_1, control, cls._contacts, substep_dt)
 
-        # Chrono works in maximal coordinates — sync joint coords from body state
+        # DVI works in maximal coordinates — sync joint coords from body state
         eval_ik(cls._model, state_1, state_1.joint_q, state_1.joint_qd)
 
         # Sanitize NaN/Inf in body and joint state arrays
@@ -275,7 +275,7 @@ class NewtonChronoManager(NewtonManager):
 
     @classmethod
     def _simulate_physics_only(cls) -> None:
-        """Run one physics step — Chrono-specific override.
+        """Run one physics step — DVI-specific override.
 
         Key differences from the base:
           - Collision detection happens inside _step_solver (per substep), not once before
@@ -326,7 +326,7 @@ class NewtonChronoManager(NewtonManager):
     def _gpu_update_contact_forces(cls, contacts: Contacts) -> None:
         """Compute rigid_contact_force from solver lambda on GPU.
 
-        Replaces :meth:`SolverChrono.update_contacts` which uses a CPU numpy
+        Replaces :meth:`SolverDVI.update_contacts` which uses a CPU numpy
         loop.  This version is CUDA-graph safe.
         """
         constraint = cls._solver._contact_solver._constraint
@@ -351,7 +351,7 @@ class NewtonChronoManager(NewtonManager):
     def _populate_spatial_forces(cls, contacts: Contacts) -> None:
         """Copy rigid_contact_force → contacts.force so SensorContact can read it.
 
-        The Chrono solver only writes per-contact normal forces to
+        The DVI solver only writes per-contact normal forces to
         ``contacts.rigid_contact_force`` (vec3).  Newton's SensorContact reads
         from ``contacts.force`` (spatial_vector) where the *top* 3 components
         carry the linear force and the bottom 3 carry the torque.

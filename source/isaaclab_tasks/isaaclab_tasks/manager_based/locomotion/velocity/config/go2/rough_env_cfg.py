@@ -22,7 +22,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
 
         self.scene.robot = UNITREE_GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        self.scene.robot.actuators["base_legs"].armature = preset(default=0.0, newton_mjwarp=0.02, newton_chrono=0.02)
+        self.scene.robot.actuators["base_legs"].armature = preset(default=0.0, newton_mjwarp=0.02, newton_dvi=0.02)
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/base"
         # scale down the terrains because the robot is small
         self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.1)
@@ -35,7 +35,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # rewards
         # With collapse_fixed_joints (Newton default), foot bodies merge into calf
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = preset(
-            default=".*_foot", newton_mjwarp=".*_calf", newton_chrono=".*_calf",
+            default=".*_foot", newton_mjwarp=".*_calf", newton_dvi=".*_calf",
         )
         self.rewards.feet_air_time.weight = 0.01
         self.rewards.undesired_contacts = None

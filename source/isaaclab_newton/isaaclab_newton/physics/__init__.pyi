@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 __all__ = [
-    "NewtonChronoManager",
-    "ChronoSolverCfg",
+    "NewtonDVIManager",
+    "DVISolverCfg",
     "NewtonFeatherstoneManager",
     "FeatherstoneSolverCfg",
     "HydroelasticSDFCfg",
@@ -22,8 +22,8 @@ __all__ = [
     "XPBDSolverCfg",
 ]
 
-from .chrono_manager import NewtonChronoManager
-from .chrono_manager_cfg import ChronoSolverCfg
+from .dvi_manager import NewtonDVIManager
+from .dvi_manager_cfg import DVISolverCfg
 from .featherstone_manager import NewtonFeatherstoneManager
 from .featherstone_manager_cfg import FeatherstoneSolverCfg
 from .kamino_manager import NewtonKaminoManager

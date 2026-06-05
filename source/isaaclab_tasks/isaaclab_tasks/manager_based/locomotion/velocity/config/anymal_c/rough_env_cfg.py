@@ -15,7 +15,7 @@ from isaaclab_tasks.utils import preset
 ##
 from isaaclab_assets.robots.anymal import ANYMAL_C_CFG  # isort: skip
 
-# Implicit actuator for Chrono — PD handled by sim (implicit PD in mass matrix)
+# Implicit actuator for DVI — PD handled by sim (implicit PD in mass matrix)
 # Gains: 2x Isaac Lab defaults (similar ratio to Go2 implicit), armature from robot yaml
 ANYDRIVE_3_IMPLICIT_ACTUATOR_CFG = ImplicitActuatorCfg(
     joint_names_expr=[".*HAA", ".*HFE", ".*KFE"],
@@ -35,14 +35,14 @@ class AnymalCRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # switch robot to anymal-c
         self.scene.robot = ANYMAL_C_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.robot.actuators["legs"].armature = preset(default=0.0, newton_mjwarp=0.01, physx=0.0)
-        # Newton/Chrono: swap LSTM for implicit actuator (PD in sim via implicit PD)
+        # Newton/DVI: swap LSTM for implicit actuator (PD in sim via implicit PD)
         self.scene.robot.actuators["legs"] = preset(
             default=self.scene.robot.actuators["legs"],
-            newton_chrono=ANYDRIVE_3_IMPLICIT_ACTUATOR_CFG,
+            newton_dvi=ANYDRIVE_3_IMPLICIT_ACTUATOR_CFG,
         )
         # With collapse_fixed_joints=True, FOOT bodies merge into SHANK
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = preset(
-            default=".*FOOT", newton_chrono=".*SHANK",
+            default=".*FOOT", newton_dvi=".*SHANK",
         )
 
 
