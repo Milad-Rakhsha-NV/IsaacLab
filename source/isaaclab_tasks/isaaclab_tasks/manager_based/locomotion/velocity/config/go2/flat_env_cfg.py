@@ -7,12 +7,47 @@ from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, Ne
 from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
 
+from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.sim import SimulationCfg
 from isaaclab.utils import configclass
 
 from isaaclab_tasks.utils import PresetCfg, preset
 
 from .rough_env_cfg import UnitreeGo2RoughEnvCfg
+
+
+def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg:
+    """Build DVISolverCfg with the given actuator integration mode."""
+    return DVISolverCfg(
+        joint_solver_type="sparse_ldl",
+        joint_max_iterations=50,
+        joint_alpha=0.005,
+        joint_recovery_speed=100000.0,
+        joint_position_correction=False,
+        contact_solver_type="sparse_jacobi",
+        contact_max_iterations=20,
+        contact_alpha=0.0,
+        contact_recovery_speed=1.0,
+        contact_position_correction=False,
+        angular_damping=0.0,
+        actuator_integration=actuator_integration,
+        joint_limit_ke_scale=0.1,
+        joint_limit_solver_type="sparse_jacobi",
+        joint_iterative_refinement_steps=1,
+    )
+
+
+def _dvi_newton_cfg(actuator_integration: str = "semi_implicit") -> NewtonCfg:
+    """Build NewtonCfg for DVI with the given actuator integration mode."""
+    return NewtonCfg(
+        solver_cfg=_dvi_solver_cfg(actuator_integration),
+        num_substeps=1,
+        debug_mode=False,
+        use_cuda_graph=True,
+        collapse_fixed_joints=True,
+        default_shape_cfg=NewtonShapeCfg(gap=0.005),
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
+    )
 
 
 @configclass
@@ -30,31 +65,9 @@ class PhysicsCfg(PresetCfg):
         debug_mode=False,
         collapse_fixed_joints=True,
     )
-    newton_dvi = NewtonCfg(
-        solver_cfg=DVISolverCfg(
-            joint_solver_type="sparse_ldl",
-            joint_max_iterations=50,
-            joint_alpha=0.0,
-            joint_recovery_speed=100000.0,
-            joint_position_correction=False,
-            contact_solver_type="sparse_jacobi",
-            contact_max_iterations=20,
-            contact_alpha=0.0,
-            contact_recovery_speed=1.0,
-            contact_position_correction=False,
-            angular_damping=0.01,
-            use_implicit_pd=True,
-            joint_limit_ke_scale=0.1,
-            joint_limit_solver_type="sparse_jacobi",
-            joint_iterative_refinement_steps=1,
-        ),
-        num_substeps=1,
-        debug_mode=False,
-        use_cuda_graph=True,
-        collapse_fixed_joints=True,
-        default_shape_cfg=NewtonShapeCfg(gap=0.005),
-        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
-    )
+    newton_dvi = _dvi_newton_cfg("semi_implicit")
+    newton_dvi_implicit = _dvi_newton_cfg("implicit")
+    newton_dvi_semi_implicit = _dvi_newton_cfg("semi_implicit")
     physx = default
 
 
@@ -65,6 +78,32 @@ class UnitreeGo2FlatEnvCfg(UnitreeGo2RoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
+
+        # Override actuators: DVI presets use ImplicitActuator so ke/kd flow to solver
+        self.scene.robot.actuators["base_legs"] = preset(
+            default=self.scene.robot.actuators["base_legs"],
+            newton_dvi=ImplicitActuatorCfg(
+                joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
+                effort_limit_sim=23.5,
+                velocity_limit_sim=30.0,
+                stiffness=25.0,
+                damping=0.5,
+            ),
+            newton_dvi_implicit=ImplicitActuatorCfg(
+                joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
+                effort_limit_sim=23.5,
+                velocity_limit_sim=30.0,
+                stiffness=25.0,
+                damping=0.5,
+            ),
+            newton_dvi_semi_implicit=ImplicitActuatorCfg(
+                joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
+                effort_limit_sim=23.5,
+                velocity_limit_sim=30.0,
+                stiffness=25.0,
+                damping=0.5,
+            ),
+        )
 
         # override rewards — same weights for all solvers
         self.rewards.flat_orientation_l2.weight = -2.5

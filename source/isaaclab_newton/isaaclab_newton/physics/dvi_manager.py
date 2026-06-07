@@ -8,11 +8,10 @@
 from __future__ import annotations
 
 import logging
-import os
 
 import warp as wp
 from newton import Contacts, Control, Model, State, eval_fk, eval_ik
-from newton.solvers import FrictionProjection, SolverDVI, SolverType, NumericalSolverConfig
+from newton.solvers import ActuatorIntegration, FrictionProjection, SolverDVI, SolverType, NumericalSolverConfig
 
 _FRICTION_PROJECTION_MAP = {
     "cone": FrictionProjection.CONE,
@@ -48,7 +47,7 @@ def _make_numerical_config(
     precond_reg: float = 1e-4,
     friction_projection: FrictionProjection = FrictionProjection.CONE,
     backtrack_iterations: int = 5,
-    block_precondition: bool = True,
+    block_precondition: bool = False,
     iterative_refinement_steps: int = 0,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
@@ -123,11 +122,8 @@ class NewtonDVIManager(NewtonManager):
             iterative_refinement_steps=solver_cfg.joint_iterative_refinement_steps,
         )
 
-        # Resolve friction projection mode (env var overrides config)
-        fp_str = os.environ.get(
-            "NEWTON_FRICTION_PROJECTION",
-            solver_cfg.contact_friction_projection,
-        ).lower()
+        # Resolve friction projection mode from config
+        fp_str = solver_cfg.contact_friction_projection.lower()
         fp = _FRICTION_PROJECTION_MAP.get(fp_str)
         if fp is None:
             raise ValueError(
@@ -162,6 +158,36 @@ class NewtonDVIManager(NewtonManager):
                 recovery_speed=solver_cfg.joint_limit_recovery_speed,
             )
 
+        # Apply per-joint armature overrides if configured
+        if solver_cfg.armature_override and model.joint_armature is not None:
+            import numpy as np
+            arm = model.joint_armature.numpy()
+            qd_start = model.joint_qd_start.numpy()
+            dof_dim = model.joint_dof_dim.numpy()
+            changed = 0
+            for j in range(model.joint_count):
+                label = str(model.joint_label[j]).lower()
+                qds = qd_start[j]
+                ndof = dof_dim[j, 0] + dof_dim[j, 1]
+                for pattern, val in solver_cfg.armature_override.items():
+                    if pattern.lower() in label:
+                        for d in range(ndof):
+                            arm[qds + d] = val
+                        changed += 1
+                        break
+            model.joint_armature.assign(wp.array(arm, dtype=wp.float32, device=model.device))
+            logger.info(f"DVI: armature_override applied to {changed} joints")
+
+        # Resolve actuator integration mode
+        actuator_integration = solver_cfg.actuator_integration
+        try:
+            ai_mode = ActuatorIntegration(actuator_integration)
+        except ValueError:
+            raise ValueError(
+                f"Unknown actuator_integration '{actuator_integration}'. "
+                f"Available: {[e.value for e in ActuatorIntegration]}"
+            )
+
         NewtonManager._solver = SolverDVI(
             model,
             joint_solver=joint_config,
@@ -170,7 +196,7 @@ class NewtonDVIManager(NewtonManager):
             enable_actuation=solver_cfg.enable_actuation,
             enable_contacts=solver_cfg.enable_contacts,
             enable_gyroscopic=solver_cfg.enable_gyroscopic,
-            use_implicit_pd=solver_cfg.use_implicit_pd,
+            actuator_integration=ai_mode,
             joint_limit_ke_scale=solver_cfg.joint_limit_ke_scale,
             joint_limit_solver=joint_limit_config,
             enable_timers=False,
@@ -181,7 +207,7 @@ class NewtonDVIManager(NewtonManager):
         logger.info(
             f"DVI solver: joint={solver_cfg.joint_solver_type} "
             f"contact={solver_cfg.contact_solver_type} "
-            f"implicit_pd={solver_cfg.use_implicit_pd} "
+            f"actuator_integration={ai_mode.value} "
             f"angular_damping={solver_cfg.angular_damping} "
             f"friction_projection={fp_str} "
             f"joint_limits={limit_mode}"
@@ -309,67 +335,48 @@ class NewtonDVIManager(NewtonManager):
         # Populate contacts for contact sensors
         if cls._report_contacts:
             eval_contacts = cls._contacts
-            # Compute contact forces on GPU (replaces solver.update_contacts
-            # which uses CPU numpy loops).
-            cls._gpu_update_contact_forces(eval_contacts)
-            # Bridge rigid_contact_force → contacts.force (spatial_vector)
-            # with impulse→force scaling.
-            cls._populate_spatial_forces(eval_contacts)
+            # Write contacts.force (spatial_vector) directly from solver lambda
+            # using Newton's own kernel which handles sign convention and
+            # friction correctly.
+            cls._write_contact_forces_gpu(eval_contacts)
             for sensor in cls._newton_contact_sensors.values():
                 sensor.update(cls._state_0, eval_contacts)
 
+
+
     # ------------------------------------------------------------------
-    # GPU contact force update (replaces solver.update_contacts)
+    # GPU contact force update
     # ------------------------------------------------------------------
 
     @classmethod
-    def _gpu_update_contact_forces(cls, contacts: Contacts) -> None:
-        """Compute rigid_contact_force from solver lambda on GPU.
+    def _write_contact_forces_gpu(cls, contacts: Contacts) -> None:
+        """Write contacts.force (spatial_vector) from solved contact lambda.
 
-        Replaces :meth:`SolverDVI.update_contacts` which uses a CPU numpy
-        loop.  This version is CUDA-graph safe.
+        Uses Newton's own ``write_contact_forces`` kernel which correctly:
+        - Applies the DVI Jacobian transpose sign (force_on_shape0 = J_a^T * lambda / dt)
+        - Includes both normal and friction impulse components
+        - Converts impulse to force (divides by dt)
+
+        This replaces the previous two-step pipeline
+        (_compute_contact_force_from_lambda + _copy_rigid_force_to_spatial)
+        which had a sign error (missing negation) and ignored friction.
         """
+        if contacts.force is None:
+            return
+
+        from newton._src.solvers.dvi.contact_kernels import write_contact_forces
+
         constraint = cls._solver._contact_solver._constraint
         wp.launch(
-            _compute_contact_force_from_lambda,
+            write_contact_forces,
             dim=constraint.contact_max,
             inputs=[
                 contacts.rigid_contact_count,
                 contacts.rigid_contact_normal,
                 constraint.lambda_,
+                cls._solver_dt,
                 constraint.contact_max,
             ],
-            outputs=[contacts.rigid_contact_force],
-            device=contacts.device,
-        )
-
-    # ------------------------------------------------------------------
-    # Bridge: rigid_contact_force (vec3) → contacts.force (spatial_vector)
-    # ------------------------------------------------------------------
-
-    @classmethod
-    def _populate_spatial_forces(cls, contacts: Contacts) -> None:
-        """Copy rigid_contact_force → contacts.force so SensorContact can read it.
-
-        The DVI solver only writes per-contact normal forces to
-        ``contacts.rigid_contact_force`` (vec3).  Newton's SensorContact reads
-        from ``contacts.force`` (spatial_vector) where the *top* 3 components
-        carry the linear force and the bottom 3 carry the torque.
-
-        The DVI solver reports constraint impulses (lambda), not forces.
-        We scale by 1/dt to convert to Newtons (force = impulse / dt).
-        """
-        if contacts.force is None:
-            return  # no sensor requested it
-
-        # Scale factor: convert DVI impulse to force
-        inv_dt = 1.0 / cls._solver_dt if cls._solver_dt > 0 else 1.0
-
-        contact_count = contacts.rigid_contact_count
-        wp.launch(
-            _copy_rigid_force_to_spatial,
-            dim=contacts.rigid_contact_max,
-            inputs=[contact_count, contacts.rigid_contact_force, inv_dt],
             outputs=[contacts.force],
             device=contacts.device,
         )

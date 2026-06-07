@@ -100,6 +100,23 @@ class DVISolverCfg(NewtonSolverCfg):
     use_implicit_pd: bool = True
     """Whether to use implicit PD (mass-matrix augmentation) for joint stiffness/damping.
     Allows larger timesteps for stiff springs.
+
+    .. deprecated::
+        Use ``actuator_integration`` instead. ``True`` maps to SEMI_IMPLICIT,
+        ``False`` maps to EXPLICIT.
+    """
+
+    actuator_integration: str = "semi_implicit"
+    """Actuator integration mode for PD control. One of:
+
+    - ``"explicit"``: Forces evaluated at current state, no mass augmentation.
+    - ``"semi_implicit"`` (default): Mass augmentation via augmented inertia
+      (same as ``use_implicit_pd=True``).
+    - ``"implicit"``: Same augmentation as semi_implicit, plus an additional
+      velocity correction term for exact implicit treatment.
+
+    When both ``use_implicit_pd`` and ``actuator_integration`` are specified,
+    ``actuator_integration`` takes precedence.
     """
 
     joint_limit_ke_scale: float = 1.0
@@ -182,7 +199,22 @@ class DVISolverCfg(NewtonSolverCfg):
     Typical values: 0 (disabled), 1-2 (recommended for high mass-ratio systems).
     """
 
-    contact_block_precondition: bool = True
+    armature_override: dict[str, float] | None = None
+    """Optional per-joint armature overrides applied before solver construction.
+
+    Maps joint name substrings to armature values.  When set, any joint whose
+    label contains the key string will have its armature replaced with the
+    corresponding value.  Example::
+
+        armature_override={"shoulder": 0.05, "elbow": 0.05, "wrist": 0.05,
+                           "hand": 0.05, "finger": 0.05}
+
+    Useful for maximal-coordinate solvers that need higher armature on
+    lightweight distal links (e.g. humanoid hands) than what the MJCF/URDF
+    provides.
+    """
+
+    contact_block_precondition: bool = False
     """Use block-3x3 inverse preconditioner for contact Jacobi/GS solvers.
 
     When ``True`` (default), computes the full 3x3 diagonal block of
@@ -193,7 +225,7 @@ class DVISolverCfg(NewtonSolverCfg):
     D_eff = trace(diag_block) / 3. Cheaper but less stable for some envs.
     """
 
-    contact_friction_projection: str = "cone"
+    contact_friction_projection: str = "tangential"
     """Friction cone projection mode for contact solver.
 
     - ``"cone"`` (default): Anitescu-Tasora minimum-norm cone projection.
