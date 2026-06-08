@@ -60,7 +60,7 @@ class PhysicsCfg(PresetCfg):
                 "shoulder": 0.05, "elbow": 0.05, "wrist": 0.05, "hand": 0.05, "finger": 0.05,
             },
         ),
-        num_substeps=4,
+        num_substeps=1,
         debug_mode=False,
         use_cuda_graph=True,
         collapse_fixed_joints=True,

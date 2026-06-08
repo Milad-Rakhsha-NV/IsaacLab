@@ -3,7 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
+from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
 
 from isaaclab.sim import SimulationCfg
@@ -12,6 +13,36 @@ from isaaclab.utils import configclass
 from isaaclab_tasks.utils import PresetCfg
 
 from .rough_env_cfg import H1RoughEnvCfg
+
+
+DVI_SOLVER_CFG = DVISolverCfg(
+    joint_solver_type="sparse_ldl",
+    joint_max_iterations=50,
+    joint_alpha=0.0,
+    joint_recovery_speed=100000.0,
+    joint_position_correction=False,
+    contact_solver_type="sparse_jacobi",
+    contact_max_iterations=40,
+    contact_alpha=0.0,
+    contact_recovery_speed=10000.0,
+    contact_position_correction=False,
+    angular_damping=0.0,
+    actuator_integration="semi_implicit",
+    joint_limit_ke_scale=0.1,
+    joint_limit_solver_type="sparse_jacobi",
+    joint_limit_recovery_speed=1.0,
+    joint_iterative_refinement_steps=1,
+)
+
+DVI_NEWTON_CFG = NewtonCfg(
+    solver_cfg=DVI_SOLVER_CFG,
+    num_substeps=1,
+    debug_mode=False,
+    use_cuda_graph=True,
+    collapse_fixed_joints=True,
+    default_shape_cfg=NewtonShapeCfg(gap=0.005),
+    collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=2**21),
+)
 
 
 @configclass
@@ -28,6 +59,7 @@ class PhysicsCfg(PresetCfg):
         num_substeps=1,
         debug_mode=False,
     )
+    newton_dvi = DVI_NEWTON_CFG
     physx = default
 
 
@@ -38,6 +70,9 @@ class H1FlatEnvCfg(H1RoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
+
+        # Lower spawn height slightly (default 1.05 starts slightly airborne)
+        self.scene.robot.init_state.pos = (0.0, 0.0, 0.98)
 
         # change terrain to flat
         self.scene.terrain.terrain_type = "plane"
