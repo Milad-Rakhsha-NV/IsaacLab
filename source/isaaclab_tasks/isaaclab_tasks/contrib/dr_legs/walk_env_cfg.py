@@ -42,7 +42,11 @@ _FOOT_SENSOR_CFG = SceneEntityCfg("contact_forces", body_names=["foot_l", "foot_
 @configclass
 class WalkSceneCfg(HoldPoseSceneCfg):
     contact_forces = NewtonContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/foot_.*",
+        # DR Legs body labels carry an extra ``RigidBodies`` path segment
+        # (e.g. ``/World/envs/env_0/Robot/RigidBodies/foot_l``), so the foot
+        # bodies are matched as ``Robot/RigidBodies/foot_.*`` rather than
+        # ``Robot/foot_.*`` (which silently matches nothing).
+        prim_path="{ENV_REGEX_NS}/Robot/RigidBodies/foot_.*",
         history_length=3,
         track_air_time=True,
     )

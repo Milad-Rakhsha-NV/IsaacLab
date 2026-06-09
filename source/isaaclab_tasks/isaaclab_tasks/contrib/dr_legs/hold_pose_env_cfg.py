@@ -8,8 +8,11 @@
 The robot must keep its pelvis upright at a target height.
 """
 
+import os
+
 from isaaclab_newton.physics import (
     DVISolverCfg,
+    KaminoSolverCfg,
     NewtonCfg,
     NewtonCollisionPipelineCfg,
     NewtonShapeCfg,
@@ -59,7 +62,8 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
     return DVISolverCfg(
         joint_solver_type="sparse_ldl",
         joint_max_iterations=50,
-        joint_alpha=0.005,
+        # Overridable via env var for parameter studies (default 0.0).
+        joint_alpha=float(os.environ.get("DRLEGS_JOINT_ALPHA", "0.0")),
         joint_recovery_speed=100000.0,
         joint_position_correction=False,
         # Closed-loop linkages produce redundant (rank-deficient) constraints; the
@@ -87,12 +91,48 @@ def _dvi_newton_cfg(actuator_integration: str = "semi_implicit") -> NewtonCfg:
         # Closed-loop DR Legs needs a small solver dt to hold the 6 parallel loops.
         # sim dt is 0.004s; substeps set per Milad to match the Kamino baseline (2)
         # (see standalone four-bar / DR Legs closed-loop tests).
-        num_substeps=4,
+        num_substeps=int(os.environ.get("DRLEGS_SUBSTEPS", "4")),
         debug_mode=False,
         use_cuda_graph=True,
         collapse_fixed_joints=False,
         default_shape_cfg=NewtonShapeCfg(gap=0.005),
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
+    )
+
+
+def _kamino_newton_cfg() -> NewtonCfg:
+    """Kamino solver preset for DR Legs (closed-loop, implicit PD).
+
+    Ported verbatim from the aserifi/drlegs branch as a benchmark baseline for the
+    DVI solver. The env (rewards/observations/commands) is unchanged; only the
+    physics backend differs.
+    """
+    return NewtonCfg(
+        solver_cfg=KaminoSolverCfg(
+            integrator="moreau",
+            sparse_jacobian=True,
+            sparse_dynamics=False,
+            use_collision_detector=False,
+            collision_detector_pipeline="unified",
+            collision_detector_max_contacts_per_pair=8,
+            use_fk_solver=False,
+            constraints_alpha=0.1,
+            padmm_max_iterations=100,
+            padmm_primal_tolerance=1.0e-5,
+            padmm_dual_tolerance=1.0e-5,
+            padmm_compl_tolerance=1.0e-5,
+            padmm_rho_0=0.02,
+            padmm_eta=1.0e-5,
+            padmm_use_acceleration=True,
+            padmm_warmstart_mode="containers",
+            padmm_contact_warmstart_method="geom_pair_net_force",
+            padmm_use_graph_conditionals=False,
+            # NOTE: aserifi also set ``max_contacts_per_world=50`` here, but that
+            # field does not exist on this branch's ``KaminoSolverCfg`` (version
+            # skew between branches), so it is omitted.
+        ),
+        num_substeps=2,
+        use_cuda_graph=True,
     )
 
 
@@ -104,6 +144,7 @@ class DrLegsPhysicsCfg(PresetCfg):
     newton_dvi: NewtonCfg = _dvi_newton_cfg("semi_implicit")
     newton_dvi_implicit: NewtonCfg = _dvi_newton_cfg("implicit")
     newton_dvi_semi_implicit: NewtonCfg = _dvi_newton_cfg("semi_implicit")
+    newton_kamino: NewtonCfg = _kamino_newton_cfg()
 
 
 ##
