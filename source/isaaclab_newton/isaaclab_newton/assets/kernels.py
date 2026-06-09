@@ -1322,3 +1322,107 @@ def update_wrench_array_with_force_and_torque(
             forces[env_index, body_index],
             torques[env_index, body_index],
         )
+
+
+# ----------------------------------------------------------------------------
+# Closed-loop (implicit-free-base) full-body reset.
+#
+# A closed kinematic loop has no spanning tree, so writing root pose + joint_q and
+# relying on FK cannot reconstruct the passive linkage bodies. These kernels restore
+# the ENTIRE assembled body block for each reset env, rigidly transformed so the root
+# body lands at the requested new root pose, and zero ALL body velocities. This keeps
+# the loop closed (a rigid transform preserves loop closure) and clears any stale/NaN
+# velocity the solver may have left in the loop bodies.
+# ----------------------------------------------------------------------------
+
+
+@wp.kernel
+def reset_closed_loop_bodies_from_root_index(
+    new_root_pose_w: wp.array(dtype=wp.transformf),  # (num_selected,)
+    env_ids: wp.array(dtype=wp.int32),  # (num_selected,)
+    ref_body_q: wp.array2d(dtype=wp.transformf),  # (num_envs, bodies_per_world) assembled ref
+    bodies_per_world: wp.int32,
+    body_q: wp.array(dtype=wp.transformf),  # (num_envs * bodies_per_world,) flat sim state
+    body_qd: wp.array(dtype=wp.spatial_vectorf),  # (num_envs * bodies_per_world,) flat sim state
+):
+    """Restore the full assembled body block for reset envs (index variant).
+
+    Each thread handles one (selected-env, body) pair. The rigid delta that maps the
+    reference root pose to the new root pose is applied to every body's reference pose.
+    All body velocities are zeroed.
+    """
+    sel, b = wp.tid()
+    env = env_ids[sel]
+    # rigid delta: T_delta = new_root * inverse(ref_root)
+    ref_root = ref_body_q[env, 0]
+    delta = wp.transform_multiply(new_root_pose_w[sel], wp.transform_inverse(ref_root))
+    out = wp.transform_multiply(delta, ref_body_q[env, b])
+    flat = env * bodies_per_world + b
+    body_q[flat] = out
+    body_qd[flat] = wp.spatial_vectorf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+@wp.kernel
+def reset_closed_loop_bodies_from_root_mask(
+    new_root_pose_w: wp.array(dtype=wp.transformf),  # (num_envs,)
+    env_mask: wp.array(dtype=wp.bool),  # (num_envs,)
+    ref_body_q: wp.array2d(dtype=wp.transformf),  # (num_envs, bodies_per_world)
+    bodies_per_world: wp.int32,
+    body_q: wp.array(dtype=wp.transformf),  # (num_envs * bodies_per_world,)
+    body_qd: wp.array(dtype=wp.spatial_vectorf),  # (num_envs * bodies_per_world,)
+):
+    """Restore the full assembled body block for reset envs (mask variant)."""
+    env, b = wp.tid()
+    if not env_mask[env]:
+        return
+    ref_root = ref_body_q[env, 0]
+    delta = wp.transform_multiply(new_root_pose_w[env], wp.transform_inverse(ref_root))
+    out = wp.transform_multiply(delta, ref_body_q[env, b])
+    flat = env * bodies_per_world + b
+    body_q[flat] = out
+    body_qd[flat] = wp.spatial_vectorf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+@wp.kernel
+def restore_closed_loop_bodies_from_state_root_index(
+    env_ids: wp.array(dtype=wp.int32),  # (num_selected,)
+    ref_body_q: wp.array2d(dtype=wp.transformf),  # (num_envs, bodies_per_world)
+    bodies_per_world: wp.int32,
+    body_q: wp.array(dtype=wp.transformf),  # (num_envs * bodies_per_world,) IN/OUT
+    body_qd: wp.array(dtype=wp.spatial_vectorf),  # (num_envs * bodies_per_world,) OUT
+):
+    """Re-restore the assembled body block using the CURRENT root pose from the sim state.
+
+    Used after joint-state writes (whose ``invalidate_fk`` runs eval_fk over all envs and
+    corrupts the closed-loop bodies). The root body (``body_q[env, 0]``) was already placed
+    correctly by the root-pose write, so we read it back as the reference root and rigidly
+    re-place all bodies, zeroing velocities. Index variant.
+    """
+    sel, b = wp.tid()
+    env = env_ids[sel]
+    cur_root = body_q[env * bodies_per_world + 0]
+    ref_root = ref_body_q[env, 0]
+    delta = wp.transform_multiply(cur_root, wp.transform_inverse(ref_root))
+    flat = env * bodies_per_world + b
+    body_q[flat] = wp.transform_multiply(delta, ref_body_q[env, b])
+    body_qd[flat] = wp.spatial_vectorf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+@wp.kernel
+def restore_closed_loop_bodies_from_state_root_mask(
+    env_mask: wp.array(dtype=wp.bool),  # (num_envs,)
+    ref_body_q: wp.array2d(dtype=wp.transformf),  # (num_envs, bodies_per_world)
+    bodies_per_world: wp.int32,
+    body_q: wp.array(dtype=wp.transformf),  # (num_envs * bodies_per_world,) IN/OUT
+    body_qd: wp.array(dtype=wp.spatial_vectorf),  # (num_envs * bodies_per_world,) OUT
+):
+    """Mask variant of :func:`restore_closed_loop_bodies_from_state_root_index`."""
+    env, b = wp.tid()
+    if not env_mask[env]:
+        return
+    cur_root = body_q[env * bodies_per_world + 0]
+    ref_root = ref_body_q[env, 0]
+    delta = wp.transform_multiply(cur_root, wp.transform_inverse(ref_root))
+    flat = env * bodies_per_world + b
+    body_q[flat] = wp.transform_multiply(delta, ref_body_q[env, b])
+    body_qd[flat] = wp.spatial_vectorf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)

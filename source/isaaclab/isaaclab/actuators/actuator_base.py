@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import torch
 
@@ -41,6 +41,17 @@ class ActuatorBase(ABC):
     """Flag indicating if the actuator is an implicit or explicit actuator model.
 
     If a class inherits from :class:`ImplicitActuator`, then this flag should be set to :obj:`True`.
+    """
+
+    route_torque_to: ClassVar[Literal["joint_f", "joint_act"]] = "joint_f"
+    """Where the per-step actuator-computed torque is written into Newton's ``Control``.
+
+    - ``"joint_f"`` (default): torque is written to ``Control.joint_f`` and enters the
+      body wrench, integrated semi-explicitly. This matches PhysX/MuJoCo semantics.
+    - ``"joint_act"``: torque is written to ``Control.joint_act`` instead. For solvers
+      that consume ``joint_act`` (e.g. Kamino / DVI implicit PD), this enters the joint
+      dynamic-constraint row, getting backward-Euler treatment of joint armature and
+      damping.
     """
 
     computed_effort: torch.Tensor

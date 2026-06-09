@@ -100,6 +100,29 @@ def _scatter_reset_masks_from_ids(
     fk_mask[articulation_ids[world, arti]] = True
 
 
+@wp.kernel(enable_backward=False)
+def _or_world_mask_from_env_mask(
+    env_mask: wp.array(dtype=wp.bool),
+    world_mask: wp.array(dtype=wp.int32),
+):
+    """OR env_mask into world_mask. Used when articulation_ids is unavailable
+    (e.g. closed-loop assets whose root view does not expose them)."""
+    world = wp.tid()
+    if env_mask[world]:
+        world_mask[world] = wp.int32(1)
+
+
+@wp.kernel(enable_backward=False)
+def _scatter_world_mask_from_ids(
+    env_ids: wp.array(dtype=int),
+    world_mask: wp.array(dtype=wp.int32),
+):
+    """Scatter-set world_mask from sparse env_ids. Used when articulation_ids
+    is unavailable (e.g. closed-loop assets whose root view does not expose them)."""
+    i = wp.tid()
+    world_mask[env_ids[i]] = wp.int32(1)
+
+
 class NewtonManager(PhysicsManager):
     """Abstract Newton physics manager for Isaac Lab.
 
@@ -721,8 +744,32 @@ class NewtonManager(PhysicsManager):
                 outputs=[NewtonManager._world_reset_mask, NewtonManager._fk_reset_mask],
                 device=PhysicsManager._device,
             )
+        elif env_mask is not None:
+            # No articulation_ids (e.g. closed-loop assets whose root view does not expose
+            # them): scope the world reset to the dirty envs only. Do NOT fall back to
+            # ``fill_(1)`` here — that would snap every env's body_q to the base state on the
+            # next maximal-coordinate solver reset, leaking one env's reset into its peers.
+            wp.launch(
+                _or_world_mask_from_env_mask,
+                dim=env_mask.shape,
+                inputs=[env_mask],
+                outputs=[NewtonManager._world_reset_mask],
+                device=PhysicsManager._device,
+            )
+            # Closed-loop assets have articulation_count == 0, so this is a no-op on a
+            # zero-length array; for tree assets it conservatively refreshes all FK.
+            NewtonManager._fk_reset_mask.fill_(True)
+        elif env_ids is not None:
+            wp.launch(
+                _scatter_world_mask_from_ids,
+                dim=env_ids.shape,
+                inputs=[env_ids],
+                outputs=[NewtonManager._world_reset_mask],
+                device=PhysicsManager._device,
+            )
+            NewtonManager._fk_reset_mask.fill_(True)
         else:
-            # Fallback: no topology info — mark everything dirty
+            # True fallback: no topology AND no env info — mark everything dirty.
             NewtonManager._world_reset_mask.fill_(1)
             NewtonManager._fk_reset_mask.fill_(True)
 
@@ -754,8 +801,17 @@ class NewtonManager(PhysicsManager):
         if cls._pending_extended_state_attributes:
             cls._builder.request_state_attributes(*cls._pending_extended_state_attributes)
             NewtonManager._pending_extended_state_attributes = set()
+        # Closed-loop robots (e.g. DR Legs) have no ArticulationRootAPI, so their
+        # joints are "orphan" (not in any articulation). The maximal-coordinate
+        # solvers (Kamino, DVI) handle these natively, so skip the tree-articulation
+        # joint validation for them.
+        _cfg = PhysicsManager._cfg
+        _solver_cfg = getattr(_cfg, "solver_cfg", None)
+        _skip_joint_validation = getattr(_solver_cfg, "solver_type", "") in ("kamino", "dvi")
         with Timer(name="newton_finalize_builder", msg="Finalize builder took:"):
-            NewtonManager._model = cls._builder.finalize(device=device)
+            NewtonManager._model = cls._builder.finalize(
+                device=device, skip_validation_joints=_skip_joint_validation
+            )
             cls._model.set_gravity(cls._gravity_vector)
             cls._model.num_envs = cls._num_envs
 

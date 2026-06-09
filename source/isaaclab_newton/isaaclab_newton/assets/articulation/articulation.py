@@ -479,7 +479,10 @@ class Articulation(BaseArticulation):
         if self.data._root_state_w is not None:
             self.data._root_state_w.timestamp = -1.0
         self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._root_view.articulation_ids)
+        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._get_root_view_articulation_ids())
+        # Closed-loop robots: FK cannot reconstruct the loop bodies, so restore the full
+        # assembled body block (rigidly placed at the new root pose) AFTER invalidate_fk.
+        self._restore_closed_loop_bodies_index(root_pose, env_ids)
         if self.data._body_com_pose_w is not None:
             self.data._body_com_pose_w.timestamp = -1.0
         if self.data._body_state_w is not None:
@@ -536,7 +539,9 @@ class Articulation(BaseArticulation):
         if self.data._root_state_w is not None:
             self.data._root_state_w.timestamp = -1.0
         self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._root_view.articulation_ids)
+        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._get_root_view_articulation_ids())
+        # Closed-loop robots: restore the full assembled body block AFTER invalidate_fk.
+        self._restore_closed_loop_bodies_mask(root_pose, env_mask)
         if self.data._body_com_pose_w is not None:
             self.data._body_com_pose_w.timestamp = -1.0
         if self.data._body_state_w is not None:
@@ -601,7 +606,7 @@ class Articulation(BaseArticulation):
         if self.data._root_state_w is not None:
             self.data._root_state_w.timestamp = -1.0
         self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._root_view.articulation_ids)
+        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._get_root_view_articulation_ids())
         if self.data._body_com_pose_w is not None:
             self.data._body_com_pose_w.timestamp = -1.0
         if self.data._body_state_w is not None:
@@ -662,7 +667,7 @@ class Articulation(BaseArticulation):
         if self.data._root_state_w is not None:
             self.data._root_state_w.timestamp = -1.0
         self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._root_view.articulation_ids)
+        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._get_root_view_articulation_ids())
         if self.data._body_com_pose_w is not None:
             self.data._body_com_pose_w.timestamp = -1.0
         if self.data._body_state_w is not None:
@@ -970,6 +975,8 @@ class Articulation(BaseArticulation):
         # Invalidate FK timestamp so body poses are recomputed on next access.
         self.data._fk_timestamp = -1.0
         SimulationManager.invalidate_fk()
+        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self._reapply_closed_loop_bodies_index(env_ids)
         if self.data._body_link_vel_w is not None:
             self.data._body_link_vel_w.timestamp = -1.0
         if self.data._body_com_pose_b is not None:
@@ -1030,6 +1037,8 @@ class Articulation(BaseArticulation):
         # Invalidate FK timestamp so body poses are recomputed on next access.
         self.data._fk_timestamp = -1.0
         SimulationManager.invalidate_fk()
+        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self._reapply_closed_loop_bodies_mask(env_mask)
         if self.data._body_link_vel_w is not None:
             self.data._body_link_vel_w.timestamp = -1.0
         if self.data._body_com_pose_b is not None:
@@ -1087,7 +1096,9 @@ class Articulation(BaseArticulation):
         )
         # Invalidate FK timestamp so body poses are recomputed on next access.
         self.data._fk_timestamp = -1.0
-        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._root_view.articulation_ids)
+        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._get_root_view_articulation_ids())
+        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self._reapply_closed_loop_bodies_index(env_ids)
         # Need to invalidate the buffer to trigger the update with the new root pose.
         # Only invalidate if the buffer has been accessed (not None).
         if self.data._body_link_vel_w is not None:
@@ -1145,7 +1156,9 @@ class Articulation(BaseArticulation):
         )
         # Invalidate FK timestamp so body poses are recomputed on next access.
         self.data._fk_timestamp = -1.0
-        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._root_view.articulation_ids)
+        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._get_root_view_articulation_ids())
+        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self._reapply_closed_loop_bodies_mask(env_mask)
         # Need to invalidate the buffer to trigger the update with the new root pose.
         # Only invalidate if the buffer has been accessed (not None).
         if self.data._body_link_vel_w is not None:
@@ -3265,11 +3278,45 @@ class Articulation(BaseArticulation):
                 predicate=lambda prim: prim.HasAPI(UsdPhysics.ArticulationRootAPI),
                 traverse_instance_prims=False,
             )
-            if len(first_env_root_prims) == 0:
-                raise RuntimeError(
-                    f"Failed to find an articulation when resolving '{first_env_matching_prim_path}'."
-                    " Please ensure that the prim has 'USD ArticulationRootAPI' applied."
+            # Detect closed kinematic loops (e.g. DR Legs parallel linkage). Such robots
+            # have cyclic joint graphs that cannot form a tree-structured Newton
+            # ``ArticulationView`` and often lack a ``ArticulationRootAPI`` entirely.
+            from isaaclab_newton.cloner.newton_replicate import _prim_has_closed_kinematic_loops
+
+            has_closed_loops = _prim_has_closed_kinematic_loops(first_env_matching_prim)
+            if len(first_env_root_prims) == 0 or has_closed_loops:
+                # Use ``ClosedLoopView``, which provides strided views into the global
+                # Newton model arrays instead of a tree articulation.
+                from .closed_loop_view import ClosedLoopView
+
+                if has_closed_loops and len(first_env_root_prims) > 0:
+                    logger.info(
+                        f"Closed kinematic loops detected under '{first_env_matching_prim_path}';"
+                        " using ClosedLoopView despite ArticulationRootAPI presence."
+                    )
+                else:
+                    logger.info(
+                        f"No ArticulationRootAPI found under '{first_env_matching_prim_path}'."
+                        " Using ClosedLoopView for closed-loop robot support."
+                    )
+                self._root_view = ClosedLoopView(
+                    SimulationManager.get_model(),
+                    self.cfg.prim_path.replace(".*", "*"),
                 )
+                SimulationManager.get_physics_sim_view().append(self._root_view)
+                self._data = ArticulationData(self.root_view, self.device)
+                self._physics_ready_handle = SimulationManager.register_callback(
+                    lambda _: self._data._create_simulation_bindings(),
+                    PhysicsEvent.PHYSICS_READY,
+                    name=f"articulation_rebind_{self.cfg.prim_path}",
+                )
+                self._create_buffers()
+                self._process_cfg()
+                self._process_actuators_cfg()
+                self._process_tendons()
+                # Let the articulation data know that it is fully instantiated and ready to use.
+                self.data.is_primed = True
+                return
             if len(first_env_root_prims) > 1:
                 raise RuntimeError(
                     f"Failed to find a single articulation when resolving '{first_env_matching_prim_path}'."
@@ -3317,6 +3364,121 @@ class Articulation(BaseArticulation):
         self._log_articulation_info()
         # Let the articulation data know that it is fully instantiated and ready to use.
         self.data.is_primed = True
+
+    def _get_root_view_articulation_ids(self) -> wp.array | None:
+        """Return the root view's ``articulation_ids``, or ``None`` for closed-loop assets.
+
+        :class:`ClosedLoopView` exposes an empty ``(world_count, 0)`` array, so returning
+        ``None`` makes the reset machinery scope by ``env_ids`` / ``env_mask`` instead.
+        """
+        art_ids = getattr(self._root_view, "articulation_ids", None)
+        if art_ids is None or art_ids.ndim < 2 or art_ids.shape[1] == 0:
+            return None
+        return art_ids
+
+    def _is_closed_loop_reset_target(self) -> bool:
+        """True when this asset needs full-body closed-loop reset support.
+
+        Only implicit-free-base :class:`ClosedLoopView` robots with an assembled-pose
+        snapshot qualify: their root pose is ``body_q[0]`` and FK cannot reconstruct the
+        loop bodies, so reset must restore the whole body block directly.
+        """
+        rv = self._root_view
+        return (
+            getattr(rv, "is_implicit_free_base", False)
+            and getattr(rv, "has_assembled_reference", False)
+            and getattr(rv, "assembled_body_q", None) is not None
+        )
+
+    def _restore_closed_loop_bodies_index(self, root_pose: wp.array, env_ids: wp.array) -> None:
+        """Restore the full assembled body block for the given reset envs (index variant).
+
+        Writes directly into the raw Newton ``state_0.body_q`` / ``body_qd``, rigidly
+        transforming the assembled reference so the root lands at ``root_pose``, and zeros
+        all body velocities. Must run AFTER ``invalidate_fk`` so eval_fk does not clobber it.
+        """
+        if not self._is_closed_loop_reset_target():
+            return
+        state = SimulationManager.get_state_0()
+        if state is None or state.body_q is None or state.body_qd is None:
+            return
+        rv = self._root_view
+        wp.launch(
+            shared_kernels.reset_closed_loop_bodies_from_root_index,
+            dim=(env_ids.shape[0], rv.bodies_per_world),
+            inputs=[
+                root_pose,
+                env_ids,
+                rv.assembled_body_q,
+                rv.bodies_per_world,
+            ],
+            outputs=[
+                state.body_q,
+                state.body_qd,
+            ],
+            device=self.device,
+        )
+
+    def _restore_closed_loop_bodies_mask(self, root_pose: wp.array, env_mask: wp.array) -> None:
+        """Restore the full assembled body block for the given reset envs (mask variant)."""
+        if not self._is_closed_loop_reset_target():
+            return
+        state = SimulationManager.get_state_0()
+        if state is None or state.body_q is None or state.body_qd is None:
+            return
+        rv = self._root_view
+        wp.launch(
+            shared_kernels.reset_closed_loop_bodies_from_root_mask,
+            dim=(env_mask.shape[0], rv.bodies_per_world),
+            inputs=[
+                root_pose,
+                env_mask,
+                rv.assembled_body_q,
+                rv.bodies_per_world,
+            ],
+            outputs=[
+                state.body_q,
+                state.body_qd,
+            ],
+            device=self.device,
+        )
+
+    def _reapply_closed_loop_bodies_index(self, env_ids: wp.array) -> None:
+        """Re-restore the assembled body block after a joint-state write (index variant).
+
+        ``write_joint_state_to_sim`` calls ``invalidate_fk()`` over all envs, whose eval_fk
+        corrupts closed-loop bodies. The root pose is already correct in the sim state, so we
+        re-place all bodies relative to it and zero velocities.
+        """
+        if not self._is_closed_loop_reset_target():
+            return
+        state = SimulationManager.get_state_0()
+        if state is None or state.body_q is None or state.body_qd is None:
+            return
+        rv = self._root_view
+        wp.launch(
+            shared_kernels.restore_closed_loop_bodies_from_state_root_index,
+            dim=(env_ids.shape[0], rv.bodies_per_world),
+            inputs=[env_ids, rv.assembled_body_q, rv.bodies_per_world],
+            outputs=[state.body_q, state.body_qd],
+            device=self.device,
+        )
+
+    def _reapply_closed_loop_bodies_mask(self, env_mask: wp.array) -> None:
+        """Re-restore the assembled body block after a joint-state write (mask variant)."""
+        if not self._is_closed_loop_reset_target():
+            return
+        state = SimulationManager.get_state_0()
+        if state is None or state.body_q is None or state.body_qd is None:
+            return
+        rv = self._root_view
+        wp.launch(
+            shared_kernels.restore_closed_loop_bodies_from_state_root_mask,
+            dim=(env_mask.shape[0], rv.bodies_per_world),
+            inputs=[env_mask, rv.assembled_body_q, rv.bodies_per_world],
+            outputs=[state.body_q, state.body_qd],
+            device=self.device,
+        )
 
     def _clear_callbacks(self) -> None:
         """Clears all registered callbacks, including the physics-ready rebind handle."""

@@ -10,9 +10,31 @@ import warp as wp
 from newton import ModelBuilder, solvers
 from newton._src.usd.schemas import SchemaResolverNewton, SchemaResolverPhysx
 
-from pxr import Usd
+from pxr import Usd, UsdPhysics
 
 from isaaclab_newton.physics import NewtonManager
+
+
+def _prim_has_closed_kinematic_loops(prim: Usd.Prim) -> bool:
+    """True if any body under *prim* is the child of more than one joint (cyclic graph)."""
+    child_counts: dict[str, int] = {}
+    for descendant in Usd.PrimRange(prim):
+        if not descendant.IsA(UsdPhysics.Joint):
+            continue
+        try:
+            joint = UsdPhysics.Joint(descendant)
+            targets = joint.GetBody1Rel().GetTargets()
+        except Exception:
+            continue
+        if not targets:
+            continue
+        child_path = targets[0].pathString
+        if not child_path:
+            continue
+        child_counts[child_path] = child_counts.get(child_path, 0) + 1
+        if child_counts[child_path] > 1:
+            return True
+    return False
 
 
 def _get_collapse_fixed_joints() -> bool:
