@@ -62,15 +62,18 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
     return DVISolverCfg(
         joint_solver_type="sparse_ldl",
         joint_max_iterations=50,
-        # Overridable via env var for parameter studies (default 0.0).
-        joint_alpha=float(os.environ.get("DRLEGS_JOINT_ALPHA", "0.0")),
+        joint_alpha=0.0,
         joint_recovery_speed=100000.0,
+        # Position correction OFF: the constraint-based joint-limit solver alone
+        # keeps the closed loops stable (validated on the standalone hanging
+        # DR Legs example, poscorr OFF, loop residual ~4e-6..4e-4 across substeps).
         joint_position_correction=False,
         # Closed-loop linkages produce redundant (rank-deficient) constraints; the
         # default joint_reg=1e-6 can hit a near-zero LDL pivot on a few envs and NaN.
         # diagonal_precondition is already on by default; bump reg to 1e-4 (validated
         # on the four-bar + standalone DR Legs tests) for a stable factorization.
         joint_reg=1e-4,
+        # ── Contacts: UNCHANGED (this config was shown to work) ──────────────
         contact_solver_type="sparse_jacobi",
         contact_max_iterations=20,
         contact_alpha=0.0,
@@ -78,8 +81,18 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
         contact_position_correction=False,
         angular_damping=0.0,
         actuator_integration=actuator_integration,
-        joint_limit_ke_scale=0.1,
+        # ── Joint limits: CONSTRAINT-based (proven stable on hanging example) ──
+        # The original PENALTY limit forces (ke springs) fought the 24 passive
+        # closed-loop DOFs and blew the loops open. Switch to a pure constraint
+        # formulation: zero penalty (ke_scale=0) + sparse-Jacobi unilateral solver
+        # with alpha=0, recovery_speed=0.5, reg=1e-4, 20 iters. Validated stable
+        # (no NaN, loops closed) on the standalone hanging DR Legs example.
+        joint_limit_ke_scale=0.0,
         joint_limit_solver_type="sparse_jacobi",
+        joint_limit_max_iterations=20,
+        joint_limit_alpha=0.0,
+        joint_limit_recovery_speed=0.5,
+        joint_limit_reg=1e-4,
         joint_iterative_refinement_steps=1,
     )
 
@@ -89,12 +102,24 @@ def _dvi_newton_cfg(actuator_integration: str = "semi_implicit") -> NewtonCfg:
     return NewtonCfg(
         solver_cfg=_dvi_solver_cfg(actuator_integration),
         # Closed-loop DR Legs needs a small solver dt to hold the 6 parallel loops.
-        # sim dt is 0.004s; substeps set per Milad to match the Kamino baseline (2)
-        # (see standalone four-bar / DR Legs closed-loop tests).
-        num_substeps=int(os.environ.get("DRLEGS_SUBSTEPS", "4")),
+        # sim dt is 0.004s; substeps validated stable on the standalone hanging
+        # DR Legs example for 1, 2 and 4 (loop residual 4e-4 / 6e-5 / 4e-6).
+        num_substeps=4,  # SUBSTEPS_SWEEP_MARKER
         debug_mode=False,
         use_cuda_graph=True,
         collapse_fixed_joints=False,
+        # DR Legs is a closed-loop / orphan-joint robot (no articulation root), so
+        # Newton's articulation-keyed enable_self_collisions=False never fires.
+        # Convex-hull collider approximation gives every linkage body a collider, and
+        # adjacent links overlap at their shared pivot at the rest pose. The
+        # interpenetrating pairs are between bodies TWO joints apart
+        # (pelvis -> hip_servos -> upperleg_link; ankle_bracket_a -> b -> foot), and
+        # they push apart L/R-asymmetrically on step 1 -> spurious yaw spin -> topple.
+        # Filtering ALL self-collisions lets the legs cross (bad policy); instead
+        # filter only self-collisions between bodies within 2 joints of each other,
+        # so non-adjacent bodies (left leg vs right leg) STILL collide and the legs
+        # cannot pass through each other. Validated: zero t=0 overlap, no yaw spin.
+        jointed_self_collision_filter_hops=2,
         default_shape_cfg=NewtonShapeCfg(gap=0.005),
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
@@ -115,7 +140,12 @@ def _kamino_newton_cfg() -> NewtonCfg:
             use_collision_detector=False,
             collision_detector_pipeline="unified",
             collision_detector_max_contacts_per_pair=8,
-            use_fk_solver=False,
+            # NOTE: aserifi set ``use_fk_solver=False``, but on this branch the
+            # env's reset path passes joint angles (``joint_q``/``joint_u``) to
+            # ``SolverKamino.reset``, which routes through ``_reset_with_fk_solve``
+            # and REQUIRES the FK solver to reconstruct consistent body poses for
+            # the closed-loop mechanism. Enable it so resets-from-joint-angles work.
+            use_fk_solver=True,
             constraints_alpha=0.1,
             padmm_max_iterations=100,
             padmm_primal_tolerance=1.0e-5,
@@ -129,10 +159,29 @@ def _kamino_newton_cfg() -> NewtonCfg:
             padmm_use_graph_conditionals=False,
             # NOTE: aserifi also set ``max_contacts_per_world=50`` here, but that
             # field does not exist on this branch's ``KaminoSolverCfg`` (version
-            # skew between branches), so it is omitted.
+            # skew between branches). The equivalent per-world contact cap on this
+            # branch is driven by ``model.rigid_contact_max`` (Kamino computes
+            # ``world_max_contacts = rigid_contact_max // world_count``). Without
+            # an explicit cap, Newton's heuristic ``_estimate_rigid_contact_max``
+            # over-estimates ~27k contacts/world for this mesh-heavy closed-loop
+            # biped, which makes the dense Delassus dimension (~3*nc) overflow the
+            # int32 LDL allocation (``total_mat_size`` ~ 27e9+). We therefore set a
+            # sane explicit cap below (64 contacts/world is very generous for a
+            # biped's foot/ground contacts).
         ),
-        num_substeps=2,
-        use_cuda_graph=True,
+        # PER-WORLD contact budget (the Kamino manager scales this by the actual
+        # world count). 64 contacts/world is very generous for a biped's
+        # foot/ground contacts and keeps the dense Delassus dimension small
+        # (maxdim ~ 192 joint-cts + 12 limits + 3*64 = 396) so the int32 LDL
+        # allocation (~ maxdim^2 * worlds) stays well below 2^31 at any env count.
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=64),
+        num_substeps=4,
+        # CUDA graph instantiation fails at large env counts (4096) on this branch
+        # with "invalid argument" from wp_cuda_graph_create_exec -- the captured
+        # Kamino/FK-solver step contains ops that don't replay at this grid size.
+        # Run eager (no graph). Costs some FPS but is required for the benchmark
+        # to run at scale; note this when comparing FPS against DVI.
+        use_cuda_graph=False,
     )
 
 

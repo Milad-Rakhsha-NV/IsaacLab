@@ -50,6 +50,177 @@ def _get_collapse_fixed_joints() -> bool:
     return os.environ.get("NEWTON_COLLAPSE_FIXED_JOINTS", "").lower() in ("1", "true", "yes")
 
 
+def _get_disable_robot_self_collisions() -> bool:
+    """Check if intra-robot self-collisions should be disabled via NewtonCfg."""
+    from isaaclab.physics import PhysicsManager
+    from isaaclab_newton.physics.newton_manager_cfg import NewtonCfg
+
+    cfg = PhysicsManager._cfg
+    if isinstance(cfg, NewtonCfg):
+        return cfg.disable_robot_self_collisions
+    return False
+
+
+def _get_self_collision_shape_contraction() -> float:
+    """Inward collision-hull contraction (meters) from NewtonCfg, 0.0 if unset."""
+    from isaaclab.physics import PhysicsManager
+    from isaaclab_newton.physics.newton_manager_cfg import NewtonCfg
+
+    cfg = PhysicsManager._cfg
+    if isinstance(cfg, NewtonCfg):
+        return float(getattr(cfg, "self_collision_shape_contraction", 0.0))
+    return 0.0
+
+
+def _contract_collision_shapes_on_prototype(p, amount: float) -> int:
+    """Shrink each collidable mesh hull inward toward its centroid by ``amount`` [m].
+
+    Moves every vertex of each collidable mesh/convex-hull shape toward the hull's
+    own centroid by ``amount`` meters (clamped so the hull cannot invert). This
+    reduces the collision geometry so adjacent closed-loop links no longer overlap
+    at the rest pose, WITHOUT modifying the source USD or recomputing body inertia
+    (collision-only change). Returns the number of shapes contracted.
+    """
+    import numpy as np
+    from newton import ShapeFlags
+
+    n = 0
+    for s in range(p.shape_count):
+        if not (p.shape_flags[s] & ShapeFlags.COLLIDE_SHAPES):
+            continue
+        src = p.shape_source[s]
+        verts = getattr(src, "vertices", None)
+        if verts is None:
+            continue
+        V = np.asarray(verts, dtype=np.float64)
+        if V.ndim != 2 or V.shape[0] < 4:
+            continue
+        c = V.mean(axis=0)
+        d = V - c
+        norm = np.linalg.norm(d, axis=1, keepdims=True)
+        # shrink each vertex inward by `amount`, but never past the centroid
+        shrink = np.clip(norm - amount, 0.0, None)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            unit = np.where(norm > 1e-12, d / norm, 0.0)
+        Vnew = c + unit * shrink
+        p.shape_source[s] = src.copy(vertices=Vnew, recompute_inertia=False)
+        n += 1
+    return n
+
+
+def _get_jointed_self_collision_filter_hops() -> int:
+    """Joint-graph hop distance within which self-collisions are filtered (0 = off)."""
+    from isaaclab.physics import PhysicsManager
+    from isaaclab_newton.physics.newton_manager_cfg import NewtonCfg
+
+    cfg = PhysicsManager._cfg
+    if isinstance(cfg, NewtonCfg):
+        return int(getattr(cfg, "jointed_self_collision_filter_hops", 0))
+    return 0
+
+
+def _filter_jointed_self_collisions_on_prototype(p, hops: int) -> int:
+    """Filter collisions between bodies within ``hops`` joints of each other.
+
+    Treats the robot's joints (tree joints AND closed-loop / orphan joints, both of
+    which populate ``joint_parent`` / ``joint_child``) as an undirected graph over
+    bodies, then filters every collidable shape pair whose bodies are within
+    ``hops`` joints (graph distance <= hops). ``hops=1`` filters only directly
+    jointed neighbors; ``hops=2`` also filters grandparent-grandchild and sibling
+    pairs that share an intermediate body, etc. Non-adjacent bodies (e.g. left leg
+    vs right leg) still collide so the legs cannot pass through each other.
+
+    DR Legs needs ``hops=2``: the rest-pose interpenetrations that inject the
+    asymmetric yaw/pitch kick are between bodies TWO joints apart (e.g.
+    pelvis -> hip_servos -> upperleg_link, and ankle_bracket_a -> ankle_bracket_b
+    -> foot), which a direct-neighbor (hops=1) filter does not cover. Newton's
+    articulation-keyed self-collision filter normally excludes directly-jointed
+    pairs, but it does not fire for DR Legs (articulation_count=0) and would not
+    cover the loop-closure joints anyway.
+
+    Returns the number of filtered shape pairs.
+    """
+    from collections import deque
+
+    from newton import ShapeFlags
+
+    if hops <= 0:
+        return 0
+
+    # Build undirected adjacency over bodies from all joints (excluding world -1).
+    adj: dict[int, set[int]] = {}
+    for k in range(p.joint_count):
+        a = p.joint_parent[k]
+        b = p.joint_child[k]
+        if a < 0 or b < 0 or a == b:
+            continue
+        adj.setdefault(a, set()).add(b)
+        adj.setdefault(b, set()).add(a)
+
+    # For each body, BFS out to `hops` to collect bodies within range.
+    within: dict[int, set[int]] = {}
+    for start in adj:
+        seen = {start: 0}
+        q = deque([start])
+        while q:
+            cur = q.popleft()
+            d = seen[cur]
+            if d == hops:
+                continue
+            for nb in adj.get(cur, ()):
+                if nb not in seen:
+                    seen[nb] = d + 1
+                    q.append(nb)
+        within[start] = {b for b in seen if b != start}
+
+    # Collidable shapes grouped per body.
+    shapes_of_body: dict[int, list[int]] = {}
+    for s in range(p.shape_count):
+        if not (p.shape_flags[s] & ShapeFlags.COLLIDE_SHAPES):
+            continue
+        b = p.shape_body[s]
+        shapes_of_body.setdefault(b, []).append(s)
+
+    # Emit each unordered body pair once.
+    n = 0
+    for a, neighbors in within.items():
+        for b in neighbors:
+            if a >= b:
+                continue
+            for si in shapes_of_body.get(a, ()):
+                for sj in shapes_of_body.get(b, ()):
+                    p.add_shape_collision_filter_pair(si, sj)
+                    n += 1
+    return n
+
+
+def _disable_self_collisions_on_prototype(p) -> None:
+    """Filter every intra-robot shape pair in a prototype builder.
+
+    Adds a collision-filter pair for all pairs of shapes belonging to different
+    bodies within the prototype (and pairs sharing a body), so the robot's own
+    bodies never collide with each other. Body-vs-ground and body-vs-other-robot
+    collisions are unaffected (those involve shapes outside this prototype).
+
+    Required for closed-loop / orphan-joint robots (DR Legs): convex-hull collider
+    approximation gives every linkage body a collider, and the model has no
+    articulation root, so Newton's articulation-keyed self-collision filter never
+    fires. Mechanically-linked loop bodies would otherwise self-collide and inject
+    spurious asymmetric impulses (observed: yaw spin-up -> topple -> reset).
+    """
+    from newton import ShapeFlags
+
+    # Only consider shapes that actually collide.
+    collidable = [
+        s
+        for s in range(p.shape_count)
+        if p.shape_flags[s] & ShapeFlags.COLLIDE_SHAPES
+    ]
+    for i in range(len(collidable)):
+        for j in range(i + 1, len(collidable)):
+            p.add_shape_collision_filter_pair(collidable[i], collidable[j])
+
+
 def _build_newton_builder_from_mapping(
     stage: Usd.Stage,
     sources: list[str],
@@ -88,6 +259,26 @@ def _build_newton_builder_from_mapping(
     if collapse_fixed_joints:
         import logging
         logging.getLogger(__name__).info("collapse_fixed_joints=True — merging fixed-joint bodies")
+    disable_robot_self_collisions = _get_disable_robot_self_collisions()
+    if disable_robot_self_collisions:
+        import logging
+        logging.getLogger(__name__).info(
+            "disable_robot_self_collisions=True — filtering all intra-robot shape pairs"
+        )
+    jointed_filter_hops = _get_jointed_self_collision_filter_hops()
+    if jointed_filter_hops > 0:
+        import logging
+        logging.getLogger(__name__).info(
+            f"jointed_self_collision_filter_hops={jointed_filter_hops} — filtering self-collisions "
+            f"between bodies within {jointed_filter_hops} joint(s) (farther bodies still collide)"
+        )
+    self_collision_contraction = _get_self_collision_shape_contraction()
+    if self_collision_contraction > 0.0:
+        import logging
+        logging.getLogger(__name__).info(
+            f"self_collision_shape_contraction={self_collision_contraction} m — "
+            f"shrinking robot collision hulls inward"
+        )
 
     builder = NewtonManager.create_builder(up_axis=up_axis)
     stage_info = builder.add_usd(
@@ -114,6 +305,20 @@ def _build_newton_builder_from_mapping(
         )
         if simplify_meshes:
             p.approximate_meshes("convex_hull", keep_visual_shapes=True)
+        if self_collision_contraction > 0.0:
+            import logging
+            _ncon = _contract_collision_shapes_on_prototype(p, self_collision_contraction)
+            logging.getLogger(__name__).info(
+                f"contracted {_ncon} collision hulls inward by {self_collision_contraction} m"
+            )
+        if jointed_filter_hops > 0:
+            import logging
+            _njf = _filter_jointed_self_collisions_on_prototype(p, jointed_filter_hops)
+            logging.getLogger(__name__).info(
+                f"filtered {_njf} self-collision shape pairs within {jointed_filter_hops} joint(s)"
+            )
+        if disable_robot_self_collisions:
+            _disable_self_collisions_on_prototype(p)
         protos[src_path] = p
 
     # Inject registered sites into prototypes (and global sites into main builder)

@@ -115,6 +115,58 @@ class NewtonCfg(PhysicsCfg):
     Recommended True for DVISolverCfg, False for MJWarpSolverCfg.
     """
 
+    disable_robot_self_collisions: bool = False
+    """Whether to disable self-collisions within each replicated robot prototype.
+
+    When True, every intra-robot shape pair in each cloned prototype is added to
+    the collision filter, so the robot's own bodies never collide with each other
+    (body-vs-ground and body-vs-other-robot collisions are unaffected).
+
+    This is required for closed-loop / orphan-joint robots (e.g. DR Legs) where
+    convex-hull collider approximation gives every linkage body a collider, and
+    Newton's articulation-keyed ``enable_self_collisions=False`` filter does not
+    fire because the model has no PhysicsArticulationRootAPI (articulation_count=0).
+    Without this, mechanically-linked loop bodies (parallelogram halves, etc.)
+    self-collide and inject spurious asymmetric impulses.
+    """
+
+    jointed_self_collision_filter_hops: int = 0
+    """Joint-graph hop distance within which intra-robot self-collisions are filtered.
+
+    Treats the robot's joints (tree joints AND closed-loop / orphan joints) as an
+    undirected graph over bodies and filters every collidable shape pair whose
+    bodies are within this many joints of each other:
+
+    - ``0`` (default): no jointed filtering.
+    - ``1``: filter only directly jointed neighbors (parent<->child).
+    - ``2``: also filter grandparent<->grandchild and sibling pairs sharing an
+      intermediate body, etc.
+
+    Bodies farther apart than this still collide normally, so the legs cannot pass
+    through each other. This is the targeted alternative to
+    ``disable_robot_self_collisions`` for closed-loop robots (e.g. DR Legs): the
+    rest-pose interpenetrations that inject the asymmetric yaw/pitch kick are
+    between bodies TWO joints apart (pelvis -> hip_servos -> upperleg_link, and
+    ankle_bracket_a -> ankle_bracket_b -> foot), so DR Legs needs ``2``.
+
+    Newton's articulation-keyed self-collision filter normally excludes directly
+    jointed pairs, but it does not fire for DR Legs (articulation_count=0) and would
+    not cover the loop-closure joints anyway.
+    """
+
+    self_collision_shape_contraction: float = 0.0
+    """Inward contraction (in meters) applied to each robot collision hull.
+
+    When > 0, every collidable shape's mesh vertices are moved toward the shape's
+    local centroid by this amount, shrinking the collision geometry without
+    touching the source USD or the body inertia. This keeps self-collisions ON
+    (so the legs cannot pass through each other) while removing the rest-pose
+    interpenetration that convex-hull approximation introduces between adjacent
+    closed-loop links (e.g. DR Legs pelvis<->upperleg overlap ~3mm at q=0), which
+    otherwise injects an L/R-asymmetric push-apart impulse -> yaw spin-up -> topple.
+    Default 0.0 (no contraction).
+    """
+
     solver_cfg: NewtonSolverCfg | None = None
     """Solver configuration. If None (default), MJWarpSolverCfg is used by default."""
 
