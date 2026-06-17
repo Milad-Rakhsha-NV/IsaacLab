@@ -196,10 +196,7 @@ class NewtonDVIManager(NewtonManager):
             contact_solver=contact_config,
             angular_damping=solver_cfg.angular_damping,
             enable_actuation=solver_cfg.enable_actuation,
-            enable_contacts=solver_cfg.enable_contacts,
-            enable_gyroscopic=solver_cfg.enable_gyroscopic,
             actuator_integration=ai_mode,
-            joint_limit_ke_scale=solver_cfg.joint_limit_ke_scale,
             enable_timers=False,
         )
         NewtonManager._use_single_state = False

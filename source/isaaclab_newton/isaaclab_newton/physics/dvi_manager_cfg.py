@@ -147,12 +147,6 @@ class DVISolverCfg(NewtonSolverCfg):
       velocity correction term for exact implicit treatment.
     """
 
-    enable_gyroscopic: bool = True
-    """Whether to include gyroscopic torque."""
-
-    enable_contacts: bool = True
-    """Whether to enable contact force solving."""
-
     enable_actuation: bool = True
     """Whether to enable PD control actuation."""
 
