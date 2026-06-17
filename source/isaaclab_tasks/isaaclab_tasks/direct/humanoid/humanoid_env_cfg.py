@@ -41,7 +41,6 @@ class HumanoidPhysicsCfg(PresetCfg):
     newton_dvi: NewtonCfg = NewtonCfg(
         solver_cfg=DVISolverCfg(
             joint_solver_type="sparse_ldl",
-            joint_max_iterations=50,
             joint_alpha=0.0,
             joint_recovery_speed=100000.0,
             joint_position_correction=False,
@@ -51,7 +50,6 @@ class HumanoidPhysicsCfg(PresetCfg):
             contact_recovery_speed=10.0,
             contact_position_correction=False,
             angular_damping=0.01,
-            use_implicit_pd=True,
             joint_limit_ke_scale=0.01,
             joint_limit_solver_type="sparse_jacobi",
         ),

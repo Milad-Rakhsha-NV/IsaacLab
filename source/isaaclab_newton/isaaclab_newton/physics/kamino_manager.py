@@ -41,11 +41,25 @@ class NewtonKaminoManager(NewtonManager):
             world_mask: Per-world mask indicating which worlds to reset.
                 Shape ``(num_worlds,)``, dtype ``wp.int32``. If None, resets all worlds.
         """
+        # NOTE: this branch's ``SolverKamino.reset`` takes ``state`` as the first
+        # positional argument (not ``state_out=``); keyword-only kinematics are
+        # ``joint_q``/``joint_u``/``base_q``/``base_u``.
+        # The shared ``_world_reset_mask`` is allocated as int32 (written by the
+        # reset kernels), but this branch's Kamino reset kernels expect a BOOL
+        # world mask. Convert lazily, reusing a cached bool buffer.
+        bool_mask = world_mask
+        if world_mask is not None and world_mask.dtype != wp.bool:
+            cached = getattr(cls, "_world_reset_mask_bool", None)
+            if cached is None or cached.shape != world_mask.shape:
+                cached = wp.zeros(world_mask.shape, dtype=wp.bool, device=world_mask.device)
+                cls._world_reset_mask_bool = cached
+            wp.utils.array_cast(in_array=world_mask, out_array=cached)
+            bool_mask = cached
         cls._solver.reset(
-            state_out=cls._state_0,
+            cls._state_0,
+            world_mask=bool_mask,
             joint_q=cls._state_0.joint_q,
             joint_u=cls._state_0.joint_qd,
-            world_mask=world_mask,
         )
 
     @classmethod
@@ -120,6 +134,35 @@ class NewtonKaminoManager(NewtonManager):
         when ``use_collision_detector=False`` (Kamino's internal detector
         handles contacts otherwise).
         """
+        # Propagate rigid_contact_max from collision_cfg to the model BEFORE
+        # building the solver. SolverKamino derives its per-world contact cap as
+        # ``world_max_contacts = model.rigid_contact_max // world_count`` and
+        # sizes the dense Delassus / LDL allocation from it. Without an explicit
+        # cap, Newton's heuristic over-estimates contacts for mesh-heavy
+        # closed-loop models (e.g. DR Legs ~27k/world), overflowing the int32
+        # ``total_mat_size``. Mirrors the DVI manager's propagation.
+        # The collision_cfg's ``rigid_contact_max`` is interpreted here as a
+        # PER-WORLD contact budget (not a global total), then scaled by the
+        # actual world count. This keeps the per-world cap constant regardless
+        # of ``--num_envs`` (otherwise a fixed global total divided by a small
+        # env count yields a huge per-world cap and overflows the int32 LDL).
+        collision_cfg = cls._collision_cfg
+        per_world_cap = getattr(collision_cfg, "rigid_contact_max", None) if collision_cfg is not None else None
+        if per_world_cap:
+            world_count = int(getattr(model, "world_count", 1) or 1)
+            total_cap = int(per_world_cap) * world_count
+            model.rigid_contact_max = total_cap
+            # Also rewrite the collision_cfg total so the Newton collision
+            # pipeline (built later in ``_initialize_contacts``) allocates the
+            # SAME number of contact slots Kamino expects. Otherwise the pipeline
+            # would allocate only ``per_world_cap`` slots while Kamino sizes its
+            # container to ``per_world_cap * world_count`` -> capacity mismatch.
+            collision_cfg.rigid_contact_max = total_cap
+            logger.info(
+                f"Kamino: set rigid_contact_max = {total_cap} "
+                f"({per_world_cap}/world x {world_count} worlds)"
+            )
+
         NewtonManager._solver = SolverKamino(model, solver_cfg.to_solver_config())
         NewtonManager._use_single_state = False
         NewtonManager._needs_collision_pipeline = not solver_cfg.use_collision_detector

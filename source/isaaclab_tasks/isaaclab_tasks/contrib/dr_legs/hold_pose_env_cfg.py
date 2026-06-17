@@ -61,7 +61,6 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
     """
     return DVISolverCfg(
         joint_solver_type="sparse_ldl",
-        joint_max_iterations=50,
         joint_alpha=0.0,
         joint_recovery_speed=100000.0,
         # Position correction OFF: the constraint-based joint-limit solver alone

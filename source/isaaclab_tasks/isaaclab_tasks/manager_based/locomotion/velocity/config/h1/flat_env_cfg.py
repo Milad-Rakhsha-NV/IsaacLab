@@ -17,7 +17,6 @@ from .rough_env_cfg import H1RoughEnvCfg
 
 DVI_SOLVER_CFG = DVISolverCfg(
     joint_solver_type="sparse_ldl",
-    joint_max_iterations=50,
     joint_alpha=0.0,
     joint_recovery_speed=100000.0,
     joint_position_correction=False,

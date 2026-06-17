@@ -36,10 +36,10 @@ _SOLVER_TYPE_MAP = {
 
 def _make_numerical_config(
     solver_type_str: str,
-    max_iterations: int,
     omega: float,
     relax: float,
     reg: float,
+    max_iterations: int = 50,
     alpha: float = 0.005,
     recovery_speed: float = -1.0,
     position_correction: bool = False,
@@ -108,9 +108,10 @@ class NewtonDVIManager(NewtonManager):
             model.rigid_contact_max = collision_cfg.rigid_contact_max
             logger.info(f"DVI: set model.rigid_contact_max = {model.rigid_contact_max}")
 
+        # NOTE: joint solver is typically sparse_ldl (a direct factorization),
+        # for which max_iterations is unused; it is intentionally not passed here.
         joint_config = _make_numerical_config(
             solver_type_str=solver_cfg.joint_solver_type,
-            max_iterations=solver_cfg.joint_max_iterations,
             omega=solver_cfg.joint_omega,
             relax=solver_cfg.joint_relax,
             reg=solver_cfg.joint_reg,
@@ -190,6 +191,7 @@ class NewtonDVIManager(NewtonManager):
 
         NewtonManager._solver = SolverDVI(
             model,
+            joint_limit_solver=joint_limit_config,
             joint_solver=joint_config,
             contact_solver=contact_config,
             angular_damping=solver_cfg.angular_damping,
@@ -198,7 +200,6 @@ class NewtonDVIManager(NewtonManager):
             enable_gyroscopic=solver_cfg.enable_gyroscopic,
             actuator_integration=ai_mode,
             joint_limit_ke_scale=solver_cfg.joint_limit_ke_scale,
-            joint_limit_solver=joint_limit_config,
             enable_timers=False,
         )
         NewtonManager._use_single_state = False

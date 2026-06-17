@@ -37,15 +37,56 @@ class DVISolverCfg(NewtonSolverCfg):
     solver_type: str = "dvi"
     """Solver type metadata."""
 
+    # NOTE: DVI solver parameter blocks are ordered to match the solve order:
+    # joint limits (unilateral) -> joints (bilateral) -> contacts.
+
+    # -- Joint limit constraint solver config (optional) --
+    # When joint_limit_solver_type is set, joint limits switch from penalty
+    # (spring-damper in actuation) to constraint-based enforcement
+    # (unilateral λ≥0 solver before bilateral joints).
+
+    joint_limit_solver_type: str | None = "sparse_jacobi"
+    """Numerical solver type for joint limit constraints.
+    When set (e.g. ``"sparse_jacobi"``), enables constraint-based joint limits.
+    When None, joint limits use penalty-based spring-damper forces.
+    """
+
+    joint_limit_max_iterations: int = 10
+    """Maximum iterations for joint limit constraint solver."""
+
+    joint_limit_omega: float = 0.3
+    """Relaxation parameter for joint limit solver."""
+
+    joint_limit_relax: float = 0.9
+    """SOR relaxation for joint limit solver."""
+
+    joint_limit_reg: float = 1e-8
+    """Regularization for joint limit solver."""
+
+    joint_limit_alpha: float = 0.0
+    """Baumgarte damping for joint limit constraints."""
+
+    joint_limit_recovery_speed: float = 10.0
+    """Max Baumgarte recovery speed for joint limits (rad/s)."""
+
+    joint_limit_ke_scale: float = 1.0
+    """Scale factor for joint limit stiffness (ke) and damping (kd).
+    USD/MJCF importers produce limit stiffness tuned for implicit constraint solvers
+    (e.g. 10,000).  For penalty-based enforcement, lower values (0.01-0.1) keep limit
+    forces proportional to actuator effort.  Default 1.0 = no scaling.
+    Only used in penalty mode (when ``joint_limit_solver_type`` is None).
+    """
+
     # -- Joint solver config --
     joint_solver_type: str = "sparse_ldl"
     """Numerical solver type for joint constraints. One of:
     sparse_ldl, sparse_jacobi, sparse_apgd, sparse_block_gs, dense_direct,
     dense_jacobi, dense_gauss_seidel, dense_apgd.
-    """
 
-    joint_max_iterations: int = 50
-    """Maximum iterations for joint constraint solver."""
+    Note: ``sparse_ldl`` is a direct factorization; iterative controls such as
+    ``joint_omega``/``joint_relax`` are unused for it (use
+    ``joint_iterative_refinement_steps`` to control LDL refinement).
+    """
 
     joint_omega: float = 0.3
     """Relaxation parameter for joint solver."""
@@ -97,64 +138,14 @@ class DVISolverCfg(NewtonSolverCfg):
     angular_damping: float = 0.01
     """Angular velocity damping coefficient."""
 
-    use_implicit_pd: bool = True
-    """Whether to use implicit PD (mass-matrix augmentation) for joint stiffness/damping.
-    Allows larger timesteps for stiff springs.
-
-    .. deprecated::
-        Use ``actuator_integration`` instead. ``True`` maps to SEMI_IMPLICIT,
-        ``False`` maps to EXPLICIT.
-    """
-
     actuator_integration: str = "semi_implicit"
     """Actuator integration mode for PD control. One of:
 
     - ``"explicit"``: Forces evaluated at current state, no mass augmentation.
-    - ``"semi_implicit"`` (default): Mass augmentation via augmented inertia
-      (same as ``use_implicit_pd=True``).
+    - ``"semi_implicit"`` (default): Mass augmentation via augmented inertia.
     - ``"implicit"``: Same augmentation as semi_implicit, plus an additional
       velocity correction term for exact implicit treatment.
-
-    When both ``use_implicit_pd`` and ``actuator_integration`` are specified,
-    ``actuator_integration`` takes precedence.
     """
-
-    joint_limit_ke_scale: float = 1.0
-    """Scale factor for joint limit stiffness (ke) and damping (kd).
-    USD/MJCF importers produce limit stiffness tuned for implicit constraint solvers
-    (e.g. 10,000).  For penalty-based enforcement, lower values (0.01-0.1) keep limit
-    forces proportional to actuator effort.  Default 1.0 = no scaling.
-    Only used in penalty mode (when no ``joint_limit_*`` solver fields are set).
-    """
-
-    # -- Joint limit constraint solver config (optional) --
-    # When joint_limit_solver_type is set, joint limits switch from penalty
-    # (spring-damper in actuation) to constraint-based enforcement
-    # (unilateral λ≥0 solver before bilateral joints).
-
-    joint_limit_solver_type: str | None = "sparse_jacobi"
-    """Numerical solver type for joint limit constraints.
-    When set (e.g. ``"sparse_jacobi"``), enables constraint-based joint limits.
-    When None, joint limits use penalty-based spring-damper forces.
-    """
-
-    joint_limit_max_iterations: int = 10
-    """Maximum iterations for joint limit constraint solver."""
-
-    joint_limit_omega: float = 0.3
-    """Relaxation parameter for joint limit solver."""
-
-    joint_limit_relax: float = 0.9
-    """SOR relaxation for joint limit solver."""
-
-    joint_limit_reg: float = 1e-8
-    """Regularization for joint limit solver."""
-
-    joint_limit_alpha: float = 0.0
-    """Baumgarte damping for joint limit constraints."""
-
-    joint_limit_recovery_speed: float = 10.0
-    """Max Baumgarte recovery speed for joint limits (rad/s)."""
 
     enable_gyroscopic: bool = True
     """Whether to include gyroscopic torque."""

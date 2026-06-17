@@ -37,7 +37,6 @@ class PhysicsCfg(PresetCfg):
     newton_dvi = NewtonCfg(
         solver_cfg=DVISolverCfg(
             joint_solver_type="sparse_ldl",
-            joint_max_iterations=50,
             joint_alpha=0.0,
             joint_recovery_speed=100000.0,
             joint_position_correction=False,
@@ -70,7 +69,6 @@ class PhysicsCfg(PresetCfg):
     newton_dvi_implicit = NewtonCfg(
         solver_cfg=DVISolverCfg(
             joint_solver_type="sparse_ldl",
-            joint_max_iterations=50,
             joint_alpha=0.0,
             joint_recovery_speed=100000.0,
             joint_position_correction=False,
@@ -98,7 +96,6 @@ class PhysicsCfg(PresetCfg):
     newton_dvi_semi_implicit = NewtonCfg(
         solver_cfg=DVISolverCfg(
             joint_solver_type="sparse_ldl",
-            joint_max_iterations=50,
             joint_alpha=0.0,
             joint_recovery_speed=100000.0,
             joint_position_correction=False,

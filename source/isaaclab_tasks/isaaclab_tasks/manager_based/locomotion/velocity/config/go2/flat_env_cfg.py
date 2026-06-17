@@ -20,7 +20,6 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
     """Build DVISolverCfg with the given actuator integration mode."""
     return DVISolverCfg(
         joint_solver_type="sparse_ldl",
-        joint_max_iterations=50,
         joint_alpha=0.005,
         joint_recovery_speed=100000.0,
         joint_position_correction=False,
