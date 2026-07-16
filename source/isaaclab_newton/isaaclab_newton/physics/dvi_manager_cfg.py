@@ -134,6 +134,18 @@ class DVISolverCfg(NewtonSolverCfg):
     contact_position_correction: bool = False
     """Enable position-level correction for contact penetration."""
 
+    contact_tolerance: float | None = None
+    """Early-exit convergence tolerance for the contact numerical solver.
+
+    For iterative solvers (APGD/ASPG/Jacobi/GS) the solve latches converged and
+    stops early once the projected-gradient KKT residual ``||gamma - P_K(gamma - g)||``
+    (rho=1) drops below this value. Looser (larger) => exits sooner (faster, but
+    risks returning an under-solved impulse that can drift/blow up under
+    recovery+momentum). Tighter (smaller) => more iterations, better contacts.
+    ``None`` keeps the Newton solver default (1e-8). Only affects APGD/iterative
+    contacts; ignored by direct solvers.
+    """
+
     # -- General solver params --
     angular_damping: float = 0.01
     """Angular velocity damping coefficient."""
@@ -164,15 +176,6 @@ class DVISolverCfg(NewtonSolverCfg):
     After diagonal scaling brings all N diagonal entries to ~1.0, this adds
     fresh regularization. Prevents near-zero pivots during LDL factorization.
     Only used when diagonal_precondition=True.
-    """
-
-    contact_backtrack_iterations: int = 5
-    """Number of backtracking line-search iterations per APGD outer iteration.
-
-    Only used when ``contact_solver_type`` is ``"sparse_apgd"``.
-    Each backtracking step performs a full Schur product, so this is the
-    main cost multiplier for APGD.  Set to 1 to disable backtracking
-    (pure Nesterov APGD with ``L *= 0.9`` decay).  Default 5.
     """
 
     joint_iterative_refinement_steps: int = 0

@@ -46,9 +46,9 @@ def _make_numerical_config(
     diagonal_precondition: bool = False,
     precond_reg: float = 1e-4,
     friction_projection: FrictionProjection = FrictionProjection.CONE,
-    backtrack_iterations: int = 5,
     block_precondition: bool = False,
     iterative_refinement_steps: int = 0,
+    tolerance: float | None = None,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -79,9 +79,9 @@ def _make_numerical_config(
         diagonal_precondition=diagonal_precondition,
         precond_reg=precond_reg,
         friction_projection=friction_projection,
-        backtrack_iterations=backtrack_iterations,
         block_precondition=block_precondition,
         iterative_refinement_steps=iterative_refinement_steps,
+        **({} if tolerance is None else {"tolerance": tolerance}),
     )
 
 
@@ -142,8 +142,8 @@ class NewtonDVIManager(NewtonManager):
             recovery_speed=solver_cfg.contact_recovery_speed,
             position_correction=solver_cfg.contact_position_correction,
             friction_projection=fp,
-            backtrack_iterations=solver_cfg.contact_backtrack_iterations,
             block_precondition=solver_cfg.contact_block_precondition,
+            tolerance=solver_cfg.contact_tolerance,
         )
 
         # Build joint limit solver config if constraint-based limits requested
