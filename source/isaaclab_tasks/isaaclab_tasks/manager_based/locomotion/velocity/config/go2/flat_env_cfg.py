@@ -49,6 +49,21 @@ def _dvi_newton_cfg(actuator_integration: str = "semi_implicit") -> NewtonCfg:
     )
 
 
+def _dvi_apgd_newton_cfg() -> NewtonCfg:
+    """DVI NewtonCfg but with APGD contacts (Nesterov-accelerated) instead of Jacobi.
+
+    Backtracking line search uses Newton's default cap (graph-safe early exit via
+    the NEED_BT latch: the search runs only while the descent condition is
+    violated and terminates early once satisfied). Matches Jacobi's outer iter
+    count (20).
+    """
+    cfg = _dvi_newton_cfg("semi_implicit")
+    cfg.solver_cfg.contact_solver_type = "sparse_apgd"
+    cfg.solver_cfg.contact_max_iterations = 3
+    cfg.solver_cfg.contact_tolerance = 1e-4
+    return cfg
+
+
 @configclass
 class PhysicsCfg(PresetCfg):
     default = PhysxCfg(gpu_max_rigid_patch_count=10 * 2**15)
@@ -67,6 +82,7 @@ class PhysicsCfg(PresetCfg):
     newton_dvi = _dvi_newton_cfg("semi_implicit")
     newton_dvi_implicit = _dvi_newton_cfg("implicit")
     newton_dvi_semi_implicit = _dvi_newton_cfg("semi_implicit")
+    newton_dvi_apgd = _dvi_apgd_newton_cfg()
     physx = default
 
 
@@ -96,6 +112,13 @@ class UnitreeGo2FlatEnvCfg(UnitreeGo2RoughEnvCfg):
                 damping=0.5,
             ),
             newton_dvi_semi_implicit=ImplicitActuatorCfg(
+                joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
+                effort_limit_sim=23.5,
+                velocity_limit_sim=30.0,
+                stiffness=25.0,
+                damping=0.5,
+            ),
+            newton_dvi_apgd=ImplicitActuatorCfg(
                 joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
                 effort_limit_sim=23.5,
                 velocity_limit_sim=30.0,

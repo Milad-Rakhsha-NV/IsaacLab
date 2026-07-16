@@ -124,6 +124,15 @@ def _dvi_newton_cfg(actuator_integration: str = "semi_implicit") -> NewtonCfg:
     )
 
 
+def _dvi_apgd_newton_cfg() -> NewtonCfg:
+    """DVI NewtonCfg but with APGD contacts (3 iters, tol 1e-4)."""
+    cfg = _dvi_newton_cfg("semi_implicit")
+    cfg.solver_cfg.contact_solver_type = "sparse_apgd"
+    cfg.solver_cfg.contact_max_iterations = 20
+    cfg.solver_cfg.contact_tolerance = 1e-4
+    return cfg
+
+
 def _kamino_newton_cfg() -> NewtonCfg:
     """Kamino solver preset for DR Legs (closed-loop, implicit PD).
 
@@ -192,6 +201,7 @@ class DrLegsPhysicsCfg(PresetCfg):
     newton_dvi: NewtonCfg = _dvi_newton_cfg("semi_implicit")
     newton_dvi_implicit: NewtonCfg = _dvi_newton_cfg("implicit")
     newton_dvi_semi_implicit: NewtonCfg = _dvi_newton_cfg("semi_implicit")
+    newton_dvi_apgd: NewtonCfg = _dvi_apgd_newton_cfg()
     newton_kamino: NewtonCfg = _kamino_newton_cfg()
 
 

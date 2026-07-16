@@ -82,6 +82,33 @@ class AntPhysicsCfg(PresetCfg):
         default_shape_cfg=NewtonShapeCfg(gap=0.005),
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
+    # APGD contacts variant: same as newton_dvi but Nesterov-accelerated projected
+    # gradient for contacts. Proper backtracking line search: LARGE backtrack cap
+    # (20) + graph-safe early exit (NEED_BT latch) so the search runs only as long
+    # as the descent condition is violated, terminating early once satisfied.
+    newton_dvi_apgd: NewtonCfg = NewtonCfg(
+        solver_cfg=DVISolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_alpha=0.0,
+            joint_recovery_speed=100000.0,
+            joint_position_correction=False,
+            contact_solver_type="sparse_apgd",
+            contact_max_iterations=20,
+            contact_tolerance=1e-4,  # SWEEP KNOB — vary per run
+            contact_omega=0.3,
+            contact_alpha=0.0,
+            contact_recovery_speed=1.0,
+            contact_position_correction=False,
+            angular_damping=0.01,
+            joint_limit_ke_scale=0.01,
+            joint_limit_solver_type="sparse_jacobi",
+        ),
+        num_substeps=1,
+        debug_mode=False,
+        use_cuda_graph=True,
+        default_shape_cfg=NewtonShapeCfg(gap=0.005),
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
+    )
 
 
 @configclass

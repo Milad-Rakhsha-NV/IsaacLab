@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import copy
+
 from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
 from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
@@ -20,6 +22,38 @@ from isaaclab.utils import configclass
 from isaaclab_tasks.utils import PresetCfg
 
 from isaaclab_assets import HUMANOID_CFG
+
+
+def _humanoid_dvi_newton_cfg() -> NewtonCfg:
+    return NewtonCfg(
+        solver_cfg=DVISolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_alpha=0.0,
+            joint_recovery_speed=100000.0,
+            joint_position_correction=False,
+            contact_solver_type="sparse_jacobi",
+            contact_max_iterations=50,
+            contact_alpha=0.0,
+            contact_recovery_speed=10.0,
+            contact_position_correction=False,
+            angular_damping=0.01,
+            joint_limit_ke_scale=0.01,
+            joint_limit_solver_type="sparse_jacobi",
+        ),
+        num_substeps=2,
+        debug_mode=False,
+        use_cuda_graph=True,
+        default_shape_cfg=NewtonShapeCfg(gap=0.005),
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
+    )
+
+
+def _humanoid_dvi_apgd_newton_cfg() -> NewtonCfg:
+    cfg = _humanoid_dvi_newton_cfg()
+    cfg.solver_cfg.contact_solver_type = "sparse_apgd"
+    cfg.solver_cfg.contact_max_iterations = 20
+    cfg.solver_cfg.contact_tolerance = 1e-4
+    return cfg
 
 
 @configclass
@@ -59,6 +93,7 @@ class HumanoidPhysicsCfg(PresetCfg):
         default_shape_cfg=NewtonShapeCfg(gap=0.005),
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
+    newton_dvi_apgd: NewtonCfg = _humanoid_dvi_apgd_newton_cfg()
 
 
 @configclass

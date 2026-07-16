@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import copy
+
 from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
 from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
@@ -43,6 +45,11 @@ DVI_NEWTON_CFG = NewtonCfg(
     collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=2**21),
 )
 
+DVI_APGD_NEWTON_CFG = copy.deepcopy(DVI_NEWTON_CFG)
+DVI_APGD_NEWTON_CFG.solver_cfg.contact_solver_type = "sparse_apgd"
+DVI_APGD_NEWTON_CFG.solver_cfg.contact_max_iterations = 20
+DVI_APGD_NEWTON_CFG.solver_cfg.contact_tolerance = 1e-4
+
 
 @configclass
 class PhysicsCfg(PresetCfg):
@@ -59,6 +66,7 @@ class PhysicsCfg(PresetCfg):
         debug_mode=False,
     )
     newton_dvi = DVI_NEWTON_CFG
+    newton_dvi_apgd = DVI_APGD_NEWTON_CFG
     physx = default
 
 
