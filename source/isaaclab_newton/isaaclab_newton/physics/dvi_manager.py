@@ -30,6 +30,8 @@ _SOLVER_TYPE_MAP = {
     "sparse_jacobi": SolverType.SPARSE_JACOBI,
     "sparse_ldl": SolverType.SPARSE_LDL,
     "sparse_apgd": SolverType.SPARSE_APGD,
+    "sparse_aspg": SolverType.SPARSE_ASPG,
+    "sparse_pspg": SolverType.SPARSE_PSPG,
     "sparse_block_gs": SolverType.SPARSE_GS,
 }
 
@@ -49,6 +51,9 @@ def _make_numerical_config(
     block_precondition: bool = False,
     iterative_refinement_steps: int = 0,
     tolerance: float | None = None,
+    aspg_no_momentum: bool = False,
+    aspg_alpha_max_rel: float | None = None,
+    aspg_seed_alpha_max: bool = False,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -81,7 +86,10 @@ def _make_numerical_config(
         friction_projection=friction_projection,
         block_precondition=block_precondition,
         iterative_refinement_steps=iterative_refinement_steps,
+        aspg_no_momentum=aspg_no_momentum,
+        aspg_seed_alpha_max=aspg_seed_alpha_max,
         **({} if tolerance is None else {"tolerance": tolerance}),
+        **({} if aspg_alpha_max_rel is None else {"aspg_alpha_max_rel": aspg_alpha_max_rel}),
     )
 
 
@@ -144,6 +152,9 @@ class NewtonDVIManager(NewtonManager):
             friction_projection=fp,
             block_precondition=solver_cfg.contact_block_precondition,
             tolerance=solver_cfg.contact_tolerance,
+            aspg_no_momentum=solver_cfg.contact_aspg_no_momentum,
+            aspg_alpha_max_rel=solver_cfg.contact_aspg_alpha_max_rel,
+            aspg_seed_alpha_max=solver_cfg.contact_aspg_seed_alpha_max,
         )
 
         # Build joint limit solver config if constraint-based limits requested

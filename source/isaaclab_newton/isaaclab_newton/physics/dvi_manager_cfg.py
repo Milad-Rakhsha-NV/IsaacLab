@@ -146,6 +146,49 @@ class DVISolverCfg(NewtonSolverCfg):
     contacts; ignored by direct solvers.
     """
 
+    contact_aspg_seed_alpha_max: bool = False
+    """Seed the initial spectral step at alpha_max (Tasora 2013 Algorithm 4:
+    alpha_0 = alpha_max) instead of alpha_0 = 1/L_0 from the omega/Rayleigh seed.
+    Only affects ``contact_solver_type="sparse_aspg"``; ignored otherwise.
+
+    The omega=0 (Rayleigh L_0) path seeds alpha_0 = 1/lambda_max(N) ~ alpha_min on
+    stiff Delassus operators, so P-SPG-FB starts with a near-minimal step and
+    (with few iterations) never recovers -> reward collapse. Algorithm 4 instead
+    starts aggressive (alpha_max) and lets the GLL line search + descent guard
+    pull the step down. When True, the omega/L_0 machinery is bypassed for the
+    alpha_0 seed only.
+    """
+
+    contact_aspg_no_momentum: bool = False
+    """Disable Nesterov momentum in SPARSE_ASPG contacts (pure Spectral Projected
+    Gradient: y = gamma_new each iteration, beta=0). Only affects
+    ``contact_solver_type="sparse_aspg"``; ignored otherwise.
+
+    ASPG's BB step size is only meaningful when evaluated on a *consistent*
+    secant pair (s = x_k - x_{k-1}, dg = g(x_k) - g(x_{k-1}) at the SAME
+    iterates). With Nesterov momentum on, the gradient is evaluated at the
+    extrapolated look-ahead point while s is measured between projected
+    iterates, so the pair is inconsistent and the BB step becomes unreliable
+    -> compounding divergence on stiff/indeterminate contact problems, since
+    (unlike APGD) ASPG has no per-iteration backtracking safety net to catch
+    a bad step. Setting this True trades acceleration for stability.
+    """
+
+    contact_aspg_alpha_max_rel: float = 2.0
+    """Operator-relative upper cap for the BB spectral step in SPARSE_ASPG:
+    ``alpha <= aspg_alpha_max_rel / L``, where L is the Rayleigh Lipschitz
+    estimate (1/L is APGD's stable step size). Only affects
+    ``contact_solver_type="sparse_aspg"``; ignored otherwise.
+
+    Without a line search / backtracking safety net (unlike APGD), an
+    unclamped BB step can run several multiples of the stable step and
+    overshoot on well-conditioned contact operators. Default 2.0 allows up to
+    2x the stable step. Lowering toward 1.0 caps ASPG at (approximately) the
+    same stable step APGD uses, trading BB acceleration for a bound closer to
+    APGD's implicit step cap -- a direct attempt to curb mid/late-training
+    reward drift/collapse. Set 0 to disable the cap entirely (unclamped BB).
+    """
+
     # -- General solver params --
     angular_damping: float = 0.01
     """Angular velocity damping coefficient."""

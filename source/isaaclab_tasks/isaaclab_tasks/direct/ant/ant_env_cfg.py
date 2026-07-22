@@ -95,7 +95,67 @@ class AntPhysicsCfg(PresetCfg):
             contact_solver_type="sparse_apgd",
             contact_max_iterations=20,
             contact_tolerance=1e-4,  # SWEEP KNOB — vary per run
-            contact_omega=0.3,
+            # omega is INERT for APGD (step size comes from Nesterov + backtracking
+            # line search, not omega). Set 0.0 so L0 is the Rayleigh-quotient seed
+            # (Chrono ChSolverAPGDREF), never an omega override.
+            contact_omega=0.0,
+            contact_alpha=0.0,
+            contact_recovery_speed=1.0,
+            contact_position_correction=False,
+            angular_damping=0.01,
+            joint_limit_ke_scale=0.01,
+            joint_limit_solver_type="sparse_jacobi",
+        ),
+        num_substeps=1,
+        debug_mode=False,
+        use_cuda_graph=True,
+        default_shape_cfg=NewtonShapeCfg(gap=0.005),
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
+    )
+    # ASPG contacts variant: identical to newton_dvi_apgd except the contact solver
+    # is the Barzilai-Borwein spectral accelerated projected gradient (sparse_aspg).
+    # All other solver params held identical so FPS/results differences are
+    # attributable solely to the contact solver.
+    newton_dvi_aspg: NewtonCfg = NewtonCfg(
+        solver_cfg=DVISolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_alpha=0.0,
+            joint_recovery_speed=100000.0,
+            joint_position_correction=False,
+            contact_solver_type="sparse_aspg",
+            contact_max_iterations=20,
+            contact_tolerance=1e-4,
+            # REVERTED to fixed omega=0.3 seed. Tested omega=0.0 (Rayleigh-quotient
+            # L0, same formula/kernels as APGD -- verified identical code, not a
+            # reimplementation) both WITH momentum (peak 915) and WITHOUT momentum
+            # (aspg_no_momentum=True, peak 330) -- both far worse than omega=0.3's
+            # peak 10,868. So the Rayleigh L0 value itself is a poor operator-norm
+            # estimate for this contact system; the issue is NOT Nesterov momentum
+            # vs BB-secant-pair inconsistency. APGD tolerates a bad L0 via its
+            # per-iteration L*=0.9 backtracking decay; ASPG has no equivalent
+            # correction once seeded, so a bad L0 here is simply unrecoverable
+            # regardless of momentum. Fixed omega=0.3 remains the only config that
+            # actually trains (peak 10,868, final 8,372); its known late-run drift
+            # is the real remaining problem, not L0 init.
+            # SWEEP: omega sweep (baseline settings, NO alpha_max_rel cap i.e.
+            # default 2.0) to isolate why the fixed L0 seed value itself matters so
+            # much. Known points so far (all baseline, uncapped):
+            #   omega=0.3 -> peak 10,868 / final 8,372  (works, but late-drifts)
+            #   omega=0.5 -> peak ~11,190 / final ~11,169 (works, STABLE, no drift!)
+            #   omega=0.0 (Rayleigh) -> peak 622 / final 62  (collapses)
+            # Testing omega=1.0 next to see whether reward keeps improving/staying
+            # stable as omega increases further, or whether it eventually degrades.
+            # TEST (b): seed alpha_0 = alpha_max per Tasora Algorithm 4 Init line,
+            # bypassing the omega/L0 graft entirely. Diagnosis: omega=0 seeds
+            # alpha_0 = 1/lambda_max(N) ~ alpha_min (timid) -> collapse; omega>0
+            # seeds alpha_0 = 1/omega (aggressive) -> trains. Algorithm 4 starts
+            # at alpha_max and lets GLL+descent-guard pull it down. omega value is
+            # now irrelevant (seed bypassed) but left at a benign nonzero to skip
+            # the Rayleigh L0 launch path.
+            contact_omega=0.5,
+            contact_aspg_seed_alpha_max=True,
+            contact_aspg_no_momentum=False,
+            contact_aspg_alpha_max_rel=2.0,
             contact_alpha=0.0,
             contact_recovery_speed=1.0,
             contact_position_correction=False,
