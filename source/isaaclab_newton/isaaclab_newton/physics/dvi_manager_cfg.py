@@ -115,6 +115,17 @@ class DVISolverCfg(NewtonSolverCfg):
     contact_max_iterations: int = 50
     """Maximum iterations for contact solver."""
 
+    contact_substeps: int = 1
+    """TGS-style contact substepping (Macklin et al., "Small Steps in Physics
+    Simulation", SCA 2019). When > 1, the contact LCP is re-linearized and
+    re-solved over ``contact_substeps`` substeps of size ``h_s = dt / S``, each
+    warm-started from the previous substep's impulse and re-projected against
+    scratch poses advanced by ``h_s``. The contact SET is fixed (one collision
+    detection per step) -- only J/b are recomputed against updated poses, no
+    broad/narrow phase re-run. Velocity-only: scratch poses are used solely for
+    re-linearization; real poses integrate once over the full ``dt``. ``1``
+    (default) is bit-identical to the non-substepped path."""
+
     contact_omega: float = 0.3
     """Relaxation parameter for contact solver."""
 

@@ -54,6 +54,7 @@ def _make_numerical_config(
     aspg_no_momentum: bool = False,
     aspg_alpha_max_rel: float | None = None,
     aspg_seed_alpha_max: bool = False,
+    contact_substeps: int = 1,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -88,6 +89,7 @@ def _make_numerical_config(
         iterative_refinement_steps=iterative_refinement_steps,
         aspg_no_momentum=aspg_no_momentum,
         aspg_seed_alpha_max=aspg_seed_alpha_max,
+        contact_substeps=contact_substeps,
         **({} if tolerance is None else {"tolerance": tolerance}),
         **({} if aspg_alpha_max_rel is None else {"aspg_alpha_max_rel": aspg_alpha_max_rel}),
     )
@@ -155,6 +157,7 @@ class NewtonDVIManager(NewtonManager):
             aspg_no_momentum=solver_cfg.contact_aspg_no_momentum,
             aspg_alpha_max_rel=solver_cfg.contact_aspg_alpha_max_rel,
             aspg_seed_alpha_max=solver_cfg.contact_aspg_seed_alpha_max,
+            contact_substeps=solver_cfg.contact_substeps,
         )
 
         # Build joint limit solver config if constraint-based limits requested

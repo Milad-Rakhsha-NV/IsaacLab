@@ -93,7 +93,12 @@ class AntPhysicsCfg(PresetCfg):
             joint_recovery_speed=100000.0,
             joint_position_correction=False,
             contact_solver_type="sparse_apgd",
-            contact_max_iterations=20,
+            # Fewer contact iterations than Jacobi: APGD is Nesterov-accelerated
+            # with backtracking line search and converges far faster per iter on
+            # the resting-contact LCPs seen during Ant training (see box-stack
+            # convergence sweep: APGD hits ~1e-3 by ~20 iters vs Jacobi still at
+            # ~1e-1). 10 iters is plenty here.
+            contact_max_iterations=10,
             contact_tolerance=1e-4,  # SWEEP KNOB — vary per run
             # omega is INERT for APGD (step size comes from Nesterov + backtracking
             # line search, not omega). Set 0.0 so L0 is the Rayleigh-quotient seed
@@ -156,6 +161,39 @@ class AntPhysicsCfg(PresetCfg):
             contact_aspg_seed_alpha_max=True,
             contact_aspg_no_momentum=False,
             contact_aspg_alpha_max_rel=2.0,
+            contact_alpha=0.0,
+            contact_recovery_speed=1.0,
+            contact_position_correction=False,
+            angular_damping=0.01,
+            joint_limit_ke_scale=0.01,
+            joint_limit_solver_type="sparse_jacobi",
+        ),
+        num_substeps=1,
+        debug_mode=False,
+        use_cuda_graph=True,
+        default_shape_cfg=NewtonShapeCfg(gap=0.005),
+        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
+    )
+    # P-SPG-FB contacts variant: faithful Tasora Algorithm 4 preconditioned
+    # spectral projected gradient (Fischer-Burmeister), sparse_pspg. Diagonal
+    # preconditioner + GLL nonmonotone line search + descent guard make it the
+    # fastest-converging contact solver in the box-stack sweep (near-solution in
+    # ~1 preconditioned step on resting-contact LCPs), so it runs with the
+    # FEWEST contact iterations. All other solver params held identical to the
+    # APGD/Jacobi variants so FPS/results differences are attributable solely to
+    # the contact solver.
+    newton_dvi_pspg: NewtonCfg = NewtonCfg(
+        solver_cfg=DVISolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_alpha=0.0,
+            joint_recovery_speed=100000.0,
+            joint_position_correction=False,
+            contact_solver_type="sparse_pspg",
+            contact_max_iterations=8,
+            contact_tolerance=1e-4,
+            # omega is INERT for PSPG (alpha0 = alpha_max seed, spectral BB step,
+            # no omega override). Left benign nonzero for parity with siblings.
+            contact_omega=0.5,
             contact_alpha=0.0,
             contact_recovery_speed=1.0,
             contact_position_correction=False,
