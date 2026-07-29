@@ -56,6 +56,14 @@ def _humanoid_dvi_apgd_newton_cfg() -> NewtonCfg:
     return cfg
 
 
+def _humanoid_dvi_pspg_newton_cfg() -> NewtonCfg:
+    cfg = _humanoid_dvi_newton_cfg()
+    cfg.solver_cfg.contact_solver_type = "sparse_pspg"
+    cfg.solver_cfg.contact_max_iterations = 20
+    cfg.solver_cfg.contact_tolerance = 1e-4
+    return cfg
+
+
 @configclass
 class HumanoidPhysicsCfg(PresetCfg):
     default: PhysxCfg = PhysxCfg()
@@ -94,6 +102,7 @@ class HumanoidPhysicsCfg(PresetCfg):
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
     newton_dvi_apgd: NewtonCfg = _humanoid_dvi_apgd_newton_cfg()
+    newton_dvi_pspg: NewtonCfg = _humanoid_dvi_pspg_newton_cfg()
 
 
 @configclass

@@ -44,7 +44,7 @@ def _make_numerical_config(
     max_iterations: int = 50,
     alpha: float = 0.005,
     recovery_speed: float = -1.0,
-    position_correction: bool = False,
+    compliance: float = 0.0,
     diagonal_precondition: bool = False,
     precond_reg: float = 1e-4,
     friction_projection: FrictionProjection = FrictionProjection.CONE,
@@ -54,7 +54,6 @@ def _make_numerical_config(
     aspg_no_momentum: bool = False,
     aspg_alpha_max_rel: float | None = None,
     aspg_seed_alpha_max: bool = False,
-    contact_substeps: int = 1,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -62,16 +61,6 @@ def _make_numerical_config(
         raise ValueError(
             f"Unknown solver type '{solver_type_str}'. "
             f"Available: {list(_SOLVER_TYPE_MAP.keys())}"
-        )
-    # Build position correction config if requested (same solver type, fewer iters)
-    pos_cfg = None
-    if position_correction:
-        pos_solver_type = _SOLVER_TYPE_MAP.get(solver_type_str, SolverType.SPARSE_JACOBI)
-        pos_cfg = NumericalSolverConfig(
-            solver_type=pos_solver_type,
-            max_iterations=max(max_iterations // 2, 10),
-            alpha=alpha,
-            recovery_speed=recovery_speed,
         )
     return NumericalSolverConfig(
         solver_type=solver_type,
@@ -81,7 +70,7 @@ def _make_numerical_config(
         reg=reg,
         alpha=alpha,
         recovery_speed=recovery_speed,
-        position_correction=pos_cfg,
+        compliance=float(compliance),
         diagonal_precondition=diagonal_precondition,
         precond_reg=precond_reg,
         friction_projection=friction_projection,
@@ -89,7 +78,6 @@ def _make_numerical_config(
         iterative_refinement_steps=iterative_refinement_steps,
         aspg_no_momentum=aspg_no_momentum,
         aspg_seed_alpha_max=aspg_seed_alpha_max,
-        contact_substeps=contact_substeps,
         **({} if tolerance is None else {"tolerance": tolerance}),
         **({} if aspg_alpha_max_rel is None else {"aspg_alpha_max_rel": aspg_alpha_max_rel}),
     )
@@ -127,7 +115,6 @@ class NewtonDVIManager(NewtonManager):
             reg=solver_cfg.joint_reg,
             alpha=solver_cfg.joint_alpha,
             recovery_speed=solver_cfg.joint_recovery_speed,
-            position_correction=solver_cfg.joint_position_correction,
             diagonal_precondition=solver_cfg.diagonal_precondition,
             precond_reg=solver_cfg.precond_reg,
             iterative_refinement_steps=solver_cfg.joint_iterative_refinement_steps,
@@ -150,14 +137,13 @@ class NewtonDVIManager(NewtonManager):
             reg=solver_cfg.contact_reg,
             alpha=solver_cfg.contact_alpha,
             recovery_speed=solver_cfg.contact_recovery_speed,
-            position_correction=solver_cfg.contact_position_correction,
+            compliance=solver_cfg.contact_compliance,
             friction_projection=fp,
             block_precondition=solver_cfg.contact_block_precondition,
             tolerance=solver_cfg.contact_tolerance,
             aspg_no_momentum=solver_cfg.contact_aspg_no_momentum,
             aspg_alpha_max_rel=solver_cfg.contact_aspg_alpha_max_rel,
             aspg_seed_alpha_max=solver_cfg.contact_aspg_seed_alpha_max,
-            contact_substeps=solver_cfg.contact_substeps,
         )
 
         # Build joint limit solver config if constraint-based limits requested
@@ -210,6 +196,9 @@ class NewtonDVIManager(NewtonManager):
             contact_solver=contact_config,
             angular_damping=solver_cfg.angular_damping,
             enable_actuation=solver_cfg.enable_actuation,
+            coupling_iterations=solver_cfg.coupling_iterations,
+            cache_factorization=solver_cfg.cache_factorization,
+            post_stabilize_joints=solver_cfg.post_stabilize_joints,
             actuator_integration=ai_mode,
             enable_timers=False,
         )
@@ -219,6 +208,9 @@ class NewtonDVIManager(NewtonManager):
         logger.info(
             f"DVI solver: joint={solver_cfg.joint_solver_type} "
             f"contact={solver_cfg.contact_solver_type} "
+            f"coupling_iterations={solver_cfg.coupling_iterations} "
+            f"cache_factorization={solver_cfg.cache_factorization} "
+            f"post_stabilize_joints={solver_cfg.post_stabilize_joints} "
             f"actuator_integration={ai_mode.value} "
             f"angular_damping={solver_cfg.angular_damping} "
             f"friction_projection={fp_str} "

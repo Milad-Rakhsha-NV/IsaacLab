@@ -1,0 +1,10 @@
+Name: mujoco-warp
+Version: 3.8.0.3
+Summary: MuJoCo Warp (MJWarp)
+Home-page: https://github.com/google-deepmind/mujoco_warp
+Author: 
+Author-email: Newton Developers <mujoco@deepmind.com>
+License-Expression: Apache-2.0
+Location: /home/horde/miniforge3/envs/dvi/lib/python3.12/site-packages
+Requires: absl-py, etils, mujoco, numpy, warp-lang
+Required-by: isaaclab, isaacsim-core

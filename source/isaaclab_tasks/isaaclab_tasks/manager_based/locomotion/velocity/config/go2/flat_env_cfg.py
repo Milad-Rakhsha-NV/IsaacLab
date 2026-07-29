@@ -64,6 +64,12 @@ def _dvi_apgd_newton_cfg() -> NewtonCfg:
     return cfg
 
 
+def _dvi_pspg_newton_cfg() -> NewtonCfg:
+    cfg = _dvi_newton_cfg("semi_implicit")
+    cfg.solver_cfg.contact_solver_type = "sparse_pspg"
+    return cfg
+
+
 @configclass
 class PhysicsCfg(PresetCfg):
     default = PhysxCfg(gpu_max_rigid_patch_count=10 * 2**15)
@@ -83,6 +89,7 @@ class PhysicsCfg(PresetCfg):
     newton_dvi_implicit = _dvi_newton_cfg("implicit")
     newton_dvi_semi_implicit = _dvi_newton_cfg("semi_implicit")
     newton_dvi_apgd = _dvi_apgd_newton_cfg()
+    newton_dvi_pspg = _dvi_pspg_newton_cfg()
     physx = default
 
 
@@ -119,6 +126,13 @@ class UnitreeGo2FlatEnvCfg(UnitreeGo2RoughEnvCfg):
                 damping=0.5,
             ),
             newton_dvi_apgd=ImplicitActuatorCfg(
+                joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
+                effort_limit_sim=23.5,
+                velocity_limit_sim=30.0,
+                stiffness=25.0,
+                damping=0.5,
+            ),
+            newton_dvi_pspg=ImplicitActuatorCfg(
                 joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
                 effort_limit_sim=23.5,
                 velocity_limit_sim=30.0,

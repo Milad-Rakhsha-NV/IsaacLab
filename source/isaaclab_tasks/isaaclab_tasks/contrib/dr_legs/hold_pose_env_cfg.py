@@ -133,6 +133,12 @@ def _dvi_apgd_newton_cfg() -> NewtonCfg:
     return cfg
 
 
+def _dvi_pspg_newton_cfg() -> NewtonCfg:
+    cfg = _dvi_newton_cfg("semi_implicit")
+    cfg.solver_cfg.contact_solver_type = "sparse_pspg"
+    return cfg
+
+
 def _kamino_newton_cfg() -> NewtonCfg:
     """Kamino solver preset for DR Legs (closed-loop, implicit PD).
 
@@ -202,6 +208,7 @@ class DrLegsPhysicsCfg(PresetCfg):
     newton_dvi_implicit: NewtonCfg = _dvi_newton_cfg("implicit")
     newton_dvi_semi_implicit: NewtonCfg = _dvi_newton_cfg("semi_implicit")
     newton_dvi_apgd: NewtonCfg = _dvi_apgd_newton_cfg()
+    newton_dvi_pspg: NewtonCfg = _dvi_pspg_newton_cfg()
     newton_kamino: NewtonCfg = _kamino_newton_cfg()
 
 

@@ -37,7 +37,7 @@ class UnitreeGo2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.feet_air_time.params["sensor_cfg"].body_names = preset(
             default=".*_foot", newton_mjwarp=".*_calf", newton_dvi=".*_calf",
             newton_dvi_implicit=".*_calf", newton_dvi_semi_implicit=".*_calf",
-            newton_dvi_apgd=".*_calf",
+            newton_dvi_apgd=".*_calf", newton_dvi_pspg=".*_calf",
         )
         self.rewards.feet_air_time.weight = 0.01
         self.rewards.undesired_contacts = None

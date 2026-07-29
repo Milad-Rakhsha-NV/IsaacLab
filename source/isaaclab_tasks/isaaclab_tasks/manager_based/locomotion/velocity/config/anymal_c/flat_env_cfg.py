@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import copy
+
 from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonShapeCfg
 from isaaclab_newton.physics.newton_collision_cfg import NewtonCollisionPipelineCfg
 from isaaclab_physx.physics import PhysxCfg
@@ -52,7 +54,18 @@ class PhysicsCfg(PresetCfg):
         default_shape_cfg=NewtonShapeCfg(gap=0.005),
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
+    newton_dvi_apgd = None
+    newton_dvi_pspg = None
     physx = default
+
+    def __post_init__(self):
+        # Keep APGD identical to the default DVI configuration except for the
+        # contact numerical solver.  The default contact iteration cap (40)
+        # is intentionally preserved for the solver comparison.
+        self.newton_dvi_apgd = copy.deepcopy(self.newton_dvi)
+        self.newton_dvi_apgd.solver_cfg.contact_solver_type = "sparse_apgd"
+        self.newton_dvi_pspg = copy.deepcopy(self.newton_dvi_apgd)
+        self.newton_dvi_pspg.solver_cfg.contact_solver_type = "sparse_pspg"
 
 
 @configclass

@@ -49,6 +49,8 @@ DVI_APGD_NEWTON_CFG = copy.deepcopy(DVI_NEWTON_CFG)
 DVI_APGD_NEWTON_CFG.solver_cfg.contact_solver_type = "sparse_apgd"
 DVI_APGD_NEWTON_CFG.solver_cfg.contact_max_iterations = 20
 DVI_APGD_NEWTON_CFG.solver_cfg.contact_tolerance = 1e-4
+DVI_PSPG_NEWTON_CFG = copy.deepcopy(DVI_NEWTON_CFG)
+DVI_PSPG_NEWTON_CFG.solver_cfg.contact_solver_type = "sparse_pspg"
 
 
 @configclass
@@ -67,6 +69,7 @@ class PhysicsCfg(PresetCfg):
     )
     newton_dvi = DVI_NEWTON_CFG
     newton_dvi_apgd = DVI_APGD_NEWTON_CFG
+    newton_dvi_pspg = DVI_PSPG_NEWTON_CFG
     physx = default
 
 

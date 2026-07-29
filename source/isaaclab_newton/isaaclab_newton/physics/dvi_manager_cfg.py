@@ -115,6 +115,18 @@ class DVISolverCfg(NewtonSolverCfg):
     contact_max_iterations: int = 50
     """Maximum iterations for contact solver."""
 
+    coupling_iterations: int = 1
+    """Number of block Gauss-Seidel sweeps coupling joint limits, bilateral
+    joints, and contacts per physics step."""
+
+    cache_factorization: bool = True
+    """Reuse the joint direct-solver factorization across coupling sweeps."""
+
+    post_stabilize_joints: bool = True
+    """After the configured coupling sweeps, run one additional bilateral-joint
+    solve only using the latest joint-limit and contact impulses. This avoids
+    another contact solve while correcting the bilateral-joint RHS."""
+
     contact_substeps: int = 1
     """TGS-style contact substepping (Macklin et al., "Small Steps in Physics
     Simulation", SCA 2019). When > 1, the contact LCP is re-linearized and
@@ -138,6 +150,11 @@ class DVISolverCfg(NewtonSolverCfg):
     contact_alpha: float = 0.0
     """Baumgarte damping for contact constraints.  correction = phi / (dt + alpha).
     0 = full correction each step."""
+
+    contact_compliance: float = 0.0
+    """Physical contact compliance passed to NumericalSolverConfig.
+    0.0 gives rigid contacts; positive values add E = c/(dt*(dt+alpha))
+    to the contact Delassus operator diagonal."""
 
     contact_recovery_speed: float = 1.0
     """Max Baumgarte recovery speed for contacts (m/s)."""

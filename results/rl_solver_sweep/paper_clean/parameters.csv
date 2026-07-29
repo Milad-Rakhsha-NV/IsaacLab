@@ -1,0 +1,6 @@
+environment,jacobi_path,contact_iterations,coupling_iterations,post_stabilize_joints,cache_factorization,mjwarp_path,mjwarp_budget_note
+Ant,raw/ant/newton_dvi_post_stabilize/contact_10,10,1,true,true/default,archive_2026-07-24_nonpaper_runs/raw/ant/initial_contact_10/mjwarp.log,native/default MJWarp; not forced to 10
+Humanoid direct,raw/humanoid/newton_dvi_post_stabilize/contact_10,10,1,true,true/default,raw/humanoid/newton_mjwarp/contact_10,native/default MJWarp; not forced to 10
+H1,raw/h1/newton_dvi_post_stabilize/contact_10,10,1,true,true/default,raw/h1/newton_mjwarp/contact_10,native/default MJWarp; not forced to 10
+G1,raw/g1/newton_dvi_coupling2_cache_on/contact_15,15,2,false,true,raw/g1/newton_mjwarp/contact_10,native/default MJWarp; contact-10 is a label
+Go2,raw/go2/newton_dvi_post_stabilize/contact_15,15,1,true,true/default,raw/go2/newton_mjwarp/contact_15,native/default MJWarp; contact-15 is a label

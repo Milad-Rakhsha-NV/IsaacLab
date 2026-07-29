@@ -123,6 +123,7 @@ class PhysicsCfg(PresetCfg):
         collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=665536),
     )
     newton_dvi_apgd = None
+    newton_dvi_pspg = None
 
     def __post_init__(self):
         _apgd = copy.deepcopy(self.newton_dvi)
@@ -130,6 +131,9 @@ class PhysicsCfg(PresetCfg):
         _apgd.solver_cfg.contact_max_iterations = 20
         _apgd.solver_cfg.contact_tolerance = 1e-4
         self.newton_dvi_apgd = _apgd
+        _pspg = copy.deepcopy(self.newton_dvi)
+        _pspg.solver_cfg.contact_solver_type = "sparse_pspg"
+        self.newton_dvi_pspg = _pspg
 
 
 @configclass
