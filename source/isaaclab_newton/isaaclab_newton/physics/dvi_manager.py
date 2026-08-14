@@ -45,6 +45,8 @@ def _make_numerical_config(
     alpha: float = 0.005,
     recovery_speed: float = -1.0,
     compliance: float = 0.0,
+    use_meca: bool = False,
+    use_rcm: bool = False,
     diagonal_precondition: bool = False,
     precond_reg: float = 1e-4,
     friction_projection: FrictionProjection = FrictionProjection.CONE,
@@ -54,6 +56,7 @@ def _make_numerical_config(
     aspg_no_momentum: bool = False,
     aspg_alpha_max_rel: float | None = None,
     aspg_seed_alpha_max: bool = False,
+    deterministic: bool = True,
 ) -> NumericalSolverConfig:
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
@@ -71,6 +74,8 @@ def _make_numerical_config(
         alpha=alpha,
         recovery_speed=recovery_speed,
         compliance=float(compliance),
+        use_meca=use_meca,
+        use_rcm=use_rcm,
         diagonal_precondition=diagonal_precondition,
         precond_reg=precond_reg,
         friction_projection=friction_projection,
@@ -78,6 +83,7 @@ def _make_numerical_config(
         iterative_refinement_steps=iterative_refinement_steps,
         aspg_no_momentum=aspg_no_momentum,
         aspg_seed_alpha_max=aspg_seed_alpha_max,
+        deterministic=deterministic,
         **({} if tolerance is None else {"tolerance": tolerance}),
         **({} if aspg_alpha_max_rel is None else {"aspg_alpha_max_rel": aspg_alpha_max_rel}),
     )
@@ -115,9 +121,12 @@ class NewtonDVIManager(NewtonManager):
             reg=solver_cfg.joint_reg,
             alpha=solver_cfg.joint_alpha,
             recovery_speed=solver_cfg.joint_recovery_speed,
+            use_meca=solver_cfg.use_meca,
+            use_rcm=solver_cfg.use_rcm,
             diagonal_precondition=solver_cfg.diagonal_precondition,
             precond_reg=solver_cfg.precond_reg,
             iterative_refinement_steps=solver_cfg.joint_iterative_refinement_steps,
+            deterministic=solver_cfg.deterministic,
         )
 
         # Resolve friction projection mode from config
@@ -144,6 +153,7 @@ class NewtonDVIManager(NewtonManager):
             aspg_no_momentum=solver_cfg.contact_aspg_no_momentum,
             aspg_alpha_max_rel=solver_cfg.contact_aspg_alpha_max_rel,
             aspg_seed_alpha_max=solver_cfg.contact_aspg_seed_alpha_max,
+            deterministic=solver_cfg.deterministic,
         )
 
         # Build joint limit solver config if constraint-based limits requested
@@ -157,6 +167,7 @@ class NewtonDVIManager(NewtonManager):
                 reg=solver_cfg.joint_limit_reg,
                 alpha=solver_cfg.joint_limit_alpha,
                 recovery_speed=solver_cfg.joint_limit_recovery_speed,
+                deterministic=solver_cfg.deterministic,
             )
 
         # Apply per-joint armature overrides if configured

@@ -69,14 +69,6 @@ class DVISolverCfg(NewtonSolverCfg):
     joint_limit_recovery_speed: float = 10.0
     """Max Baumgarte recovery speed for joint limits (rad/s)."""
 
-    joint_limit_ke_scale: float = 1.0
-    """Scale factor for joint limit stiffness (ke) and damping (kd).
-    USD/MJCF importers produce limit stiffness tuned for implicit constraint solvers
-    (e.g. 10,000).  For penalty-based enforcement, lower values (0.01-0.1) keep limit
-    forces proportional to actuator effort.  Default 1.0 = no scaling.
-    Only used in penalty mode (when ``joint_limit_solver_type`` is None).
-    """
-
     # -- Joint solver config --
     joint_solver_type: str = "sparse_ldl"
     """Numerical solver type for joint constraints. One of:
@@ -105,14 +97,20 @@ class DVISolverCfg(NewtonSolverCfg):
     """Max Baumgarte recovery speed for joints (rad/s or m/s).
     Very large = effectively unlimited."""
 
-    joint_position_correction: bool = False
-    """Enable position-level correction for joint drift."""
+    use_meca: bool = True
+    """Use MECA fill-reducing pivot ordering for sparse LDL joint solves."""
+
+    use_rcm: bool = False
+    """Use block-level RCM ordering for sparse LDL solves.
+
+    RCM takes precedence over MECA when both are enabled.
+    """
 
     # -- Contact solver config --
     contact_solver_type: str = "sparse_jacobi"
     """Numerical solver type for contact forces."""
 
-    contact_max_iterations: int = 50
+    contact_max_iterations: int = 20
     """Maximum iterations for contact solver."""
 
     coupling_iterations: int = 1
@@ -122,21 +120,10 @@ class DVISolverCfg(NewtonSolverCfg):
     cache_factorization: bool = True
     """Reuse the joint direct-solver factorization across coupling sweeps."""
 
-    post_stabilize_joints: bool = True
+    post_stabilize_joints: bool = False
     """After the configured coupling sweeps, run one additional bilateral-joint
     solve only using the latest joint-limit and contact impulses. This avoids
     another contact solve while correcting the bilateral-joint RHS."""
-
-    contact_substeps: int = 1
-    """TGS-style contact substepping (Macklin et al., "Small Steps in Physics
-    Simulation", SCA 2019). When > 1, the contact LCP is re-linearized and
-    re-solved over ``contact_substeps`` substeps of size ``h_s = dt / S``, each
-    warm-started from the previous substep's impulse and re-projected against
-    scratch poses advanced by ``h_s``. The contact SET is fixed (one collision
-    detection per step) -- only J/b are recomputed against updated poses, no
-    broad/narrow phase re-run. Velocity-only: scratch poses are used solely for
-    re-linearization; real poses integrate once over the full ``dt``. ``1``
-    (default) is bit-identical to the non-substepped path."""
 
     contact_omega: float = 0.3
     """Relaxation parameter for contact solver."""
@@ -159,8 +146,6 @@ class DVISolverCfg(NewtonSolverCfg):
     contact_recovery_speed: float = 1.0
     """Max Baumgarte recovery speed for contacts (m/s)."""
 
-    contact_position_correction: bool = False
-    """Enable position-level correction for contact penetration."""
 
     contact_tolerance: float | None = None
     """Early-exit convergence tolerance for the contact numerical solver.
@@ -200,6 +185,15 @@ class DVISolverCfg(NewtonSolverCfg):
     -> compounding divergence on stiff/indeterminate contact problems, since
     (unlike APGD) ASPG has no per-iteration backtracking safety net to catch
     a bad step. Setting this True trades acceleration for stability.
+    """
+
+    deterministic: bool = True
+    """Enable deterministic fixed-point accumulation for iterative DVI solvers.
+
+    This is forwarded explicitly to Newton's ``NumericalSolverConfig`` for
+    joint-limit, joint, and contact numerical solvers.  Keeping it explicit at
+    the Isaac Lab boundary prevents a future low-level default change from
+    silently making RL experiments non-reproducible.
     """
 
     contact_aspg_alpha_max_rel: float = 2.0

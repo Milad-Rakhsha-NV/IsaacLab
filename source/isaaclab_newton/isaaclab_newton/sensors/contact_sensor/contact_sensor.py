@@ -357,7 +357,14 @@ class ContactSensor(BaseContactSensor):
                 return shape_labels
             return None
 
-        def _bare_name(label: str) -> str:
+        def _sensor_name(label: str, object_type: str) -> str:
+            # Shape rows need their path below Robot/ because mesh_0 is not
+            # unique across foot and calf collision geometries.
+            if object_type == "shape":
+                marker = "/Robot/"
+                if marker in label:
+                    return label.split(marker, 1)[1]
+                return label.lstrip("/")
             return label.split("/")[-1]
 
         sensing_type = self.contact_view.sensing_obj_type
@@ -367,7 +374,9 @@ class ContactSensor(BaseContactSensor):
                 f"Unsupported SensorContact.sensing_obj_type {sensing_type!r}; expected 'body' or 'shape'."
             )
         sensing_indices = list(self.contact_view.sensing_obj_idx)
-        self._sensor_names = [_bare_name(sensing_labels[int(i)]) for i in sensing_indices]
+        self._sensor_names = [
+            _sensor_name(sensing_labels[int(i)], sensing_type) for i in sensing_indices
+        ]
         # Assumes the environments are processed in order.
         self._sensor_names = self._sensor_names[: self._num_sensors]
 
@@ -378,7 +387,7 @@ class ContactSensor(BaseContactSensor):
             self._filter_object_names = []
         else:
             self._filter_object_names = [
-                _bare_name(counterpart_labels[int(j)])
+                _sensor_name(counterpart_labels[int(j)], counterpart_type)
                 for row in counterpart_indices
                 for j in row
             ]
