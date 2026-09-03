@@ -159,6 +159,16 @@ class DVISolverCfg(NewtonSolverCfg):
     contacts; ignored by direct solvers.
     """
 
+    contact_early_exit: bool = True
+    """Enable tolerance-based early exit for iterative contact solvers."""
+
+    contact_residual_mode: str = "complementarity"
+    """Residual used for iterative contact-solver convergence.
+
+    One of ``"complementarity"``, ``"res4"``, ``"iterate_change"``, or
+    ``"primal_infeasibility"``.
+    """
+
     contact_aspg_seed_alpha_max: bool = False
     """Seed the initial spectral step at alpha_max (Tasora 2013 Algorithm 4:
     alpha_0 = alpha_max) instead of alpha_0 = 1/L_0 from the omega/Rayleigh seed.

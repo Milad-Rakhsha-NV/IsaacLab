@@ -11,11 +11,25 @@ import logging
 
 import warp as wp
 from newton import Contacts, Control, Model, State, eval_fk, eval_ik
-from newton.solvers import ActuatorIntegration, FrictionProjection, SolverDVI, SolverType, NumericalSolverConfig
+from newton.solvers import (
+    ActuatorIntegration,
+    FrictionProjection,
+    NumericalSolverConfig,
+    ResidualMode,
+    SolverDVI,
+    SolverType,
+)
 
 _FRICTION_PROJECTION_MAP = {
     "cone": FrictionProjection.CONE,
     "tangential": FrictionProjection.TANGENTIAL,
+}
+
+_RESIDUAL_MODE_MAP = {
+    "complementarity": ResidualMode.COMPLEMENTARITY,
+    "res4": ResidualMode.RES4,
+    "iterate_change": ResidualMode.ITERATE_CHANGE,
+    "primal_infeasibility": ResidualMode.PRIMAL_INFEASIBILITY,
 }
 
 from isaaclab.physics import PhysicsManager
@@ -53,6 +67,8 @@ def _make_numerical_config(
     block_precondition: bool = False,
     iterative_refinement_steps: int = 0,
     tolerance: float | None = None,
+    early_exit: bool = True,
+    residual_mode: ResidualMode = ResidualMode.COMPLEMENTARITY,
     aspg_no_momentum: bool = False,
     aspg_alpha_max_rel: float | None = None,
     aspg_seed_alpha_max: bool = False,
@@ -81,6 +97,8 @@ def _make_numerical_config(
         friction_projection=friction_projection,
         block_precondition=block_precondition,
         iterative_refinement_steps=iterative_refinement_steps,
+        early_exit=early_exit,
+        residual_mode=residual_mode,
         aspg_no_momentum=aspg_no_momentum,
         aspg_seed_alpha_max=aspg_seed_alpha_max,
         deterministic=deterministic,
@@ -138,6 +156,14 @@ class NewtonDVIManager(NewtonManager):
                 f"Available: {list(_FRICTION_PROJECTION_MAP.keys())}"
             )
 
+        residual_mode_str = solver_cfg.contact_residual_mode.lower()
+        residual_mode = _RESIDUAL_MODE_MAP.get(residual_mode_str)
+        if residual_mode is None:
+            raise ValueError(
+                f"Unknown contact_residual_mode '{residual_mode_str}'. "
+                f"Available: {list(_RESIDUAL_MODE_MAP.keys())}"
+            )
+
         contact_config = _make_numerical_config(
             solver_type_str=solver_cfg.contact_solver_type,
             max_iterations=solver_cfg.contact_max_iterations,
@@ -150,6 +176,8 @@ class NewtonDVIManager(NewtonManager):
             friction_projection=fp,
             block_precondition=solver_cfg.contact_block_precondition,
             tolerance=solver_cfg.contact_tolerance,
+            early_exit=solver_cfg.contact_early_exit,
+            residual_mode=residual_mode,
             aspg_no_momentum=solver_cfg.contact_aspg_no_momentum,
             aspg_alpha_max_rel=solver_cfg.contact_aspg_alpha_max_rel,
             aspg_seed_alpha_max=solver_cfg.contact_aspg_seed_alpha_max,
