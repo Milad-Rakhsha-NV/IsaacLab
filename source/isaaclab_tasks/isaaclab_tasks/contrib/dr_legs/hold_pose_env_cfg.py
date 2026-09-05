@@ -66,7 +66,6 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
         # Position correction OFF: the constraint-based joint-limit solver alone
         # keeps the closed loops stable (validated on the standalone hanging
         # DR Legs example, poscorr OFF, loop residual ~4e-6..4e-4 across substeps).
-        joint_position_correction=False,
         # Closed-loop linkages produce redundant (rank-deficient) constraints; the
         # default joint_reg=1e-6 can hit a near-zero LDL pivot on a few envs and NaN.
         # diagonal_precondition is already on by default; bump reg to 1e-4 (validated
@@ -77,7 +76,6 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
         contact_max_iterations=20,
         contact_alpha=0.0,
         contact_recovery_speed=1.0,
-        contact_position_correction=False,
         angular_damping=0.0,
         actuator_integration=actuator_integration,
         # ── Joint limits: CONSTRAINT-based (proven stable on hanging example) ──
@@ -86,7 +84,6 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
         # formulation: zero penalty (ke_scale=0) + sparse-Jacobi unilateral solver
         # with alpha=0, recovery_speed=0.5, reg=1e-4, 20 iters. Validated stable
         # (no NaN, loops closed) on the standalone hanging DR Legs example.
-        joint_limit_ke_scale=0.0,
         joint_limit_solver_type="sparse_jacobi",
         joint_limit_max_iterations=20,
         joint_limit_alpha=0.0,
