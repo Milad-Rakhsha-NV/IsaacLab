@@ -43,6 +43,9 @@ class PhysicsCfg(PresetCfg):
             contact_recovery_speed=1.0,
             angular_damping=0.01,
             joint_limit_solver_type="sparse_jacobi",
+            coupling_iterations=2,
+            cache_factorization=True,
+            post_stabilize_joints=False,
         ),
         num_substeps=1,  # Match MuJoCo substeps
         debug_mode=False,

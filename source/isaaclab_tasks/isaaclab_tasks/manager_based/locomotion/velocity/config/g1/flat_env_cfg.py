@@ -49,6 +49,9 @@ class PhysicsCfg(PresetCfg):
             actuator_integration="semi_implicit",
             joint_limit_solver_type="sparse_jacobi",
             joint_iterative_refinement_steps=1,
+            coupling_iterations=2,
+            cache_factorization=True,
+            post_stabilize_joints=False,
             # Arm/hand armature only; finger joints keep URDF default (0.001).
             # Paradoxically, the resulting finger oscillations provide numerical
             # damping that prevents LDL solver NaN.  Finger joints are excluded

@@ -20,16 +20,19 @@ def _dvi_solver_cfg(actuator_integration: str = "semi_implicit") -> DVISolverCfg
     """Build DVISolverCfg with the given actuator integration mode."""
     return DVISolverCfg(
         joint_solver_type="sparse_ldl",
-        joint_alpha=0.005,
+        joint_alpha=0.002,
         joint_recovery_speed=100000.0,
         contact_solver_type="sparse_jacobi",
         contact_max_iterations=20,
         contact_alpha=0.0,
-        contact_recovery_speed=1.0,
+        contact_recovery_speed=2.0,
         angular_damping=0.0,
         actuator_integration=actuator_integration,
         joint_limit_solver_type="sparse_jacobi",
         joint_iterative_refinement_steps=1,
+        coupling_iterations=2,
+        cache_factorization=True,
+        post_stabilize_joints=False,
     )
 
 
@@ -37,7 +40,7 @@ def _dvi_newton_cfg(actuator_integration: str = "semi_implicit") -> NewtonCfg:
     """Build NewtonCfg for DVI with the given actuator integration mode."""
     return NewtonCfg(
         solver_cfg=_dvi_solver_cfg(actuator_integration),
-        num_substeps=1,
+        num_substeps=2,
         debug_mode=False,
         use_cuda_graph=True,
         collapse_fixed_joints=True,
