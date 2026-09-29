@@ -12,7 +12,10 @@ import os
 
 from isaaclab_newton.physics import (
     DVISolverCfg,
-    KaminoSolverCfg,
+    KaminoCollisionDetectorCfg,
+    KaminoConstraintsCfg,
+    KaminoPADMMCfg,
+    KaminoPADMMSolverCfg,
     NewtonCfg,
     NewtonCollisionPipelineCfg,
     NewtonShapeCfg,
@@ -144,41 +147,37 @@ def _kamino_newton_cfg() -> NewtonCfg:
     physics backend differs.
     """
     return NewtonCfg(
-        solver_cfg=KaminoSolverCfg(
+        solver_cfg=KaminoPADMMSolverCfg(
             integrator="moreau",
             sparse_jacobian=True,
             sparse_dynamics=False,
             use_collision_detector=False,
-            collision_detector_pipeline="unified",
-            collision_detector_max_contacts_per_pair=8,
+            collision_detector=KaminoCollisionDetectorCfg(pipeline="unified", max_contacts_per_pair=8),
             # NOTE: aserifi set ``use_fk_solver=False``, but on this branch the
             # env's reset path passes joint angles (``joint_q``/``joint_u``) to
-            # ``SolverKamino.reset``, which routes through ``_reset_with_fk_solve``
-            # and REQUIRES the FK solver to reconstruct consistent body poses for
+            # ``SolverKamino.reset``, which routes through the FK reset config and
+            # REQUIRES the FK solver to reconstruct consistent body poses for
             # the closed-loop mechanism. Enable it so resets-from-joint-angles work.
             use_fk_solver=True,
-            constraints_alpha=0.1,
-            padmm_max_iterations=100,
-            padmm_primal_tolerance=1.0e-5,
-            padmm_dual_tolerance=1.0e-5,
-            padmm_compl_tolerance=1.0e-5,
-            padmm_rho_0=0.02,
-            padmm_eta=1.0e-5,
-            padmm_use_acceleration=True,
-            padmm_warmstart_mode="containers",
-            padmm_contact_warmstart_method="geom_pair_net_force",
-            padmm_use_graph_conditionals=False,
-            # NOTE: aserifi also set ``max_contacts_per_world=50`` here, but that
-            # field does not exist on this branch's ``KaminoSolverCfg`` (version
-            # skew between branches). The equivalent per-world contact cap on this
-            # branch is driven by ``model.rigid_contact_max`` (Kamino computes
-            # ``world_max_contacts = rigid_contact_max // world_count``). Without
-            # an explicit cap, Newton's heuristic ``_estimate_rigid_contact_max``
-            # over-estimates ~27k contacts/world for this mesh-heavy closed-loop
-            # biped, which makes the dense Delassus dimension (~3*nc) overflow the
-            # int32 LDL allocation (``total_mat_size`` ~ 27e9+). We therefore set a
-            # sane explicit cap below (64 contacts/world is very generous for a
-            # biped's foot/ground contacts).
+            constraints=KaminoConstraintsCfg(alpha=0.1),
+            dynamics_solver_cfg=KaminoPADMMCfg(
+                max_iterations=100,
+                primal_tolerance=1.0e-5,
+                dual_tolerance=1.0e-5,
+                compl_tolerance=1.0e-5,
+                rho_0=0.02,
+                eta=1.0e-5,
+                use_acceleration=True,
+                warmstart_mode="containers",
+                contact_warmstart_method="geom_pair_net_force",
+                use_graph_conditionals=False,
+            ),
+            # Per-world contact cap. Without an explicit cap, Newton's heuristic
+            # ``_estimate_rigid_contact_max`` over-estimates ~27k contacts/world for this
+            # mesh-heavy closed-loop biped, which makes the dense Delassus dimension (~3*nc)
+            # overflow the int32 LDL allocation (``total_mat_size`` ~ 27e9+). 64/world is very
+            # generous for a biped's foot/ground contacts.
+            max_contacts_per_world=64,
         ),
         # PER-WORLD contact budget (the Kamino manager scales this by the actual
         # world count). 64 contacts/world is very generous for a biped's

@@ -19,6 +19,8 @@ import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import ObservationTermCfg
+from isaaclab.utils.buffers import CircularBuffer
+from isaaclab.utils.images import is_rgb_like, normalize_camera_image
 
 if TYPE_CHECKING:
     from isaaclab.assets import Articulation, RigidObject
@@ -182,7 +184,10 @@ def body_projected_gravity_b(
     asset: Articulation = env.scene[asset_cfg.name]
 
     body_quat = asset.data.body_quat_w.torch[:, asset_cfg.body_ids]
-    gravity_dir = asset.data.GRAVITY_VEC_W.torch.unsqueeze(1)
+    # ``GRAVITY_VEC_W`` carries the per-env world-frame gravity in m/s^2 (Newton
+    # backend) or scene-wide gravity (PhysX backend).
+    gravity_w = asset.data.GRAVITY_VEC_W.torch
+    gravity_dir = torch.nn.functional.normalize(gravity_w, dim=-1).unsqueeze(1)
     return math_utils.quat_apply_inverse(body_quat, gravity_dir).view(env.num_envs, -1)
 
 
@@ -285,7 +290,7 @@ def joint_effort(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCf
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    return asset.data.applied_torque.torch[:, asset_cfg.joint_ids]
+    return asset.actuators.applied_effort.torch[:, asset_cfg.joint_ids]
 
 
 """
@@ -383,6 +388,8 @@ def image(
     data_type: str = "rgb",
     convert_perspective_to_orthogonal: bool = False,
     normalize: bool = True,
+    permute: bool = False,
+    clone: bool = True,
 ) -> torch.Tensor:
     """Images of a specific datatype from the camera sensor.
 
@@ -400,6 +407,11 @@ def image(
             This is used only when the data type is "distance_to_camera". Defaults to False.
         normalize: Whether to normalize the images. This depends on the selected data type.
             Defaults to True.
+        permute: Whether to permute the image to (num_envs, channel, height, width). Defaults to False.
+        clone: Whether to return a fresh clone of the result. Defaults to True (defensive: protects
+            against downstream in-place mutation of the camera buffer). Callers that immediately
+            copy the result into their own storage (e.g. a frame-stack buffer) can pass ``False``
+            to skip the redundant allocation.
 
     Returns:
         The images produced at the last time-step
@@ -414,18 +426,13 @@ def image(
     if (data_type == "distance_to_camera") and convert_perspective_to_orthogonal:
         images = math_utils.orthogonalize_perspective_depth(images, sensor.data.intrinsic_matrices)
 
-    # rgb/depth/normals image normalization
     if normalize:
-        if data_type == "rgb":
-            images = images.float() / 255.0
-            mean_tensor = torch.mean(images, dim=(1, 2), keepdim=True)
-            images -= mean_tensor
-        elif "distance_to" in data_type or "depth" in data_type:
-            images[images == float("inf")] = 0
-        elif "normals" in data_type:
-            images = (images + 1.0) * 0.5
+        images = normalize_camera_image(images, data_type)
 
-    return images.clone()
+    if permute:
+        images = images.permute(0, 3, 1, 2)
+
+    return images.clone() if clone else images
 
 
 class image_features(ManagerTermBase):
@@ -550,8 +557,8 @@ class image_features(ManagerTermBase):
         # forward the images through the model
         features = self._inference_fn(self._model, image_data, **(inference_kwargs or {}))
 
-        # move the features back to the image device
-        return features.detach().to(image_device)
+        # observation terms must be flat after the environment batch dimension
+        return features.flatten(start_dim=1).detach().to(image_device)
 
     """
     Helper functions.
@@ -650,6 +657,100 @@ class image_features(ManagerTermBase):
 
         # return the model, preprocess and inference functions
         return {"model": _load_model, "inference": _inference}
+
+
+class stacked_image(ManagerTermBase):
+    """Channel-stacked observation of the last ``frame_stack`` camera frames.
+
+    Maintains a per-env rolling history of camera frames in a
+    :class:`~isaaclab.utils.buffers.CircularBuffer` and returns them concatenated along the
+    channel dimension in oldest-to-newest order. Useful for camera-based RL tasks whose
+    rendering backend does not supply implicit temporal information (e.g., the Newton Warp
+    renderer, which lacks temporal anti-aliasing).
+
+    On the first call after construction or per-env reset, all history slots for the affected
+    envs are filled with the current frame so the policy never sees zero-padded warmup data.
+
+    Args:
+        sensor_cfg: The sensor configuration to poll. Defaults to SceneEntityCfg("tiled_camera").
+        data_type: The sensor data type. Defaults to "rgb".
+        frame_stack: Number of frames to stack along the channel dim. Must be >= 1.
+            Defaults to 1 (single-frame passthrough).
+        convert_perspective_to_orthogonal: Whether to orthogonalize perspective depth images.
+            Used only when ``data_type == "distance_to_camera"``. Defaults to False.
+        normalize: Whether to normalize the images. See :func:`image` for per-data-type
+            behavior. Defaults to True.
+
+    Returns:
+        Stacked image tensor. Shape is ``(num_envs, H, W, frame_stack * C)`` where the first
+        ``C`` channels are the oldest frame and the last ``C`` channels are the newest.
+    """
+
+    def __init__(self, cfg: ObservationTermCfg, env: ManagerBasedEnv):
+        super().__init__(cfg, env)
+
+        frame_stack: int = cfg.params.get("frame_stack", 1)
+        if frame_stack < 1:
+            raise ValueError(f"frame_stack must be >= 1, got {frame_stack}.")
+
+        # K=1 is a documented passthrough; no buffer needed.
+        self._buffer: CircularBuffer | None = None
+        if frame_stack > 1:
+            # Channel-stack: K frames concatenated along C; .stacked is a free contiguous view.
+            self._buffer = CircularBuffer(
+                max_len=frame_stack,
+                batch_size=env.num_envs,
+                device=env.device,
+                stack_dim=-1,
+            )
+
+    def reset(self, env_ids: torch.Tensor | None = None):
+        if self._buffer is not None:
+            self._buffer.reset(env_ids)
+
+    def __call__(
+        self,
+        env: ManagerBasedEnv,
+        sensor_cfg: SceneEntityCfg = SceneEntityCfg("tiled_camera"),
+        data_type: str = "rgb",
+        frame_stack: int = 1,
+        convert_perspective_to_orthogonal: bool = False,
+        normalize: bool = True,
+    ) -> torch.Tensor:
+        if self._buffer is None:
+            return image(
+                env=env,
+                sensor_cfg=sensor_cfg,
+                data_type=data_type,
+                convert_perspective_to_orthogonal=convert_perspective_to_orthogonal,
+                normalize=normalize,
+            )
+
+        # RGB-like camera output is uint8; defer normalize so the buffer can hold it raw.
+        # Depth / normals output is float32 — leave normalize per-frame in image().
+        defer_normalize = normalize and is_rgb_like(data_type)
+        single_frame = image(
+            env=env,
+            sensor_cfg=sensor_cfg,
+            data_type=data_type,
+            convert_perspective_to_orthogonal=convert_perspective_to_orthogonal,
+            normalize=normalize and not defer_normalize,
+            clone=False,
+        )
+        self._buffer.append(single_frame)
+        stacked = self._buffer.stacked
+
+        if defer_normalize:
+            # No ``out=`` -- a fresh float32 tensor is allocated per call. The caching
+            # allocator returns a different block than the previous step's (still
+            # referenced by the trainer), so the previous-iteration ``observations``
+            # is not overwritten before ``record_transition`` reads it. See
+            # :func:`isaaclab.utils.warp.ops.normalize_image_uint8` for the aliasing
+            # hazard documentation.
+            return normalize_camera_image(stacked, data_type)
+        # ``stacked`` is a view of the ring buffer storage which is overwritten on the next
+        # ``env.step``; clone so the returned tensor outlives the next step.
+        return stacked.clone()
 
 
 """

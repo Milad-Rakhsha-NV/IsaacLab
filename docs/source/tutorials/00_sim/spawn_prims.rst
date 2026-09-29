@@ -1,3 +1,5 @@
+:orphan:
+
 .. _tutorial-spawn-prims:
 
 
@@ -9,6 +11,21 @@ Spawning prims into the scene
 This tutorial explores how to spawn various objects (or prims) into the scene in Isaac Lab from Python.
 It builds on the previous tutorial on running the simulator from a standalone script and
 demonstrates how to spawn a ground plane, lights, primitive shapes, and meshes from USD files.
+
+.. note::
+
+   This tutorial automatically tetrahedralizes a volume deformable. Run it with the
+   ``tetrahedralization`` extra:
+
+   .. code-block:: bash
+
+      uv run --extra tetrahedralization python scripts/tutorials/00_sim/spawn_prims.py
+
+   With the legacy installer, install the optional dependencies first:
+
+   .. code-block:: bash
+
+      ./isaaclab.sh -i tetrahedralization
 
 
 The Code
@@ -139,7 +156,8 @@ default to the default values set by USD Physics.
 Lastly, we spawn a cuboid ``CuboidDeformable`` which contains deformable body physics properties. Unlike the
 rigid body simulation, a deformable body can have relative motion between its vertices. This is useful for simulating
 soft bodies like cloth, rubber, or jello. It is important to note that deformable bodies are only supported in
-GPU simulation and require a mesh object to be spawned with the deformable body physics properties.
+GPU simulation and require a mesh object to be spawned with deformable body physics properties and a deformable
+physics material. This example uses the PhysX-specific deformable property and material cfgs.
 
 .. literalinclude:: ../../../../scripts/tutorials/00_sim/spawn_prims.py
    :language: python
@@ -169,9 +187,19 @@ Executing the Script
 
 Similar to the tutorial before, to run the script, execute the following command:
 
-.. code-block:: bash
+.. tab-set::
 
-  ./isaaclab.sh -p scripts/tutorials/00_sim/spawn_prims.py
+   .. tab-item:: uv (Recommended)
+
+      .. code-block:: bash
+
+        uv run --extra tetrahedralization python scripts/tutorials/00_sim/spawn_prims.py
+
+   .. tab-item:: isaaclab.sh / isaaclab.bat
+
+      .. code-block:: bash
+
+        ./isaaclab.sh -p scripts/tutorials/00_sim/spawn_prims.py
 
 Once the simulation starts, you should see a window with a ground plane, a light, some cones, and a table.
 The green cone, which has rigid body physics enabled, should fall and collide with the table and the ground

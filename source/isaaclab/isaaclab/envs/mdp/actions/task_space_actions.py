@@ -10,7 +10,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import torch
-import warp as wp
 
 from pxr import UsdPhysics
 
@@ -21,7 +20,7 @@ from isaaclab.controllers.differential_ik import DifferentialIKController
 from isaaclab.controllers.operational_space import OperationalSpaceController
 from isaaclab.managers.action_manager import ActionTerm
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
-from isaaclab.sim.utils import find_matching_prims
+from isaaclab.sim.utils.queries import resolve_matching_prims_from_source
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
@@ -72,15 +71,8 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         # save only the first body index
         self._body_idx = body_ids[0]
         self._body_name = body_names[0]
-        # check if articulation is fixed-base
-        # if fixed-base then the jacobian for the base is not computed
-        # this means that number of bodies is one less than the articulation's number of bodies
-        if self._asset.is_fixed_base:
-            self._jacobi_body_idx = self._body_idx - 1
-            self._jacobi_joint_ids = self._joint_ids
-        else:
-            self._jacobi_body_idx = self._body_idx
-            self._jacobi_joint_ids = [i + 6 for i in self._joint_ids]
+        self._jacobi_body_idx = self._body_idx - 1 if self._asset.is_fixed_base else self._body_idx
+        self._jacobi_joint_ids = [j + self._asset.num_base_dofs for j in self._joint_ids]
 
         # log info for debugging
         logger.info(
@@ -98,10 +90,16 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         self._ik_controller = DifferentialIKController(
             cfg=self.cfg.controller, num_envs=self.num_envs, device=self.device
         )
+        # joint limits are injected lazily on the first apply (asset data is populated by then) so
+        # the controller can do null-space joint-limit avoidance; only needed when joint_limit_avoidance_gain > 0.
+        self._limits_injected = False
 
         # create tensors for raw and processed actions
         self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
         self._processed_actions = torch.zeros_like(self.raw_actions)
+
+        # owned buffer; _compute_frame_jacobian mutates this, not the data-layer view.
+        self._jacobian_b = torch.zeros(self.num_envs, 6, len(self._jacobi_joint_ids), device=self.device)
 
         # save the scale as tensors
         self._scale = torch.zeros((self.num_envs, self.action_dim), device=self.device)
@@ -143,7 +141,7 @@ class DifferentialInverseKinematicsAction(ActionTerm):
 
     @property
     def jacobian_w(self) -> torch.Tensor:
-        return wp.to_torch(self._asset.root_view.get_jacobians())[:, self._jacobi_body_idx, :, self._jacobi_joint_ids]
+        return self._asset.data.body_link_jacobian_w.torch[:, self._jacobi_body_idx, :, self._jacobi_joint_ids]
 
     @property
     def jacobian_b(self) -> torch.Tensor:
@@ -206,6 +204,12 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         # obtain quantities from simulation
         ee_pos_curr, ee_quat_curr = self._compute_frame_pose()
         joint_pos = self._asset.data.joint_pos.torch[:, self._joint_ids]
+        # lazily provide joint limits to the controller for null-space joint-limit avoidance
+        # (limits are uniform across envs for these articulations; env 0 is representative)
+        if not self._limits_injected and getattr(self.cfg.controller, "joint_limit_avoidance_gain", 0.0) > 0.0:
+            limits = self._asset.data.soft_joint_pos_limits.torch[0, self._joint_ids, :]
+            self._ik_controller.set_joint_pos_limits(limits[:, 0].clone(), limits[:, 1].clone())
+            self._limits_injected = True
         # compute the delta in joint-space
         if ee_quat_curr.norm() != 0:
             jacobian = self._compute_frame_jacobian()
@@ -249,8 +253,7 @@ class DifferentialInverseKinematicsAction(ActionTerm):
         This function accounts for the target frame offset and applies the necessary transformations to obtain
         the right Jacobian from the parent body Jacobian.
         """
-        # read the parent jacobian
-        jacobian = self.jacobian_b
+        self._jacobian_b[:] = self.jacobian_b
         # account for the offset
         if self.cfg.body_offset is not None:
             # Modify the jacobian to account for the offset
@@ -258,12 +261,16 @@ class DifferentialInverseKinematicsAction(ActionTerm):
             # v_link = v_ee + w_ee x r_link_ee = v_J_ee * q + w_J_ee * q x r_link_ee
             #        = (v_J_ee + w_J_ee x r_link_ee ) * q
             #        = (v_J_ee - r_link_ee_[x] @ w_J_ee) * q
-            jacobian[:, 0:3, :] += torch.bmm(-math_utils.skew_symmetric_matrix(self._offset_pos), jacobian[:, 3:, :])
+            self._jacobian_b[:, 0:3, :] += torch.bmm(
+                -math_utils.skew_symmetric_matrix(self._offset_pos), self._jacobian_b[:, 3:, :]
+            )
             # -- rotational part
             # w_link = R_link_ee @ w_ee
-            jacobian[:, 3:, :] = torch.bmm(math_utils.matrix_from_quat(self._offset_rot), jacobian[:, 3:, :])
+            self._jacobian_b[:, 3:, :] = torch.bmm(
+                math_utils.matrix_from_quat(self._offset_rot), self._jacobian_b[:, 3:, :]
+            )
 
-        return jacobian
+        return self._jacobian_b
 
 
 class OperationalSpaceControllerAction(ActionTerm):
@@ -300,15 +307,8 @@ class OperationalSpaceControllerAction(ActionTerm):
         # save only the first ee body index
         self._ee_body_idx = body_ids[0]
         self._ee_body_name = body_names[0]
-        # check if articulation is fixed-base
-        # if fixed-base then the jacobian for the base is not computed
-        # this means that number of bodies is one less than the articulation's number of bodies
-        if self._asset.is_fixed_base:
-            self._jacobi_ee_body_idx = self._ee_body_idx - 1
-            self._jacobi_joint_idx = self._joint_ids
-        else:
-            self._jacobi_ee_body_idx = self._ee_body_idx
-            self._jacobi_joint_idx = [i + 6 for i in self._joint_ids]
+        self._jacobi_ee_body_idx = self._ee_body_idx - 1 if self._asset.is_fixed_base else self._ee_body_idx
+        self._jacobi_joint_idx = [j + self._asset.num_base_dofs for j in self._joint_ids]
 
         # log info for debugging
         logger.info(
@@ -345,9 +345,17 @@ class OperationalSpaceControllerAction(ActionTerm):
         # is provided.
         if self.cfg.task_frame_rel_path is not None:
             # The source RigidObject can be any child of the articulation asset (we will not use it),
-            # hence, we will use the first RigidObject child.
-            root_rigidbody_path = self._first_RigidObject_child_path()
-            task_frame_transformer_path = "/World/envs/env_.*/" + self.cfg.task_frame_rel_path
+            # hence, we will use the first RigidObject descendant.
+            def has_rigid_body_api(prim) -> bool:
+                return bool(prim.HasAPI(UsdPhysics.RigidBodyAPI))
+
+            prim_path = self._asset.cfg.prim_path
+            resolve_kwargs = {"raise_if_no_matches": False, "traverse_instance_prims": False}
+            rigid_matches = resolve_matching_prims_from_source(prim_path, has_rigid_body_api, **resolve_kwargs)
+            if not rigid_matches:
+                raise ValueError(f"No descendant rigid body found under the expression: '{self._asset.cfg.prim_path}'.")
+            _, root_rigidbody_path = rigid_matches[0]
+            task_frame_transformer_path = f"{self._env.scene.env_regex_ns}/{self.cfg.task_frame_rel_path}"
             task_frame_transformer_cfg = FrameTransformerCfg(
                 prim_path=root_rigidbody_path,
                 target_frames=[
@@ -378,6 +386,15 @@ class OperationalSpaceControllerAction(ActionTerm):
         self._jacobian_b = torch.zeros(self.num_envs, 6, self._num_DoF, device=self.device)
         self._mass_matrix = torch.zeros(self.num_envs, self._num_DoF, self._num_DoF, device=self.device)
         self._gravity = torch.zeros(self.num_envs, self._num_DoF, device=self.device)
+
+        # Cache the per-step fetch decisions: cfg is immutable after init, so
+        # mass-matrix and gravity-comp needs are constant across steps.
+        # Mass matrix is consumed by inertial-decoupling and (when nullspace
+        # control is enabled) the null-space torque term in OSC.compute().
+        self._needs_mass_matrix = self.cfg.controller_cfg.inertial_dynamics_decoupling or (
+            self.cfg.controller_cfg.nullspace_control != "none"
+        )
+        self._needs_gravity = self.cfg.controller_cfg.gravity_compensation
 
         # create tensors for the ee states
         self._ee_pose_w = torch.zeros(self.num_envs, 7, device=self.device)
@@ -435,9 +452,7 @@ class OperationalSpaceControllerAction(ActionTerm):
 
     @property
     def jacobian_w(self) -> torch.Tensor:
-        return wp.to_torch(self._asset.root_view.get_jacobians())[
-            :, self._jacobi_ee_body_idx, :, self._jacobi_joint_idx
-        ]
+        return self._asset.data.body_link_jacobian_w.torch[:, self._jacobi_ee_body_idx, :, self._jacobi_joint_idx]
 
     @property
     def jacobian_b(self) -> torch.Tensor:
@@ -527,14 +542,18 @@ class OperationalSpaceControllerAction(ActionTerm):
         self._compute_ee_velocity()
         self._compute_ee_force()
         self._compute_joint_states()
-        # Calculate the joint efforts
+        # Calculate the joint efforts. Pass ``None`` for mass matrix / gravity
+        # when the controller cfg doesn't require them, instead of forwarding
+        # the (stale-zero) buffers — the controller's own ``None`` checks then
+        # raise immediately on any misconfiguration rather than silently
+        # operating on zeros.
         self._joint_efforts[:] = self._osc.compute(
             jacobian_b=self._jacobian_b,
             current_ee_pose_b=self._ee_pose_b,
             current_ee_vel_b=self._ee_vel_b,
             current_ee_force_b=self._ee_force_b,
-            mass_matrix=self._mass_matrix,
-            gravity=self._gravity,
+            mass_matrix=self._mass_matrix if self._needs_mass_matrix else None,
+            gravity=self._gravity if self._needs_gravity else None,
             current_joint_pos=self._joint_pos,
             current_joint_vel=self._joint_vel,
             nullspace_joint_pos_target=self._nullspace_joint_pos_target,
@@ -557,29 +576,6 @@ class OperationalSpaceControllerAction(ActionTerm):
     Helper functions.
 
     """
-
-    def _first_RigidObject_child_path(self):
-        """Finds the first ``RigidObject`` child under the articulation asset.
-
-        Raises:
-            ValueError: If no child ``RigidObject`` is found under the articulation asset.
-
-        Returns:
-            str: The path to the first ``RigidObject`` child under the articulation asset.
-        """
-        child_prims = find_matching_prims(self._asset.cfg.prim_path + "/.*")
-        rigid_child_prim = None
-        # Loop through the list and stop at the first RigidObject found
-        for prim in child_prims:
-            if prim.HasAPI(UsdPhysics.RigidBodyAPI):
-                rigid_child_prim = prim
-                break
-        if rigid_child_prim is None:
-            raise ValueError("No child rigid body found under the expression: '{self._asset.cfg.prim_path}'/.")
-        rigid_child_prim_path = rigid_child_prim.GetPath().pathString
-        # Remove the specific env index from the path string
-        rigid_child_prim_path = self._asset.cfg.prim_path + "/" + rigid_child_prim_path.split("/")[-1]
-        return rigid_child_prim_path
 
     def _resolve_command_indexes(self):
         """Resolves the indexes for the various command elements within the command tensor.
@@ -648,18 +644,26 @@ class OperationalSpaceControllerAction(ActionTerm):
     def _compute_dynamic_quantities(self):
         """Computes the dynamic quantities for operational space control.
 
-        Note: For floating-base robots, PhysX prepends 6 virtual DOFs (base position and orientation)
-        to the generalized mass matrix and gravity compensation forces. We use ``self._jacobi_joint_idx``
-        (which applies the +6 offset for floating-base robots) instead of ``self._joint_ids`` to correctly
-        index into these quantities. For fixed-base robots, the two are identical.
-        """
+        Mass matrix and gravity-compensation forces are only fetched when the
+        controller actually consumes them — gated by
+        :attr:`~isaaclab.controllers.OperationalSpaceControllerCfg.inertial_dynamics_decoupling`
+        / :attr:`~isaaclab.controllers.OperationalSpaceControllerCfg.nullspace_control`
+        and
+        :attr:`~isaaclab.controllers.OperationalSpaceControllerCfg.gravity_compensation`
+        respectively. This avoids unconditional engine calls when the controller
+        does not consume the corresponding quantity.
 
-        self._mass_matrix[:] = wp.to_torch(self._asset.root_view.get_generalized_mass_matrices())[
-            :, self._jacobi_joint_idx, :
-        ][:, :, self._jacobi_joint_idx]
-        self._gravity[:] = wp.to_torch(self._asset.root_view.get_gravity_compensation_forces())[
-            :, self._jacobi_joint_idx
-        ]
+        Note: For floating-base robots the Jacobian / mass-matrix / gravity-compensation
+        DoF axis prepends 6 floating-base columns. We use ``self._jacobi_joint_idx``
+        (which applies the ``+ num_base_dofs`` shift) instead of ``self._joint_ids`` to
+        correctly index into these quantities. For fixed-base robots the two are identical.
+        """
+        if self._needs_mass_matrix:
+            self._mass_matrix[:] = self._asset.data.mass_matrix.torch[:, self._jacobi_joint_idx, :][
+                :, :, self._jacobi_joint_idx
+            ]
+        if self._needs_gravity:
+            self._gravity[:] = self._asset.data.gravity_compensation_forces.torch[:, self._jacobi_joint_idx]
 
     def _compute_ee_jacobian(self):
         """Computes the geometric Jacobian of the ee body frame in root frame.
@@ -731,7 +735,7 @@ class OperationalSpaceControllerAction(ActionTerm):
         # Obtain contact forces only if the contact sensor is available
         if self._contact_sensor is not None:
             self._contact_sensor.update(self._sim_dt)
-            self._ee_force_w[:] = self._contact_sensor.data.net_forces_w.torch[:, 0, :]  # type: ignore
+            self._ee_force_w[:] = self._contact_sensor.data.net_normal_forces_w.torch[:, 0, :]  # type: ignore
             # Rotate forces and torques into root frame
             self._ee_force_b[:] = math_utils.quat_apply_inverse(self._asset.data.root_quat_w.torch, self._ee_force_w)
 

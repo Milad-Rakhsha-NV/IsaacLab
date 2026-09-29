@@ -5,15 +5,15 @@
 
 from __future__ import annotations
 
-import numpy as np
-import pytest
-import torch
-import trimesh
-
 from isaaclab.app import AppLauncher
 
 # launch omniverse app
 simulation_app = AppLauncher(headless=True, enable_cameras=True).app
+
+import numpy as np
+import pytest
+import torch
+import trimesh
 
 # Import after app launch
 import warp as wp
@@ -22,6 +22,8 @@ from isaaclab.sensors.ray_caster.kernels import quat_yaw_only as _quat_yaw_only_
 from isaaclab.utils.math import matrix_from_quat, quat_from_euler_xyz, random_orientation, yaw_quat
 from isaaclab.utils.warp.kernels import raycast_mesh_masked_kernel as _raycast_mesh_masked_kernel
 from isaaclab.utils.warp.ops import convert_to_warp_mesh, raycast_dynamic_meshes, raycast_mesh
+
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="module")

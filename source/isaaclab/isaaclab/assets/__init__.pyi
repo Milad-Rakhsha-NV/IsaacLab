@@ -9,8 +9,18 @@ __all__ = [
     "Articulation",
     "ArticulationCfg",
     "ArticulationData",
+    "ArticulationOrderingConvention",
+    "ArticulationNameMap",
+    "apply_articulation_ordering_preset",
+    "parse_articulation_ordering_convention",
+    "get_articulation_name_ordering",
     "AssetBase",
     "AssetBaseCfg",
+    "BaseCableObject",
+    "BaseCableObjectData",
+    "CableObject",
+    "CableObjectCfg",
+    "CableObjectData",
     "BaseRigidObject",
     "BaseRigidObjectData",
     "RigidObject",
@@ -21,6 +31,13 @@ __all__ = [
     "RigidObjectCollection",
     "RigidObjectCollectionCfg",
     "RigidObjectCollectionData",
+    "BaseDeformableObject",
+    "BaseDeformableObjectData",
+    "DeformableObject",
+    "DeformableObjectCfg",
+    "DeformableObjectData",
+    "VisualMaterial",
+    "VisualMaterialCfg",
 ]
 
 from .articulation import (
@@ -29,9 +46,21 @@ from .articulation import (
     Articulation,
     ArticulationCfg,
     ArticulationData,
+    ArticulationOrderingConvention,
+    ArticulationNameMap,
+    apply_articulation_ordering_preset,
+    parse_articulation_ordering_convention,
+    get_articulation_name_ordering,
 )
 from .asset_base import AssetBase
 from .asset_base_cfg import AssetBaseCfg
+from .cable_object import (
+    BaseCableObject,
+    BaseCableObjectData,
+    CableObject,
+    CableObjectCfg,
+    CableObjectData,
+)
 from .rigid_object import (
     BaseRigidObject,
     BaseRigidObjectData,
@@ -46,3 +75,11 @@ from .rigid_object_collection import (
     RigidObjectCollectionCfg,
     RigidObjectCollectionData,
 )
+from .deformable_object import (
+    BaseDeformableObject,
+    BaseDeformableObjectData,
+    DeformableObject,
+    DeformableObjectCfg,
+    DeformableObjectData,
+)
+from .visual_material import VisualMaterial, VisualMaterialCfg

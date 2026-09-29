@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Unit tests for visualizer config factory and base visualizer behavior."""
+"""Unit tests for visualizer config construction and base visualizer behavior."""
 
 from __future__ import annotations
 
@@ -11,33 +11,66 @@ import importlib.util
 from types import SimpleNamespace
 
 import pytest
+import torch
 
+import isaaclab.visualizers as visualizers
+from isaaclab.envs.utils.camera_view import apply_camera_view_from_origins, prim_world_positions
+from isaaclab.utils.string import ResolvableString
 from isaaclab.visualizers.base_visualizer import BaseVisualizer
-from isaaclab.visualizers.visualizer import Visualizer
 from isaaclab.visualizers.visualizer_cfg import VisualizerCfg
 
+pytestmark = [pytest.mark.integration, pytest.mark.rendering]
+
 #
-# Config factory
+# Config construction
 #
 
 
-def test_create_visualizer_raises_for_base_cfg():
+@pytest.mark.parametrize(
+    "module_name,cfg_name,implementation",
+    [
+        ("isaaclab_visualizers.kit", "KitVisualizerCfg", "KitVisualizer"),
+        ("isaaclab_visualizers.newton", "NewtonGLVisualizerCfg", "NewtonGLVisualizer"),
+        ("isaaclab_visualizers.newton", "NewtonRTXVisualizerCfg", "NewtonRTXVisualizer"),
+        ("isaaclab_visualizers.rerun", "RerunVisualizerCfg", "RerunVisualizer"),
+        ("isaaclab_visualizers.viser", "ViserVisualizerCfg", "ViserVisualizer"),
+    ],
+)
+def test_visualizer_cfg_names_its_implementation(module_name, cfg_name, implementation):
+    cfg_type = getattr(pytest.importorskip(module_name), cfg_name)
+    class_type = cfg_type().class_type
+    assert isinstance(class_type, ResolvableString)
+    assert class_type.__name__ == implementation
+
+
+def test_visualizer_construction_has_no_factory_api():
+    assert not hasattr(visualizers, "Visualizer")
+    assert not any(
+        hasattr(VisualizerCfg, name)
+        for name in ("build", "build_visualizer", "clone_context", "create_visualizer", "get_visualizer_type")
+    )
+
+
+def test_visualizer_cfg_streaming_view_is_opt_in():
     cfg = VisualizerCfg()
-    with pytest.raises(ValueError, match="Cannot create visualizer from base VisualizerCfg class"):
-        cfg.create_visualizer()
+    assert cfg.focal_length == 12.0
+    assert cfg.background_color == (0.3, 0.55, 0.82)
+    assert cfg.streaming_view is False
+    assert cfg.streaming_envs == 32
 
 
-def test_create_visualizer_raises_for_unknown_type():
-    cfg = VisualizerCfg(visualizer_type="unknown-backend")
-    with pytest.raises(ValueError, match="not registered"):
-        cfg.create_visualizer()
+def test_visualizer_cfg_validates_background_color():
+    assert VisualizerCfg(background_color=None).background_color is None
+    assert VisualizerCfg(background_color=[0, 0.5, 1]).background_color == (0.0, 0.5, 1.0)
+    with pytest.raises(ValueError, match="three normalized RGB values"):
+        VisualizerCfg(background_color=(0.0, 0.5, 1.1))
 
 
-def test_create_visualizer_raises_import_error_when_backend_unavailable(monkeypatch):
-    monkeypatch.setattr(Visualizer, "_get_module_name", classmethod(lambda cls, backend: "does.not.exist"))
-    cfg = VisualizerCfg(visualizer_type="newton")
-    with pytest.raises(ImportError, match="isaaclab_visualizers"):
-        cfg.create_visualizer()
+def test_streaming_cfg_fields_on_visualizer_cfg():
+    """streaming_view is opt-in (False) and streaming_cam_renderer defaults to None."""
+    cfg = VisualizerCfg()
+    assert cfg.streaming_view is False
+    assert cfg.streaming_cam_renderer is None
 
 
 #
@@ -79,11 +112,65 @@ class _FakeProvider:
         self._num_envs = num_envs
         self._transforms = transforms
 
+    @property
+    def num_envs(self) -> int:
+        return self._num_envs
+
     def get_metadata(self) -> dict:
         return {"num_envs": self._num_envs}
 
     def get_camera_transforms(self):
         return self._transforms
+
+
+class _FakeCamera:
+    device = "cpu"
+
+    def __init__(self):
+        self.set_world_poses_from_view_calls = []
+        self.update_poses_calls = []
+
+    def set_world_poses_from_view(self, eyes, targets, env_ids=None):
+        self.set_world_poses_from_view_calls.append((eyes.clone(), targets.clone(), env_ids))
+
+    def _update_poses(self, dt):
+        self.update_poses_calls.append(dt)
+
+
+def test_apply_camera_view_from_origins_forwards_env_ids():
+    camera = _FakeCamera()
+    origins = torch.tensor([[1.0, 2.0, 3.0]])
+
+    apply_camera_view_from_origins(camera, origins, eye=(0.5, 0.0, 1.0), lookat=(0.0, 0.0, 0.0), env_ids=[2])
+
+    eyes, targets, env_ids = camera.set_world_poses_from_view_calls[0]
+    assert eyes.tolist() == [[1.5, 2.0, 4.0]]
+    assert targets.tolist() == [[1.0, 2.0, 3.0]]
+    assert env_ids == [2]
+    assert camera.update_poses_calls == [None]
+
+
+def test_prim_world_positions_prefers_scene_articulation_state():
+    body_pos_w = torch.tensor(
+        [
+            [[1.0, 2.0, 3.0], [10.0, 20.0, 30.0]],
+            [[4.0, 5.0, 6.0], [40.0, 50.0, 60.0]],
+        ]
+    )
+    articulation = SimpleNamespace(
+        cfg=SimpleNamespace(prim_path="/World/envs/env_[^/]+/Robot"),
+        body_names=["base", "foot"],
+        data=SimpleNamespace(
+            root_pos_w=SimpleNamespace(torch=torch.zeros((2, 3))),
+            body_pos_w=SimpleNamespace(torch=body_pos_w),
+        ),
+        find_bodies=lambda name, **_: ([0], [name]),
+    )
+    scene = SimpleNamespace(articulations={"robot": articulation})
+
+    positions = prim_world_positions(None, "/World/envs/*/Robot/base", [1, 0], scene=scene)
+
+    assert torch.equal(positions, torch.tensor([[4.0, 5.0, 6.0], [1.0, 2.0, 3.0]]))
 
 
 def test_compute_visualized_env_ids_cap_only_returns_none():
@@ -161,3 +248,9 @@ def test_resolve_camera_pose_from_usd_path_uses_provider_transforms():
     pos, target = viz._resolve_camera_pose_from_usd_path("/World/envs/env_0/Camera")
     assert pos == (1.0, 2.0, 3.0)
     assert target == pytest.approx((1.0, 2.0, 2.0))
+
+
+def test_physics_backend_returns_none_without_simulation_context():
+    """physics_backend is None when no SimulationContext is active."""
+    viz = _DummyVisualizer(_make_cfg())
+    assert viz.physics_backend is None

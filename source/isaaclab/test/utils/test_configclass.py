@@ -5,19 +5,10 @@
 
 from __future__ import annotations
 
-# NOTE: While we don't actually use the simulation app in this test, we still need to launch it
-#       because warp is only available in the context of a running simulation
-"""Launch Isaac Sim Simulator first."""
-
-from isaaclab.app import AppLauncher
-
-# launch omniverse app
-simulation_app = AppLauncher(headless=True).app
-
-"""Rest everything follows."""
-
 import copy
 import os
+import subprocess
+import sys
 from collections.abc import Callable
 from dataclasses import MISSING, asdict, field
 from functools import wraps
@@ -30,6 +21,8 @@ from isaaclab.utils.configclass import _field_module_dir, configclass
 from isaaclab.utils.dict import class_to_dict, dict_to_md5_hash, update_class_from_dict
 from isaaclab.utils.io import dump_yaml, load_yaml
 from isaaclab.utils.string import ResolvableString
+
+pytestmark = pytest.mark.unit
 
 """
 Mock classes and functions.
@@ -182,6 +175,27 @@ class InheritedNonTypeAnnotationOrderingDemoCfg(NonTypeAnnotationOrderingDemoCfg
     """Inherited config class without type annotations."""
 
     pass
+
+
+@configclass
+class MixedAnnotationOrderingDemoCfg:
+    """Config class with type annotations on only some attributes."""
+
+    plane = RobotDefaultStateCfg()
+    robot = RobotDefaultStateCfg()
+    peg: RobotDefaultStateCfg = RobotDefaultStateCfg()
+    hole: RobotDefaultStateCfg = RobotDefaultStateCfg()
+    camera = RobotDefaultStateCfg()
+    light = RobotDefaultStateCfg()
+
+
+@configclass
+class InheritedMixedAnnotationOrderingDemoCfg(MixedAnnotationOrderingDemoCfg):
+    """Inherited config class with type annotations on only some attributes."""
+
+    table = RobotDefaultStateCfg()
+    sensor: RobotDefaultStateCfg = RobotDefaultStateCfg()
+    marker = RobotDefaultStateCfg()
 
 
 """
@@ -829,6 +843,26 @@ def test_configclass_type_ordering():
     assert list(cfg_1.__dict__.keys()) == list(cfg_3.__dict__.keys())
 
 
+def test_configclass_mixed_type_annotations_ordering():
+    """Checks that declaration order is preserved when only some attributes have type annotations.
+
+    Reference: https://github.com/isaac-sim/IsaacLab/issues/1949
+    """
+    cfg = MixedAnnotationOrderingDemoCfg()
+    expected_order = ["plane", "robot", "peg", "hole", "camera", "light"]
+
+    # check ordering of attributes and dictionary conversion
+    assert list(cfg.__dict__.keys()) == expected_order
+    assert list(cfg.to_dict().keys()) == expected_order
+
+    # check ordering with inheritance: parent fields first, then child fields in declaration order
+    cfg_inherited = InheritedMixedAnnotationOrderingDemoCfg()
+    expected_inherited_order = expected_order + ["table", "sensor", "marker"]
+
+    assert list(cfg_inherited.__dict__.keys()) == expected_inherited_order
+    assert list(cfg_inherited.to_dict().keys()) == expected_inherited_order
+
+
 def test_functions_config():
     """Tests having functions as values in the configuration instance."""
     cfg = FunctionsDemoCfg()
@@ -1208,3 +1242,36 @@ def test_checked_apply_rejects_non_dataclass_src():
 
     with pytest.raises(TypeError, match="must be a dataclass"):
         checked_apply(NotADataclass(), object())
+
+
+@pytest.mark.parametrize("import_first", ["sub-module", "decorator"])
+def test_configclass_name_works_for_every_import_form(import_first):
+    """``isaaclab.utils.configclass`` serves both the decorator and the sub-module, in either order.
+
+    The name belongs to a sub-module and to the decorator that sub-module defines, so whichever was
+    imported first used to decide which one the other import forms got. A fresh interpreter is
+    required because that is settled on the very first import.
+    """
+    prologue = {
+        "sub-module": "import isaaclab.utils.configclass",
+        "decorator": "from isaaclab.utils import configclass",
+    }[import_first]
+    script = f"""
+{prologue}
+
+import isaaclab.utils.configclass as configclass_module
+assert configclass_module.checked_apply is not None
+
+import isaaclab.utils
+assert isaaclab.utils.configclass._field_module_dir is not None
+
+from isaaclab.utils import configclass
+
+@configclass
+class DemoCfg:
+    value: int = 1
+
+assert DemoCfg().to_dict() == {{"value": 1}}
+"""
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

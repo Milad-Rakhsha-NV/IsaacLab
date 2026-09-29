@@ -8,6 +8,7 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import contextlib
 import os
 
 from isaaclab.app import AppLauncher
@@ -18,8 +19,8 @@ parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--output_dir", type=str, default=None, help="Path to the output directory.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
-# parse the arguments
-args_cli = parser.parse_args()
+# parse the arguments, forwarding unrecognized ones as Hydra-style task config overrides
+args_cli, hydra_overrides = parser.parse_known_args()
 args_cli.headless = True
 
 # launch omniverse app
@@ -32,6 +33,9 @@ import gymnasium as gym
 import torch
 
 import isaaclab_tasks  # noqa: F401
+
+with contextlib.suppress(ImportError):
+    import isaaclab_tasks_experimental  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
 # PLACEHOLDER: Extension template (do not remove this comment)
@@ -40,7 +44,9 @@ from isaaclab_tasks.utils import parse_env_cfg
 def main():
     """Random actions agent with Isaac Lab environment."""
     # create environment configuration
-    env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=1, use_fabric=True)
+    env_cfg = parse_env_cfg(
+        args_cli.task, device=args_cli.device, num_envs=1, use_fabric=True, overrides=hydra_overrides
+    )
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
 

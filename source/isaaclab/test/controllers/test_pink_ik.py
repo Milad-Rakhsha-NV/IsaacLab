@@ -7,7 +7,7 @@
 
 from isaaclab.app import AppLauncher
 
-# launch omniverse app
+# Pink IK tests strip task cameras before environment construction.
 simulation_app = AppLauncher(headless=True).app
 
 """Rest everything follows."""
@@ -21,6 +21,7 @@ import gymnasium as gym
 import numpy as np
 import pytest
 import torch
+from isaaclab_teleop import remove_camera_configs
 from pink.configuration import Configuration
 from pink.tasks import FrameTask
 
@@ -30,7 +31,7 @@ from isaaclab.utils.math import axis_angle_from_quat, matrix_from_quat, quat_fro
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 
-pytestmark = pytest.mark.isaacsim_ci
+pytestmark = [pytest.mark.integration, pytest.mark.isaacsim_ci]
 
 
 def load_test_config(env_name):
@@ -66,7 +67,9 @@ def create_test_env(env_name, num_envs):
     sim_utils.create_new_stage()
 
     try:
-        env_cfg = parse_env_cfg(env_name, device=device, num_envs=num_envs)
+        env_cfg = remove_camera_configs(parse_env_cfg(env_name, device=device, num_envs=num_envs))
+        # Deterministic seed so IK convergence residual is reproducible across runs / machines.
+        env_cfg.seed = 42
         # Modify scene config to not spawn the packing table to avoid collision with the robot
         del env_cfg.scene.packing_table
         del env_cfg.terminations.object_dropping
@@ -80,10 +83,10 @@ def create_test_env(env_name, num_envs):
 @pytest.fixture(
     scope="module",
     params=[
-        "Isaac-PickPlace-GR1T2-Abs-v0",
-        "Isaac-PickPlace-GR1T2-WaistEnabled-Abs-v0",
-        "Isaac-PickPlace-FixedBaseUpperBodyIK-G1-Abs-v0",
-        "Isaac-PickPlace-Locomanipulation-G1-Abs-v0",
+        "IsaacContrib-PickPlace-GR1T2-Abs",
+        "IsaacContrib-PickPlace-GR1T2-WaistEnabled-Abs",
+        "IsaacContrib-PickPlace-FixedBaseUpperBodyIK-G1-Abs",
+        "IsaacContrib-PickPlace-Locomanipulation-G1-Abs",
     ],
 )
 def env_and_cfg(request):
@@ -306,7 +309,7 @@ def calculate_rotation_error(current_rot, target_rot):
             target_rot_tensor = target_rot_tensor.unsqueeze(0).expand(current_rot.shape[0], -1)
 
     return axis_angle_from_quat(
-        quat_from_matrix(matrix_from_quat(target_rot_tensor) * matrix_from_quat(quat_inv(current_rot)))
+        quat_from_matrix(matrix_from_quat(target_rot_tensor) @ matrix_from_quat(quat_inv(current_rot)))
     )
 
 

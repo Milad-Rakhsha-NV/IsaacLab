@@ -6,11 +6,6 @@
 
 from __future__ import annotations
 
-from isaaclab.app import AppLauncher
-
-# launch omniverse app. Used for warp.
-app_launcher = AppLauncher(headless=True)
-
 import numpy as np
 import pytest
 import torch
@@ -19,6 +14,8 @@ import warp as wp
 
 from isaaclab.utils.math import matrix_from_quat, quat_from_euler_xyz, random_orientation
 from isaaclab.utils.warp.ops import convert_to_warp_mesh, raycast_dynamic_meshes, raycast_single_mesh
+
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="module")

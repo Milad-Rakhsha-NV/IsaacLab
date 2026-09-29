@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from unittest.mock import MagicMock, patch
@@ -70,8 +71,38 @@ def _install_stubs():
     """Insert MagicMock modules for all heavy dependencies."""
     for name in _MODULES_TO_STUB:
         if name not in sys.modules:
-            _stubs_installed[name] = MagicMock()
-            sys.modules[name] = _stubs_installed[name]
+            sys.modules[name] = _stubs_installed.setdefault(name, MagicMock())
+        if "." in name:
+            parent_name, child_name = name.rsplit(".", 1)
+            setattr(sys.modules[parent_name], child_name, sys.modules[name])
+
+    @dataclass
+    class DeadlinePacingConfig:
+        safety_margin_s: float = 0.025
+
+    @dataclass
+    class RetargetingExecutionConfig:
+        mode: str = "sync"
+        pacing: DeadlinePacingConfig | None = None
+
+    tsm = sys.modules["isaacteleop.teleop_session_manager"]
+    tsm.DeadlinePacingConfig = DeadlinePacingConfig  # type: ignore[attr-defined]
+    tsm.RetargetingExecutionConfig = RetargetingExecutionConfig  # type: ignore[attr-defined]
+
+
+def _restore_stubs():
+    """Remove stubs installed for this test module from ``sys.modules``."""
+    for name in reversed(_MODULES_TO_STUB):
+        stub = _stubs_installed.get(name)
+        if stub is None:
+            continue
+        if "." in name:
+            parent_name, child_name = name.rsplit(".", 1)
+            parent = sys.modules.get(parent_name)
+            if parent is not None and getattr(parent, child_name, None) is stub:
+                delattr(parent, child_name)
+        if sys.modules.get(name) is stub:
+            del sys.modules[name]
 
 
 _install_stubs()
@@ -81,11 +112,21 @@ from isaaclab_teleop.isaac_teleop_cfg import (  # noqa: E402
     CLOUDXR_JS_ENV,
     IsaacTeleopCfg,
 )
-from isaaclab_teleop.session_lifecycle import TeleopSessionLifecycle  # noqa: E402
+from isaaclab_teleop.session_lifecycle import TeleopSessionLifecycle, cloudxr_eula_accepted  # noqa: E402
+
+_restore_stubs()
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _stub_heavy_dependencies():
+    """Keep CloudXR tests isolated from modules collected later in the suite."""
+    _install_stubs()
+    yield
+    _restore_stubs()
 
 
 def _make_cfg() -> IsaacTeleopCfg:
@@ -137,6 +178,43 @@ class TestEnvProfilePaths:
 
     def test_profiles_are_in_same_directory(self):
         assert Path(CLOUDXR_AVP_ENV).parent == Path(CLOUDXR_JS_ENV).parent
+
+
+# ============================================================================
+# IsaacTeleop execution config
+# ============================================================================
+
+
+class TestRetargetingExecutionConfig:
+    """Tests for Isaac Lab's IsaacTeleop retargeting execution defaults."""
+
+    def test_session_config_receives_deadline_paced_pipelined_retargeting(self):
+        """An unset retargeting execution config resolves to the pipelined default at session start."""
+        cfg = _make_cfg()
+
+        # The default is deferred (``None``) so that constructing the config never
+        # requires the optional ``isaacteleop`` package.
+        assert cfg.retargeting_execution is None
+
+        lifecycle = TeleopSessionLifecycle(cfg)
+        lifecycle._pipeline = MagicMock()
+        lifecycle._teleop_control_pipeline = None
+
+        session_config_cls = MagicMock(return_value=MagicMock())
+        session_cls = MagicMock()
+        fake_tsm_module = sys.modules["isaacteleop.teleop_session_manager"]
+
+        with (
+            patch.object(fake_tsm_module, "TeleopSessionConfig", session_config_cls),
+            patch.object(fake_tsm_module, "TeleopSession", session_cls),
+            patch.object(lifecycle, "_ensure_xr_ar_profile_enabled"),
+            patch.object(lifecycle, "_acquire_kit_oxr_handles", return_value=object()),
+        ):
+            assert lifecycle.try_start_session() is True
+
+        resolved_execution = session_config_cls.call_args.kwargs["retargeting_execution"]
+        assert resolved_execution.mode == "pipelined"
+        assert resolved_execution.pacing.safety_margin_s == 0.025
 
 
 # ============================================================================
@@ -217,6 +295,7 @@ class TestEnsureCloudXRRuntime:
             patch.dict(sys.modules, {"isaacteleop.cloudxr": fake_module}),
         ):
             os.environ.pop("ISAACLAB_CXR_SKIP_AUTOLAUNCH", None)
+            os.environ.pop("ISAACLAB_CXR_ACCEPT_EULA", None)
             lifecycle._ensure_cloudxr_runtime()
 
         mock_cls.assert_called_once_with(
@@ -237,6 +316,68 @@ class TestEnsureCloudXRRuntime:
             lifecycle._ensure_cloudxr_runtime()
 
         assert lifecycle._cloudxr_launcher is None
+
+
+# ============================================================================
+# CloudXR EULA acceptance
+# ============================================================================
+
+
+class TestCloudXREulaAcceptance:
+    """Tests for the ``ISAACLAB_CXR_ACCEPT_EULA`` opt-in."""
+
+    @staticmethod
+    def _accept_eula_passed_to_launcher() -> bool:
+        """Run ``_ensure_cloudxr_runtime`` and return the ``accept_eula`` it passed."""
+        mock_cls = MagicMock()
+        fake_module = MagicMock()
+        fake_module.CloudXRLauncher = mock_cls
+        lifecycle = _make_lifecycle(cloudxr_env_file="/etc/cxr.env")
+
+        with patch.dict(sys.modules, {"isaacteleop.cloudxr": fake_module}):
+            lifecycle._ensure_cloudxr_runtime()
+
+        return mock_cls.call_args.kwargs["accept_eula"]
+
+    @pytest.mark.parametrize("value", ["1", " 1 ", "\t1\n", "y", "Y", "yes", "Yes", "YES"])
+    def test_accepts_affirmative_values(self, value):
+        """``y``/``yes``/``1`` accept the license, case- and whitespace-insensitively.
+
+        These are the spellings ``OMNI_KIT_ACCEPT_EULA`` takes, so a user who accepts the
+        Omniverse license the documented way can spell the CloudXR one the same.
+        """
+        with patch.dict(os.environ, {"ISAACLAB_CXR_ACCEPT_EULA": value}):
+            os.environ.pop("ISAACLAB_CXR_SKIP_AUTOLAUNCH", None)
+            assert cloudxr_eula_accepted() is True
+            assert self._accept_eula_passed_to_launcher() is True
+
+    @pytest.mark.parametrize("value", ["0", "n", "no", "true", "", "11", "1 1"])
+    def test_does_not_accept_for_other_values(self, value):
+        """Anything not affirmative leaves the interactive prompt in place."""
+        with patch.dict(os.environ, {"ISAACLAB_CXR_ACCEPT_EULA": value}):
+            os.environ.pop("ISAACLAB_CXR_SKIP_AUTOLAUNCH", None)
+            assert cloudxr_eula_accepted() is False
+            assert self._accept_eula_passed_to_launcher() is False
+
+    def test_does_not_accept_when_unset(self):
+        """Unset keeps the pre-existing behaviour."""
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("ISAACLAB_CXR_ACCEPT_EULA", None)
+            os.environ.pop("ISAACLAB_CXR_SKIP_AUTOLAUNCH", None)
+            assert cloudxr_eula_accepted() is False
+            assert self._accept_eula_passed_to_launcher() is False
+
+    def test_independent_of_skip_autolaunch(self):
+        """The two CloudXR variables do not read each other's value."""
+        with patch.dict(os.environ, {"ISAACLAB_CXR_SKIP_AUTOLAUNCH": "1"}):
+            os.environ.pop("ISAACLAB_CXR_ACCEPT_EULA", None)
+            assert cloudxr_eula_accepted() is False
+
+    def test_exported_from_package_root(self):
+        """``teleop_replay_agent.py`` imports the helper from the package root, not the submodule."""
+        import isaaclab_teleop
+
+        assert isaaclab_teleop.cloudxr_eula_accepted is cloudxr_eula_accepted
 
 
 # ============================================================================

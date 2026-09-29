@@ -7,13 +7,21 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from isaaclab.utils import configclass
 from isaaclab.visualizers.visualizer_cfg import VisualizerCfg
+
+if TYPE_CHECKING:
+    from .viser_visualizer import ViserVisualizer
 
 
 @configclass
 class ViserVisualizerCfg(VisualizerCfg):
     """Configuration for Viser visualizer (web-based visualization)."""
+
+    class_type: type[ViserVisualizer] | str = "{DIR}.viser_visualizer:ViserVisualizer"
+    """Visualizer implementation class."""
 
     visualizer_type: str = "viser"
     """Type identifier for Viser visualizer."""
@@ -21,11 +29,23 @@ class ViserVisualizerCfg(VisualizerCfg):
     port: int = 8080
     """Port of the local viser web server."""
 
-    open_browser: bool = True
-    """Whether to attempt opening the viser web viewer URL in a browser."""
+    bind_address: str = "0.0.0.0"
+    """Host/interface for the Viser server to bind.
 
-    label: str | None = "Isaac Lab Simulation"
-    """Optional label shown in the viewer page title."""
+    Use ``"0.0.0.0"`` to listen on all interfaces for remote access.
+    """
+
+    display_address: str = "localhost"
+    """Host name or IP address shown in the printed browser URL.
+
+    For remote access, set this to the hostname/IP reachable from your browser.
+    """
+
+    open_browser: bool = False
+    """Whether to attempt opening the viser web viewer URL in a browser.
+
+    The viewer URL is always logged during initialization. Set this to ``True`` to auto-launch it.
+    """
 
     verbose: bool = True
     """Whether to print viewer server startup information."""
@@ -35,3 +55,11 @@ class ViserVisualizerCfg(VisualizerCfg):
 
     record_to_viser: str | None = None
     """Path to save a .viser recording file. None = no recording."""
+
+    show_particles: bool = True
+    """Whether to render particle systems (MPM, VBD) in the Viser viewer.
+
+    Defaults to ``True`` so particle simulations (granular, cloth, soft-body) are
+    visible on startup.  Can also be toggled at runtime via the Visualization Markers
+    panel in the Viser sidebar.
+    """

@@ -36,6 +36,8 @@ from pxr import Gf, UsdGeom
 import isaaclab.sim as sim_utils
 from isaaclab.sensors.camera import Camera, CameraCfg, TiledCamera, TiledCameraCfg
 
+pytestmark = [pytest.mark.integration, pytest.mark.rendering]
+
 
 @pytest.fixture(scope="function")
 def setup_camera(device) -> tuple[sim_utils.SimulationContext, CameraCfg, float]:
@@ -132,8 +134,8 @@ def test_tiled_camera_basic_functionality(setup_camera, device):
     assert isinstance(camera._sensor_prims[0], UsdGeom.Camera)
 
     # Check buffers that exists and have correct shapes
-    assert camera.data.pos_w.shape == (1, 3)
-    assert camera.data.intrinsic_matrices.shape == (1, 3, 3)
+    assert camera.data.pos_w.torch.shape == (1, 3)
+    assert camera.data.intrinsic_matrices.torch.shape == (1, 3, 3)
     assert camera.data.image_shape == (camera_cfg.height, camera_cfg.width)
 
     # Simulate physics

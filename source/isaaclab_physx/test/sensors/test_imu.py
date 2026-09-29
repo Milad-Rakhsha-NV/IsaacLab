@@ -264,19 +264,26 @@ def test_constant_velocity(setup_sim):
         prev_lin_acc_ball = scene.sensors["imu_ball"].data.lin_acc_b.torch.clone()
         prev_lin_acc_cube = scene.sensors["imu_cube"].data.lin_acc_b.torch.clone()
 
+    # the recorded-launch optimization must be active on CUDA; a recording failure would only
+    # warn and silently fall back to eager launches, defeating the optimization.
+    if "cuda" in str(scene.device):
+        assert scene.sensors["imu_ball"]._update_cmd is not None
+        assert scene.sensors["imu_cube"]._update_cmd is not None
+
 
 @pytest.mark.isaacsim_ci
 def test_constant_acceleration(setup_sim):
-    """Test the Imu sensor with a constant acceleration."""
+    """A constant applied force yields the solver acceleration F/m plus the gravity bias."""
     sim, scene = setup_sim
-    for idx in range(100):
-        # set acceleration
-        scene.rigid_objects["balls"].write_root_velocity_to_sim(
-            torch.tensor([[0.1, 0.0, 0.0, 0.0, 0.0, 0.0]], dtype=torch.float32, device=scene.device).repeat(
-                scene.num_envs, 1
-            )
-            * (idx + 1)
-        )
+    balls = scene.rigid_objects["balls"]
+    force = 0.25  # [N] on a 0.5 kg ball -> 0.5 m/s^2
+    expected_acc = force / 0.5
+    forces = torch.zeros((scene.num_envs, 1, 3), dtype=torch.float32, device=scene.device)
+    forces[..., 0] = force
+    # keep the window short so the ball stays airborne: in free fall the accelerometer
+    # correctly reads zero along gravity (the solver's -g cancels the +g bias)
+    for idx in range(10):
+        balls.set_external_force_and_torque(forces, torch.zeros_like(forces))
         # write data to sim
         scene.write_data_to_sim()
         # perform step
@@ -284,7 +291,7 @@ def test_constant_acceleration(setup_sim):
         # read data from sim
         scene.update(sim.get_physics_dt())
 
-        # skip first step where initial velocity is zero
+        # skip first step where the solver has not integrated the force yet
         if idx < 1:
             continue
 
@@ -293,9 +300,9 @@ def test_constant_acceleration(setup_sim):
             scene.sensors["imu_ball"].data.lin_acc_b.torch,
             math_utils.quat_apply_inverse(
                 scene.rigid_objects["balls"].data.root_quat_w.torch,
-                torch.tensor([[0.1, 0.0, 0.0]], dtype=torch.float32, device=scene.device).repeat(scene.num_envs, 1)
-                / sim.get_physics_dt()
-                + torch.tensor([[0.0, 0.0, 9.81]], dtype=torch.float32, device=scene.device).repeat(scene.num_envs, 1),
+                torch.tensor([[expected_acc, 0.0, 0.0]], dtype=torch.float32, device=scene.device).repeat(
+                    scene.num_envs, 1
+                ),
             ),
             rtol=1e-4,
             atol=1e-4,
@@ -485,6 +492,60 @@ def test_env_ids_propagation(setup_sim):
     scene.update(sim.get_physics_dt())
 
 
+@configclass
+class _StaleResetSceneCfg(InteractiveSceneCfg):
+    """Minimal scene for the post-reset staleness regression test."""
+
+    terrain = TerrainImporterCfg(prim_path="/World/ground", terrain_type="plane")
+    cube = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/cube",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 2.0)),
+        spawn=sim_utils.CuboidCfg(
+            size=(0.25, 0.25, 0.25),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+        ),
+    )
+    imu_cube: ImuCfg = ImuCfg(prim_path="{ENV_REGEX_NS}/cube")
+
+
+def test_no_stale_data_after_scene_reset():
+    """Regression for #4970: ``scene.reset(env_ids)`` must not surface pre-reset IMU values.
+
+    Mirrors the ``ManagerBasedRLEnv._reset_idx`` flow where reset runs inside a step
+    without a subsequent physics step. The IMU sensor's lazy ``data`` accessor must not
+    refetch from the PhysX rigid-body view here (the velocity buffer reflects the previous
+    physics step and would produce a spurious finite-difference acceleration).
+    """
+    sim_cfg = sim_utils.SimulationCfg(dt=0.01, physics=PhysxCfg(solver_type=0))
+    with sim_utils.build_simulation_context(sim_cfg=sim_cfg) as sim:
+        sim._app_control_on_stop_handle = None
+        scene_cfg = _StaleResetSceneCfg(num_envs=1, env_spacing=2.0, lazy_sensor_update=False)
+        scene = InteractiveScene(scene_cfg)
+        sim.reset()
+        scene.reset()
+
+        sensor: Imu = scene["imu_cube"]
+
+        # Let the cube fall so PhysX accumulates a non-zero rigid-body velocity.
+        for _ in range(30):
+            scene.write_data_to_sim()
+            sim.step(render=False)
+            scene.update(dt=sim.get_physics_dt())
+
+        # Reset the scene without writing fresh velocity/transform. The PhysX velocity
+        # buffer therefore still holds the pre-reset (falling) value.
+        scene.reset(env_ids=torch.tensor([0], device=sensor.device))
+
+        # The public ``data`` accessor must not refetch a stale PhysX buffer; ``reset()``
+        # zeroes ``_ang_vel_b`` and ``_lin_acc_b`` and those must be what comes out here.
+        post_reset_lin_acc = sensor.data.lin_acc_b.torch
+        post_reset_ang_vel = sensor.data.ang_vel_b.torch
+        torch.testing.assert_close(post_reset_lin_acc, torch.zeros_like(post_reset_lin_acc))
+        torch.testing.assert_close(post_reset_ang_vel, torch.zeros_like(post_reset_ang_vel))
+
+
 @pytest.mark.isaacsim_ci
 def test_sensor_print(setup_sim):
     """Test sensor print is working correctly."""
@@ -493,3 +554,41 @@ def test_sensor_print(setup_sim):
     sensor = scene.sensors["imu_ball"]
     # print info
     print(sensor)
+
+
+@pytest.mark.parametrize("access_mode", ("lazy_read", "update_period"))
+def test_velocity_writes_do_not_produce_spurious_acceleration(setup_sim, access_mode):
+    """Directly written (teleported) velocities do not show up as fake accelerations.
+
+    The IMU reports the solver acceleration, so a velocity write — which involves no force —
+    must not spike the accelerometer. This was a known artifact of the previous
+    finite-difference implementation (e.g. on environment resets).
+    """
+    sim, scene = setup_sim
+    dt = sim.get_physics_dt()
+    body = scene.rigid_objects["balls"]
+    sensor = scene.sensors["imu_ball"]
+    velocity = torch.zeros((scene.num_envs, 6), dtype=torch.float32, device=scene.device)
+
+    body.write_root_velocity_to_sim_index(root_velocity=velocity)
+    scene.write_data_to_sim()
+    sim.step()
+    scene.update(dt)
+    _ = sensor.data
+
+    scene.cfg.lazy_sensor_update = True
+    if access_mode == "update_period":
+        sensor.cfg.update_period = 4 * dt
+
+    for step in range(4):
+        velocity[:, 0] = 0.1 * (step + 1)
+        body.write_root_velocity_to_sim_index(root_velocity=velocity)
+        scene.write_data_to_sim()
+        sim.step()
+        scene.update(dt)
+        if access_mode == "update_period":
+            _ = sensor.data
+
+    # only the gravity bias remains along x after rotation into the (identity-oriented) ball frame
+    expected = torch.zeros((scene.num_envs,), device=scene.device)
+    torch.testing.assert_close(sensor.data.lin_acc_b.torch[:, 0], expected, rtol=0.0, atol=1e-3)

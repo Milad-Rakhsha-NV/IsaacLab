@@ -10,6 +10,7 @@ Covers all combinations of:
 - Isaac Sim installation methods: local _isaac_sim symlink, pip-installed isaacsim, none
 """
 
+import os
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
@@ -17,13 +18,17 @@ from unittest import mock
 
 import pytest
 
+import isaaclab.cli.commands.install as install_cmd
 from isaaclab.cli.commands.install import (
     _PREBUNDLE_REPOINT_PACKAGES,
     _ensure_cuda_torch,
+    _install_isaacsim,
     _maybe_uninstall_prebundled_torch,
     _repoint_prebundle_packages,
     _torch_first_on_sys_path_is_prebundle,
 )
+
+pytestmark = pytest.mark.unit
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -66,6 +71,232 @@ def _make_site_packages(
         for sub in subs:
             (site_pkgs / pkg / sub).mkdir(parents=True, exist_ok=True)
     return site_pkgs
+
+
+def test_kernel_only_install_adds_extras_at_installed_version():
+    with (
+        mock.patch("isaaclab.cli.commands.install.extract_python_exe", return_value="python"),
+        mock.patch("isaaclab.cli.commands.install.get_pip_command", return_value=["uv", "pip"]),
+        mock.patch(
+            "isaaclab.cli.commands.install.run_command",
+            side_effect=[_cp(0, "1.2.3+local"), _cp(1), _cp(0)],
+        ) as mock_run,
+    ):
+        _install_isaacsim()
+
+    assert mock_run.call_args.args[0] == [
+        "uv",
+        "pip",
+        "install",
+        "isaacsim[all,extscache]==1.2.3+local",
+        "--extra-index-url",
+        install_cmd.NVIDIA_INDEX_URL,
+        "--index-strategy",
+        "unsafe-best-match",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# _arm_cmake_policy_compatibility
+# ---------------------------------------------------------------------------
+
+
+class TestArmCmakePolicyCompatibility:
+    """Tests for legacy CMake dependency builds on ARM."""
+
+    def test_sets_policy_minimum_during_arm_install(self):
+        """ARM installs allow nlopt and egl-probe CMake projects to configure."""
+        with (
+            mock.patch("isaaclab.cli.commands.install.is_arm", return_value=True),
+            mock.patch.dict("os.environ", {"PATH": "/bin"}, clear=True),
+        ):
+            with install_cmd._arm_cmake_policy_compatibility():
+                assert os.environ["CMAKE_POLICY_VERSION_MINIMUM"] == "3.5"
+            assert "CMAKE_POLICY_VERSION_MINIMUM" not in os.environ
+
+    def test_restores_existing_policy_minimum_after_arm_install(self):
+        """An existing user setting is restored after the installer finishes."""
+        with (
+            mock.patch("isaaclab.cli.commands.install.is_arm", return_value=True),
+            mock.patch.dict("os.environ", {"CMAKE_POLICY_VERSION_MINIMUM": "3.10"}, clear=True),
+        ):
+            with install_cmd._arm_cmake_policy_compatibility():
+                assert os.environ["CMAKE_POLICY_VERSION_MINIMUM"] == "3.5"
+            assert os.environ["CMAKE_POLICY_VERSION_MINIMUM"] == "3.10"
+
+    def test_leaves_environment_unchanged_outside_arm(self):
+        """Non-ARM installs do not receive the compatibility setting."""
+        with (
+            mock.patch("isaaclab.cli.commands.install.is_arm", return_value=False),
+            mock.patch.dict("os.environ", {}, clear=True),
+        ):
+            with install_cmd._arm_cmake_policy_compatibility():
+                assert "CMAKE_POLICY_VERSION_MINIMUM" not in os.environ
+
+
+# ---------------------------------------------------------------------------
+# _install_isaaclab_submodules targeted dependency upgrades
+# ---------------------------------------------------------------------------
+
+
+class TestInstallSubmodulesTargetedDependencyUpgrades:
+    """Tests for pyproject.toml-driven dependency upgrades."""
+
+    def _make_extension(self, tmp_path, pyproject_toml: str) -> Path:
+        """Create a minimal installable extension fixture."""
+        source_dir = tmp_path / "source"
+        extension_dir = source_dir / "isaaclab_teleop"
+        extension_dir.mkdir(parents=True)
+        (extension_dir / "setup.py").write_text("# test fixture\n", encoding="utf-8")
+        (extension_dir / "pyproject.toml").write_text(pyproject_toml, encoding="utf-8")
+        return extension_dir
+
+    def test_installs_editable_then_upgrades_declared_dependency_from_metadata(self, tmp_path):
+        """An opted-in dependency is upgraded using the requirement recorded in installed metadata."""
+        extension_dir = self._make_extension(
+            tmp_path,
+            '[tool.isaaclab]\npip_upgrade_dependencies = ["isaacteleop"]\n',
+        )
+
+        python_exe = str(tmp_path / "python")
+        pip_cmd = [python_exe, "-m", "pip"]
+        isaacteleop_req = 'isaacteleop[cloudxr,retargeters,ui] ~=1.2.0; platform_system == "Linux"'
+
+        with (
+            mock.patch("isaaclab.cli.commands.install.ISAACLAB_ROOT", tmp_path),
+            mock.patch("isaaclab.cli.commands.install.extract_python_exe", return_value=python_exe),
+            mock.patch("isaaclab.cli.commands.install.get_pip_command", return_value=pip_cmd),
+            mock.patch(
+                "isaaclab.cli.commands.install._get_installed_distribution_requirements",
+                return_value=[isaacteleop_req],
+            ),
+            mock.patch("isaaclab.cli.commands.install.run_command") as mock_run,
+        ):
+            install_cmd._install_isaaclab_submodules(["isaaclab_teleop"])
+
+        assert [call.args[0] for call in mock_run.call_args_list] == [
+            pip_cmd + ["install", "--editable", str(extension_dir)],
+            pip_cmd + ["install", "--upgrade", isaacteleop_req],
+        ]
+
+    def test_uv_install_uses_upgrade_package_for_declared_dependency(self, tmp_path):
+        """uv upgrades only the declared package rather than using a global upgrade."""
+        extension_dir = self._make_extension(
+            tmp_path,
+            '[tool.isaaclab]\npip_upgrade_dependencies = ["isaacteleop"]\n',
+        )
+
+        python_exe = str(tmp_path / "python")
+        pip_cmd = ["uv", "pip"]
+        isaacteleop_req = 'isaacteleop[cloudxr,retargeters,ui] ~=1.2.0; platform_system == "Linux"'
+
+        with (
+            mock.patch("isaaclab.cli.commands.install.ISAACLAB_ROOT", tmp_path),
+            mock.patch("isaaclab.cli.commands.install.extract_python_exe", return_value=python_exe),
+            mock.patch("isaaclab.cli.commands.install.get_pip_command", return_value=pip_cmd),
+            mock.patch(
+                "isaaclab.cli.commands.install._get_installed_distribution_requirements",
+                return_value=[isaacteleop_req],
+            ),
+            mock.patch("isaaclab.cli.commands.install.run_command") as mock_run,
+        ):
+            install_cmd._install_isaaclab_submodules(["isaaclab_teleop"])
+
+        assert [call.args[0] for call in mock_run.call_args_list] == [
+            pip_cmd + ["install", "--editable", str(extension_dir)],
+            pip_cmd + ["install", "--upgrade-package", "isaacteleop", isaacteleop_req],
+        ]
+
+    def test_upgrades_all_matching_metadata_requirements(self, tmp_path):
+        """Duplicate metadata entries are preserved instead of collapsing to one requirement."""
+        python_exe = str(tmp_path / "python")
+        pip_cmd = [python_exe, "-m", "pip"]
+        linux_req = 'example-package>=1.0; platform_system == "Linux"'
+        windows_req = 'example_package>=2.0; platform_system == "Windows"'
+
+        with (
+            mock.patch(
+                "isaaclab.cli.commands.install._get_installed_distribution_requirements",
+                return_value=[linux_req, windows_req],
+            ),
+            mock.patch("isaaclab.cli.commands.install.run_command") as mock_run,
+        ):
+            install_cmd._upgrade_extension_pip_dependencies(
+                python_exe,
+                pip_cmd,
+                "isaaclab_teleop",
+                ["example-package"],
+            )
+
+        assert [call.args[0] for call in mock_run.call_args_list] == [
+            pip_cmd + ["install", "--upgrade", linux_req],
+            pip_cmd + ["install", "--upgrade", windows_req],
+        ]
+
+    def test_skips_duplicate_declared_dependency_names(self, tmp_path):
+        """Duplicate TOML dependency names do not trigger duplicate pip commands."""
+        python_exe = str(tmp_path / "python")
+        pip_cmd = [python_exe, "-m", "pip"]
+        req = "isaacteleop~=1.2.0"
+
+        with (
+            mock.patch(
+                "isaaclab.cli.commands.install._get_installed_distribution_requirements",
+                return_value=[req],
+            ),
+            mock.patch("isaaclab.cli.commands.install.run_command") as mock_run,
+        ):
+            install_cmd._upgrade_extension_pip_dependencies(
+                python_exe,
+                pip_cmd,
+                "isaaclab_teleop",
+                ["isaacteleop", "IsaacTeleop"],
+            )
+
+        mock_run.assert_called_once_with(
+            pip_cmd + ["install", "--upgrade", req],
+            check=True,
+            retry_attempts=3,
+            retry_delay_seconds=3.0,
+        )
+
+    def test_skips_when_toml_has_no_upgrade_dependencies(self, tmp_path):
+        """Extensions without pip upgrade opt-ins do not trigger metadata probes."""
+        extension_dir = self._make_extension(tmp_path, "[tool.isaaclab]\n")
+
+        assert install_cmd._get_extension_pip_upgrade_dependencies(extension_dir) == []
+
+    def test_warns_and_skips_invalid_upgrade_dependency_names(self, tmp_path):
+        """Invalid TOML value types warn and disable targeted upgrades."""
+        extension_dir = self._make_extension(
+            tmp_path,
+            '[tool.isaaclab]\npip_upgrade_dependencies = "isaacteleop"\n',
+        )
+
+        with mock.patch("isaaclab.cli.commands.install.print_warning") as mock_warning:
+            assert install_cmd._get_extension_pip_upgrade_dependencies(extension_dir) == []
+
+        mock_warning.assert_called_once()
+
+    def test_warns_when_declared_dependency_missing_from_metadata(self, tmp_path):
+        """A declared dependency name must exist in installed package metadata."""
+        with (
+            mock.patch(
+                "isaaclab.cli.commands.install._get_installed_distribution_requirements",
+                return_value=["dex-retargeting==0.5.0"],
+            ),
+            mock.patch("isaaclab.cli.commands.install.print_warning") as mock_warning,
+            mock.patch("isaaclab.cli.commands.install.run_command") as mock_run,
+        ):
+            install_cmd._upgrade_extension_pip_dependencies(
+                str(tmp_path / "python"),
+                [str(tmp_path / "python"), "-m", "pip"],
+                "isaaclab_teleop",
+                ["isaacteleop"],
+            )
+
+        mock_warning.assert_called_once()
+        mock_run.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -201,10 +432,10 @@ class TestEnsureCudaTorch:
     # ---- x86 scenarios -------------------------------------------------------
 
     def test_x86_skips_install_when_correct_version_present(self, tmp_path):
-        """x86: torch 2.10.0+cu128 already installed → pip install is not called."""
+        """x86: torch 2.11.0+cu128 already installed → pip install is not called."""
         py = str(tmp_path / "python")
         pip_cmd = [py, "-m", "pip"]
-        pip_show_out = "Name: torch\nVersion: 2.10.0+cu128\n"
+        pip_show_out = "Name: torch\nVersion: 2.11.0+cu128\n"
 
         with (
             mock.patch("isaaclab.cli.commands.install.extract_python_exe", return_value=py),
@@ -249,7 +480,7 @@ class TestEnsureCudaTorch:
 
         def _run(cmd, **kwargs):
             calls.append(list(cmd))
-            stdout = "Name: torch\nVersion: 2.10.0+cu130\n" if "show" in cmd else ""
+            stdout = "Name: torch\nVersion: 2.11.0+cu130\n" if "show" in cmd else ""
             return _cp(0, stdout)
 
         with (
@@ -290,10 +521,10 @@ class TestEnsureCudaTorch:
         assert "cu130" in combined
 
     def test_arm_skips_install_when_correct_version_present(self, tmp_path):
-        """ARM: torch 2.10.0+cu130 already installed → pip install is not called."""
+        """ARM: torch 2.11.0+cu130 already installed → pip install is not called."""
         py = str(tmp_path / "python")
         pip_cmd = [py, "-m", "pip"]
-        pip_show_out = "Name: torch\nVersion: 2.10.0+cu130\n"
+        pip_show_out = "Name: torch\nVersion: 2.11.0+cu130\n"
 
         with (
             mock.patch("isaaclab.cli.commands.install.extract_python_exe", return_value=py),
@@ -313,7 +544,7 @@ class TestEnsureCudaTorch:
 
         def _run(cmd, **kwargs):
             calls.append(list(cmd))
-            stdout = "Name: torch\nVersion: 2.10.0+cu128\n" if "show" in cmd else ""
+            stdout = "Name: torch\nVersion: 2.11.0+cu128\n" if "show" in cmd else ""
             return _cp(0, stdout)
 
         with (
@@ -481,7 +712,7 @@ class TestRePointPrebundlePackages:
         symlink = prebundle / "torch"
         assert symlink.is_symlink(), "torch should be a symlink after repoint"
         assert symlink.resolve() == (site_pkgs / "torch").resolve()
-        assert (prebundle / "torch.bak").is_dir(), "Original torch should be backed up"
+        assert not (prebundle / "torch.bak").exists(), "repoint replaces in place — no .bak (env copy is the target)"
 
     def test_local_build_skips_nvidia_when_cudnn_absent_kit_python(self, tmp_path):
         """Local build + kit Python: site-packages/nvidia has only 'srl' (no cudnn) → nvidia NOT repointed.
@@ -555,23 +786,20 @@ class TestRePointPrebundlePackages:
 
         assert (prebundle / "torch").resolve() == (site_pkgs / "torch").resolve(), "Stale symlink must be updated"
 
-    def test_removes_old_backup_before_renaming(self, tmp_path):
-        """A pre-existing .bak directory is removed before the current package is backed up."""
+    def test_raises_when_prebundled_torch_not_neutralized(self, tmp_path):
+        """Fail loud: a real prebundled torch surviving repoint would shadow the pip torch
+        on launch paths that do not import isaaclab (nvbugs 6343978), so repoint raises
+        instead of silently leaving the broken state in place."""
         isaacsim_path, prebundle = self._sim_with_prebundle(tmp_path / "sim", ["torch"])
         site_pkgs = _make_site_packages(tmp_path / "env", ["torch"])
         py = str(tmp_path / "env" / "bin" / "python")
 
-        # Simulate leftover backup from a previous partial install.
-        old_backup = prebundle / "torch.bak"
-        old_backup.mkdir()
-        (old_backup / "stale_file.py").touch()
-
+        # Simulate the removal not taking effect (e.g. an unhandled filesystem quirk): the
+        # prebundled torch stays a real directory rather than becoming a symlink.
         with self._patch(isaacsim_path, site_pkgs, py):
-            _repoint_prebundle_packages()
-
-        assert (prebundle / "torch").is_symlink(), "torch must be repointed"
-        # The old backup was replaced by the fresh backup.
-        assert (prebundle / "torch.bak").is_dir()
+            with mock.patch("isaaclab.cli.commands.install._force_remove"):
+                with pytest.raises(RuntimeError, match="neutralize"):
+                    _repoint_prebundle_packages()
 
     # ---- pip-installed isaacsim (path found via import probe) ----------------
 
@@ -702,6 +930,25 @@ class TestRePointPrebundlePackages:
         for pb in (pb1, pb2):
             assert (pb / "torch").is_symlink(), f"torch in {pb} should be repointed"
 
+    def test_repoints_package_inside_expanded_extra_bundle(self, tmp_path):
+        """Expanded extras bundles must not retain file links into a replaced package."""
+        isaacsim_path, prebundle = self._sim_with_prebundle(tmp_path / "sim", ["newton"])
+        shared_init = prebundle / "newton" / "legacy" / "__init__.py"
+        shared_init.parent.mkdir()
+        shared_init.write_text("")
+        bundled_newton = prebundle / "newton[sim]" / "newton-wheel" / "newton"
+        bundled_init = bundled_newton / "legacy" / "__init__.py"
+        bundled_init.parent.mkdir(parents=True)
+        bundled_init.symlink_to(shared_init)
+        site_pkgs = _make_site_packages(tmp_path / "env", ["newton"])
+
+        with self._patch(isaacsim_path, site_pkgs, str(tmp_path / "env" / "bin" / "python")):
+            _repoint_prebundle_packages()
+
+        assert (prebundle / "newton").resolve() == (site_pkgs / "newton").resolve()
+        assert bundled_newton.is_symlink()
+        assert bundled_newton.resolve() == (site_pkgs / "newton").resolve()
+
     # ---- Windows: copy instead of symlink -----------------------------------
 
     def test_copies_package_on_windows_instead_of_symlinking(self, tmp_path):
@@ -784,3 +1031,30 @@ class TestRePointPrebundlePackages:
 
         assert (prebundle / pkg_name).is_symlink(), f"{pkg_name} should be repointed"
         assert (prebundle / pkg_name).resolve() == (site_pkgs / pkg_name).resolve()
+
+
+class TestInstallRootExtraExcludesIsaacSim:
+    """The ``teleop`` extra lists Isaac Sim for uv, but pip must never resolve it inline."""
+
+    def test_root_extra_dependencies_exclude_isaacsim(self):
+        """pip has no override mechanism, so isaacsim + isaacteleop in one pass cannot resolve."""
+        dependencies = install_cmd._root_extra_dependencies("teleop")
+
+        assert not any(d.startswith("isaacsim") for d in dependencies)
+        assert any(d.startswith("isaacteleop") for d in dependencies)
+
+    def test_install_root_extra_omits_isaacsim_from_the_pip_command(self, tmp_path):
+        """``./isaaclab.sh -i teleop`` must not hand Isaac Sim to pip alongside Isaac Teleop."""
+        python_exe = str(tmp_path / "python")
+        pip_cmd = [python_exe, "-m", "pip"]
+
+        with (
+            mock.patch("isaaclab.cli.commands.install.extract_python_exe", return_value=python_exe),
+            mock.patch("isaaclab.cli.commands.install.get_pip_command", return_value=pip_cmd),
+            mock.patch("isaaclab.cli.commands.install.run_command") as mock_run,
+        ):
+            install_cmd._install_root_extra("teleop")
+
+        installed = " ".join(" ".join(call.args[0]) for call in mock_run.call_args_list)
+        assert "isaacsim[all,extscache]" not in installed
+        assert "isaacteleop" in installed

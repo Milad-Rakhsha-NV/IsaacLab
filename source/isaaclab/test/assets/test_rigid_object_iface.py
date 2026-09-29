@@ -13,225 +13,13 @@ the base rigid object class advertises. All rigid object interfaces need to comp
 The setup is a bit convoluted so that we can run these tests without requiring Isaac Sim or GPU simulation.
 """
 
-"""Launch Isaac Sim Simulator first."""
-
-from isaaclab.app import AppLauncher
-
-HEADLESS = True
-
-# launch omniverse app
-simulation_app = AppLauncher(headless=True).app
-
-from unittest.mock import MagicMock
-
 import numpy as np
 import pytest
 import torch
 import warp as wp
+from _rigid_object_iface_test_utils import BACKENDS, get_rigid_object
 
-from isaaclab.assets.rigid_object.rigid_object_cfg import RigidObjectCfg
-from isaaclab.test.mock_interfaces.utils import MockWrenchComposer
-
-# Mock SimulationManager.get_physics_sim_view() to return a mock object with gravity
-# This is needed because the Data classes call SimulationManager.get_physics_sim_view().get_gravity()
-# but there's no actual physics scene when running unit tests
-_mock_physics_sim_view = MagicMock()
-_mock_physics_sim_view.get_gravity.return_value = (0.0, 0.0, -9.81)
-
-from isaaclab_physx.physics import PhysxManager as SimulationManager
-
-SimulationManager.get_physics_sim_view = MagicMock(return_value=_mock_physics_sim_view)
-
-"""
-Check which backends are available.
-"""
-
-BACKENDS = ["Mock"]  # Mock backend is always available.
-
-try:
-    from isaaclab_physx.assets.rigid_object.rigid_object import RigidObject as PhysXRigidObject
-    from isaaclab_physx.assets.rigid_object.rigid_object_data import RigidObjectData as PhysXRigidObjectData
-    from isaaclab_physx.test.mock_interfaces.views import MockRigidBodyViewWarp as PhysXMockRigidBodyViewWarp
-
-    BACKENDS.append("physx")
-except ImportError:
-    pass
-
-try:
-    from isaaclab_newton.assets.rigid_object.rigid_object import RigidObject as NewtonRigidObject
-    from isaaclab_newton.assets.rigid_object.rigid_object_data import RigidObjectData as NewtonRigidObjectData
-    from isaaclab_newton.test.mock_interfaces.views import MockNewtonArticulationView as NewtonMockArticulationView
-
-    BACKENDS.append("newton")
-except ImportError:
-    pass
-
-
-def create_physx_rigid_object(
-    num_instances: int = 2,
-    device: str = "cuda:0",
-):
-    """Create a test RigidObject instance with mocked dependencies."""
-    body_names = ["body_0"]
-
-    rigid_object = object.__new__(PhysXRigidObject)
-
-    rigid_object.cfg = RigidObjectCfg(prim_path="/World/Object")
-
-    # Create PhysX mock view
-    mock_view = PhysXMockRigidBodyViewWarp(
-        count=num_instances,
-        device=device,
-    )
-    mock_view.set_random_mock_data()
-    mock_view._noop_setters = True
-
-    object.__setattr__(rigid_object, "_root_view", mock_view)
-    object.__setattr__(rigid_object, "_device", device)
-
-    # Create RigidObjectData instance (SimulationManager already mocked at module level)
-    data = PhysXRigidObjectData(mock_view, device)
-    object.__setattr__(rigid_object, "_data", data)
-
-    # Set body names on data
-    data.body_names = body_names
-
-    # Create mock wrench composers
-    mock_inst_wrench = MockWrenchComposer(rigid_object)
-    mock_perm_wrench = MockWrenchComposer(rigid_object)
-    object.__setattr__(rigid_object, "_instantaneous_wrench_composer", mock_inst_wrench)
-    object.__setattr__(rigid_object, "_permanent_wrench_composer", mock_perm_wrench)
-
-    # Prevent __del__ / _clear_callbacks from raising AttributeError
-    object.__setattr__(rigid_object, "_initialize_handle", None)
-    object.__setattr__(rigid_object, "_invalidate_initialize_handle", None)
-    object.__setattr__(rigid_object, "_prim_deletion_handle", None)
-    object.__setattr__(rigid_object, "_debug_vis_handle", None)
-
-    # Set up index arrays (warp arrays for rigid object)
-    object.__setattr__(rigid_object, "_ALL_INDICES", wp.array(np.arange(num_instances, dtype=np.int32), device=device))
-    object.__setattr__(rigid_object, "_ALL_BODY_INDICES", wp.array(np.array([0], dtype=np.int32), device=device))
-
-    # Cached .view(wp.float32) wrappers
-    object.__setattr__(rigid_object, "_root_link_pose_w_f32", None)
-    object.__setattr__(rigid_object, "_root_com_vel_w_f32", None)
-    object.__setattr__(rigid_object, "_inst_wrench_force_f32", None)
-    object.__setattr__(rigid_object, "_inst_wrench_torque_f32", None)
-    object.__setattr__(rigid_object, "_perm_wrench_force_f32", None)
-    object.__setattr__(rigid_object, "_perm_wrench_torque_f32", None)
-
-    # Pre-allocated pinned CPU buffers for PhysX TensorAPI writes
-    N, B = num_instances, 1  # rigid object has 1 body
-    cpu_env_ids = wp.array(np.arange(N, dtype=np.int32), device="cpu")
-    object.__setattr__(rigid_object, "_cpu_env_ids_all", cpu_env_ids)
-    object.__setattr__(rigid_object, "_cpu_body_mass", wp.zeros((N, B), dtype=wp.float32, device="cpu"))
-    object.__setattr__(rigid_object, "_cpu_body_coms", wp.zeros((N, B, 7), dtype=wp.float32, device="cpu"))
-    object.__setattr__(rigid_object, "_cpu_body_inertia", wp.zeros((N, B, 9), dtype=wp.float32, device="cpu"))
-
-    return rigid_object, mock_view
-
-
-def create_newton_rigid_object(
-    num_instances: int = 2,
-    device: str = "cuda:0",
-):
-    """Create a test Newton RigidObject instance with mocked dependencies."""
-    import isaaclab_newton.assets.rigid_object.rigid_object_data as newton_data_module
-
-    body_names = ["body_0"]
-
-    # Create Newton mock view (uses ArticulationView with num_bodies=1 for rigid objects)
-    mock_view = NewtonMockArticulationView(
-        num_instances=num_instances,
-        num_bodies=1,
-        num_joints=0,
-        device=device,
-        is_fixed_base=False,
-        joint_names=[],
-        body_names=body_names,
-    )
-    mock_view.set_random_mock_data()
-    mock_view._noop_setters = True
-
-    # Mock NewtonManager (aliased as SimulationManager in Newton modules)
-    mock_model = MagicMock()
-    mock_model.gravity = wp.array(np.array([[0.0, 0.0, -9.81]], dtype=np.float32), dtype=wp.vec3f, device=device)
-    mock_state = MagicMock()
-    mock_control = MagicMock()
-
-    mock_manager = MagicMock()
-    mock_manager.get_model.return_value = mock_model
-    mock_manager.get_state_0.return_value = mock_state
-    mock_manager.get_state_1.return_value = mock_state
-    mock_manager.get_control.return_value = mock_control
-
-    # Patch SimulationManager in the Newton data module
-    original_sim_manager = newton_data_module.SimulationManager
-    newton_data_module.SimulationManager = mock_manager
-
-    try:
-        data = NewtonRigidObjectData(mock_view, device)
-    finally:
-        newton_data_module.SimulationManager = original_sim_manager
-
-    # Create RigidObject shell (bypass __init__)
-    rigid_object = object.__new__(NewtonRigidObject)
-
-    rigid_object.cfg = RigidObjectCfg(prim_path="/World/Object")
-
-    object.__setattr__(rigid_object, "_root_view", mock_view)
-    object.__setattr__(rigid_object, "_device", device)
-    object.__setattr__(rigid_object, "_data", data)
-
-    # Mock wrench composers
-    mock_inst_wrench = MockWrenchComposer(rigid_object)
-    mock_perm_wrench = MockWrenchComposer(rigid_object)
-    object.__setattr__(rigid_object, "_instantaneous_wrench_composer", mock_inst_wrench)
-    object.__setattr__(rigid_object, "_permanent_wrench_composer", mock_perm_wrench)
-
-    # Prevent __del__ / _clear_callbacks from raising AttributeError
-    object.__setattr__(rigid_object, "_initialize_handle", None)
-    object.__setattr__(rigid_object, "_invalidate_initialize_handle", None)
-    object.__setattr__(rigid_object, "_prim_deletion_handle", None)
-    object.__setattr__(rigid_object, "_debug_vis_handle", None)
-
-    # Newton uses wp.array for indices
-    object.__setattr__(rigid_object, "_ALL_INDICES", wp.array(np.arange(num_instances, dtype=np.int32), device=device))
-    object.__setattr__(rigid_object, "_ALL_BODY_INDICES", wp.array(np.array([0], dtype=np.int32), device=device))
-
-    # Newton uses wp.bool masks
-    object.__setattr__(rigid_object, "_ALL_ENV_MASK", wp.ones((num_instances,), dtype=wp.bool, device=device))
-    object.__setattr__(rigid_object, "_ALL_BODY_MASK", wp.ones((1,), dtype=wp.bool, device=device))
-
-    return rigid_object, mock_view
-
-
-def create_mock_rigid_object(
-    num_instances: int = 2,
-    device: str = "cuda:0",
-):
-    from isaaclab.test.mock_interfaces.assets.mock_rigid_object import MockRigidObject
-
-    obj = MockRigidObject(
-        num_instances=num_instances,
-        device=device,
-    )
-    return obj, None  # No view for mock backend
-
-
-def get_rigid_object(
-    backend: str,
-    num_instances: int = 2,
-    device: str = "cuda:0",
-):
-    if backend == "physx":
-        return create_physx_rigid_object(num_instances, device)
-    elif backend == "newton":
-        return create_newton_rigid_object(num_instances, device)
-    elif backend.lower() == "mock":
-        return create_mock_rigid_object(num_instances, device)
-    else:
-        raise ValueError(f"Invalid backend: {backend}")
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
@@ -258,12 +46,14 @@ def _check_proxy_array(arr, *, expected_shape: tuple, expected_dtype: type, name
 
 # Common parametrize decorators
 _backends = pytest.mark.parametrize("backend", BACKENDS, indirect=False)
-
 _default_dims = pytest.mark.parametrize("num_instances", [1, 2, 100])
 
 _default_devices = pytest.mark.parametrize("device", ["cuda:0", "cpu"])
 _index_resolution_backends = pytest.mark.parametrize(
     "backend", [backend for backend in ("physx", "newton") if backend in BACKENDS], indirect=False
+)
+_production_backends = pytest.mark.parametrize(
+    "backend", [backend for backend in ("physx", "newton", "ovphysx") if backend in BACKENDS], indirect=False
 )
 
 
@@ -358,6 +148,24 @@ class TestRigidObjectFinders:
         indices, names = obj.find_bodies(first_body)
         assert indices == [0]
         assert names == [first_body]
+
+
+class TestRigidObjectFinderReturnModes:
+    """Test finder return modes on production rigid-object backends."""
+
+    @_production_backends
+    def test_find_bodies_returns_legacy_list_or_cached_proxy(self, backend):
+        obj, _ = get_rigid_object(backend, num_instances=2, device="cpu")
+
+        indices, names = obj.find_bodies(".*")
+        proxy, proxy_names = obj.find_bodies(".*", as_proxy=True)
+
+        assert isinstance(indices, list)
+        assert indices == proxy.torch.tolist()
+        assert names == proxy_names
+        assert proxy is obj.find_bodies(".*", as_proxy=True)[0]
+        assert proxy.dtype == wp.int32
+        assert str(proxy.device) == obj.device
 
 
 # ---------------------------------------------------------------------------
@@ -867,6 +675,30 @@ def _make_data_warp(shape: tuple, device: str, wp_dtype=wp.float32) -> wp.array:
     return wp.from_torch(t.contiguous(), dtype=wp_dtype)
 
 
+def _make_com_data(backend: str, shape: tuple[int, ...], device: str) -> wp.array:
+    """Create backend-compatible center-of-mass test data."""
+    if backend == "newton":
+        return wp.zeros(shape, dtype=wp.vec3f, device=device)
+    return _make_data_warp(shape, device, wp.transformf)
+
+
+def _prime_timestamped_properties(data, property_buffer_pairs: list[tuple[str, str]]):
+    """Prime public lazy properties and return their concrete timestamped buffers."""
+    buffers = []
+    for property_name, buffer_name in property_buffer_pairs:
+        getattr(data, property_name)
+        buffer = getattr(data, buffer_name)
+        assert buffer is not None, buffer_name
+        buffer.timestamp = data._sim_timestamp
+        buffers.append((buffer_name, buffer))
+    return buffers
+
+
+def _assert_buffers_stale(data, buffers) -> None:
+    for name, buffer in buffers:
+        assert buffer.timestamp < data._sim_timestamp, name
+
+
 def _make_bad_data_torch(shape: tuple, device: str, wp_dtype=wp.float32) -> torch.Tensor:
     """Create torch data with wrong leading shape for negative testing."""
     bad_shape = (shape[0] + 1,) + shape[1:]
@@ -909,6 +741,86 @@ def _make_item_mask(total: int, selected: list[int], device: str) -> wp.array:
 
 _ROOT_POSE_METHODS = ["root_pose", "root_link_pose", "root_com_pose"]
 _ROOT_VEL_METHODS = ["root_velocity", "root_link_velocity", "root_com_velocity"]
+
+
+class TestRigidObjectCacheInvalidation:
+    @_production_backends
+    def test_pose_write_invalidates_pose_dependent_caches(self, backend):
+        obj, _ = get_rigid_object(backend, num_instances=2, device="cpu")
+        obj.data.update(dt=0.01)
+        buffers = _prime_timestamped_properties(
+            obj.data,
+            [
+                ("root_link_vel_w", "_root_link_vel_w"),
+                ("projected_gravity_b", "_projected_gravity_b"),
+                ("heading_w", "_heading_w"),
+                ("root_link_lin_vel_b", "_root_link_lin_vel_b"),
+                ("root_link_ang_vel_b", "_root_link_ang_vel_b"),
+                ("root_com_lin_vel_b", "_root_com_lin_vel_b"),
+                ("root_com_ang_vel_b", "_root_com_ang_vel_b"),
+            ],
+        )
+        root_pose = _make_data_warp((obj.num_instances,), "cpu", wp.transformf)
+        obj.write_root_link_pose_to_sim_index(root_pose=root_pose)
+        _assert_buffers_stale(obj.data, buffers)
+
+    @_production_backends
+    def test_velocity_write_invalidates_body_frame_caches(self, backend):
+        obj, _ = get_rigid_object(backend, num_instances=2, device="cpu")
+        obj.data.update(dt=0.01)
+        buffers = _prime_timestamped_properties(
+            obj.data,
+            [
+                ("root_link_lin_vel_b", "_root_link_lin_vel_b"),
+                ("root_link_ang_vel_b", "_root_link_ang_vel_b"),
+                ("root_com_lin_vel_b", "_root_com_lin_vel_b"),
+                ("root_com_ang_vel_b", "_root_com_ang_vel_b"),
+            ],
+        )
+        root_velocity = _make_data_warp((obj.num_instances,), "cpu", wp.spatial_vectorf)
+        obj.write_root_com_velocity_to_sim_index(root_velocity=root_velocity)
+        _assert_buffers_stale(obj.data, buffers)
+
+    @_production_backends
+    @pytest.mark.parametrize("setter_kind", ["index", "mask"])
+    def test_set_coms_invalidates_same_timestamp_dependents(self, backend, setter_kind):
+        obj, _ = get_rigid_object(backend, num_instances=2, device="cpu")
+        obj.data.update(dt=0.01)
+        common_pairs = [
+            ("root_com_pose_w", "_root_com_pose_w"),
+            ("root_link_vel_w", "_root_link_vel_w"),
+            ("root_link_lin_vel_b", "_root_link_lin_vel_b"),
+            ("root_link_ang_vel_b", "_root_link_ang_vel_b"),
+            ("root_com_lin_vel_b", "_root_com_lin_vel_b"),
+            ("root_com_ang_vel_b", "_root_com_ang_vel_b"),
+            ("root_state_w", "_root_state_w"),
+            ("root_link_state_w", "_root_link_state_w"),
+            ("root_com_state_w", "_root_com_state_w"),
+        ]
+        if backend != "newton":
+            common_pairs.append(("root_com_vel_w", "_root_com_vel_w"))
+        # Prime public properties before resolving private buffers so Newton allocates lazy caches.
+        buffers = _prime_timestamped_properties(obj.data, common_pairs)
+        if backend == "newton":
+            buffers += _prime_timestamped_properties(obj.data, [("body_com_pose_b", "_body_com_pose_b")])
+        coms = _make_com_data(backend, (obj.num_instances, obj.num_bodies), "cpu")
+
+        def set_coms() -> None:
+            if setter_kind == "index":
+                obj.set_coms_index(coms=coms)
+            else:
+                obj.set_coms_mask(coms=coms)
+
+        if backend == "newton":
+            from unittest.mock import patch
+
+            from isaaclab_newton.physics import NewtonManager
+
+            with patch.object(NewtonManager, "add_model_change"):
+                set_coms()
+        else:
+            set_coms()
+        _assert_buffers_stale(obj.data, buffers)
 
 
 class TestRigidObjectWritersRoot:

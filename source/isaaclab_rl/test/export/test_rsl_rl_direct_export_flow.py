@@ -11,7 +11,6 @@ import argparse
 import importlib
 import importlib.util
 import os
-import runpy
 import shutil
 import subprocess
 import sys
@@ -24,9 +23,8 @@ import pytest
 
 _THIS_FILE = Path(__file__).resolve()
 _REPO_ROOT = str(_THIS_FILE.parents[4])
-_EXPORT_SCRIPT = os.path.join(_REPO_ROOT, "scripts", "reinforcement_learning", "leapp", "rsl_rl", "export.py")
 _THIS_SCRIPT = str(_THIS_FILE)
-_TASK_NAME = "Isaac-Velocity-Flat-Anymal-C-Direct-v0"
+_TASK_NAME = "IsaacContrib-Velocity-Flat-AnymalC-Direct"
 _PACKAGE_NAME = "_isaaclab_test_tutorial_anymal_c"
 _MODULE_NAME = f"{_PACKAGE_NAME}.anymal_c_env"
 _CFG_MODULE_NAME = f"{_PACKAGE_NAME}.anymal_c_env_cfg"
@@ -41,11 +39,11 @@ def _export_command(task_name: str, export_dir: str) -> list[str]:
         _THIS_SCRIPT,
         "--task",
         task_name,
-        "--use_pretrained_checkpoint",
+        "--checkpoint",
+        "pretrained",
         "--export_save_path",
         export_dir,
         "--disable_graph_visualization",
-        "--headless",
     ]
 
 
@@ -64,7 +62,7 @@ def _load_tutorial_env_class():
     package.__path__ = []  # type: ignore[attr-defined]
     sys.modules.setdefault(_PACKAGE_NAME, package)
 
-    cfg_module = importlib.import_module("isaaclab_tasks.direct.anymal_c.anymal_c_env_cfg")
+    cfg_module = importlib.import_module("isaaclab_tasks.contrib.anymal_c_direct.anymal_c_env_cfg")
     sys.modules[_CFG_MODULE_NAME] = cfg_module
 
     spec = importlib.util.spec_from_file_location(_MODULE_NAME, _TUTORIAL_ENV_PATH)
@@ -98,7 +96,7 @@ def _install_lazy_runtime_module() -> str:
 
 def _reregister_task(task_name: str) -> None:
     """Override the direct task registration to point at the tutorial env."""
-    import isaaclab_tasks.direct.anymal_c  # noqa: F401
+    import isaaclab_tasks.contrib.anymal_c_direct  # noqa: F401
 
     original_spec = gym.spec(task_name)
     original_kwargs = dict(original_spec.kwargs)
@@ -114,17 +112,15 @@ def _reregister_task(task_name: str) -> None:
 
 
 def _run_export_subprocess_entrypoint() -> None:
-    """Run export.py after re-registering the direct task in-process."""
+    """Run the installed exporter after re-registering the direct task in-process."""
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--task", required=True)
     args, remaining_args = parser.parse_known_args()
 
     _reregister_task(args.task)
-    export_script_dir = os.path.dirname(_EXPORT_SCRIPT)
-    sys.argv = [_EXPORT_SCRIPT, "--task", args.task, *remaining_args]
-    if export_script_dir not in sys.path:
-        sys.path.insert(0, export_script_dir)
-    runpy.run_path(_EXPORT_SCRIPT, run_name="__main__")
+    from isaaclab_rl.entrypoints.backends.export_rsl_rl import run
+
+    raise SystemExit(run(["--task", args.task, *remaining_args]))
 
 
 def _build_failure_context(result: subprocess.CompletedProcess[str], artifact_dir: str) -> str:

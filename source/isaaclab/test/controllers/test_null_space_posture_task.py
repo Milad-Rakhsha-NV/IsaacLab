@@ -2,13 +2,6 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-"""Launch Isaac Sim Simulator first."""
-
-from isaaclab.app import AppLauncher
-
-# launch omniverse app
-simulation_app = AppLauncher(headless=True).app
-
 """Unit tests for NullSpacePostureTask with simplified robot configuration using Pink library directly."""
 
 import numpy as np
@@ -20,6 +13,8 @@ from pinocchio.robot_wrapper import RobotWrapper
 
 from isaaclab.controllers.pink_ik.null_space_posture_task import NullSpacePostureTask
 from isaaclab.controllers.pink_ik.pink_task_cfg import NullSpacePostureTaskCfg
+
+pytestmark = pytest.mark.integration
 
 
 class TestNullSpacePostureTaskSimplifiedRobot:

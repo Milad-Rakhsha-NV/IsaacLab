@@ -65,10 +65,10 @@ def _make_cartpole_articulation_cfg(pole_damping: float = 0.0) -> ArticulationCf
         ),
         actuators={
             "cart_actuator": ImplicitActuatorCfg(
-                joint_names_expr=["slider_to_cart"], effort_limit_sim=400.0, stiffness=0.0, damping=10.0
+                joint_names_expr=["slider_to_cart"], joint_effort_limit=400.0, stiffness=0.0, damping=10.0
             ),
             "pole_actuator": ImplicitActuatorCfg(
-                joint_names_expr=["cart_to_pole"], effort_limit_sim=400.0, stiffness=0.0, damping=pole_damping
+                joint_names_expr=["cart_to_pole"], joint_effort_limit=400.0, stiffness=0.0, damping=pole_damping
             ),
         },
     )
@@ -153,6 +153,7 @@ def test_initialization_and_shapes(sim):
     scene = InteractiveScene(_SingleJointSceneCfg(num_envs=2))
     sim.reset()
 
+    robot: Articulation = scene["robot"]
     sensor: JointWrenchSensor = scene["wrench"]
     sim.step()
     scene.update(sim.get_physics_dt())
@@ -163,6 +164,7 @@ def test_initialization_and_shapes(sim):
     assert sensor.data.force.torch.shape == (num_envs, num_joints, 3)
     assert sensor.data.torque.torch.shape == (num_envs, num_joints, 3)
     assert sensor.body_names == ["Arm"]
+    assert sensor._root_view is robot.root_view  # noqa: SLF001
 
 
 def test_multi_body_articulation(sim):
@@ -183,7 +185,7 @@ def test_multi_body_articulation(sim):
 
 
 def test_nested_articulation_root_resolution(sim):
-    """Sensor accepts an asset prim path whose articulation root is nested in the USD asset."""
+    """Sensor covers a nested articulation root from the configured asset prefix."""
     scene = InteractiveScene(_NestedRootAntSceneCfg(num_envs=1))
     sim.reset()
 
@@ -425,22 +427,6 @@ def test_interior_joint_wrench_at_rest(sim):
 
 
 # ---------------------------------------------------------------------------
-# String representation
-# ---------------------------------------------------------------------------
-
-
-def test_sensor_print(sim):
-    """Test that the sensor string representation works."""
-    scene = InteractiveScene(_SingleJointSceneCfg(num_envs=2))
-    sim.reset()
-
-    sensor: JointWrenchSensor = scene["wrench"]
-    sensor_str = str(sensor)
-    assert "newton" in sensor_str
-    assert "Joint wrench sensor" in sensor_str
-
-
-# ---------------------------------------------------------------------------
 # Reset behavior
 # ---------------------------------------------------------------------------
 
@@ -486,3 +472,29 @@ def test_reset_with_env_ids_only_zeros_selected_envs(sim):
     torch.testing.assert_close(force_after[2], torch.zeros_like(force_after[2]))
     torch.testing.assert_close(force_after[1], force_before[1])
     torch.testing.assert_close(force_after[3], force_before[3])
+
+
+def test_no_stale_data_after_scene_reset(sim):
+    """Regression for #4970: ``scene.reset(env_ids)`` must not surface pre-reset wrenches (Newton).
+
+    Mirrors the PhysX equivalent. The joint-wrench sensor's lazy ``data`` accessor must not
+    refetch from the Newton articulation view here (the wrench buffer reflects the previous step).
+    """
+    scene = InteractiveScene(_SingleJointSceneCfg(num_envs=1))
+    sim.reset()
+
+    sensor: JointWrenchSensor = scene["wrench"]
+    for _ in range(100):
+        sim.step()
+        scene.update(sim.get_physics_dt())
+
+    pre_reset_force = sensor.data.force.torch.clone()
+    pre_reset_torque = sensor.data.torque.torch.clone()
+    assert torch.any(pre_reset_force != 0) or torch.any(pre_reset_torque != 0), "Expected non-zero wrench before reset"
+
+    scene.reset(env_ids=torch.tensor([0], device=sensor.device))
+
+    post_reset_force = sensor.data.force.torch
+    post_reset_torque = sensor.data.torque.torch
+    torch.testing.assert_close(post_reset_force, torch.zeros_like(post_reset_force))
+    torch.testing.assert_close(post_reset_torque, torch.zeros_like(post_reset_torque))

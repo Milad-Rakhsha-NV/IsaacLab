@@ -274,9 +274,17 @@ class NewtonDVIManager(NewtonManager):
             return
 
         # --- Run base logic EXCEPT the graph capture ---
+        # Mirrors ``NewtonManager.initialize_solver`` step for step; keep the two in sync when
+        # the base orchestrator changes.
+        from isaaclab.physics import PhysicsManager as _PhysicsManager
         from isaaclab.utils.timer import Timer
+
         with Timer(name="newton_initialize_solver", msg="Initialize solver took:"):
             NewtonManager._num_substeps = cfg.num_substeps
+            NewtonManager._collision_decimation = cfg.collision_decimation
+            deterministic_mode = cls._apply_deterministic_request(cfg)
+            cls._validate_deterministic_solver_cfg(cfg.solver_cfg, deterministic_mode)
+            NewtonManager._deterministic_mode = deterministic_mode
             NewtonManager._solver_dt = cls.get_physics_dt() / cls._num_substeps
             NewtonManager._collision_cfg = cfg.collision_cfg
 
@@ -287,8 +295,25 @@ class NewtonDVIManager(NewtonManager):
                 )
             cls._initialize_contacts()
 
-        if cls._usdrt_stage is not None:
-            cls._setup_cubric_bindings()
+        # NOTE: the former ctypes ``cubric`` fast-path (``_setup_cubric_bindings``) was removed
+        # upstream; Fabric transform sync now runs through ``NewtonManager.sync_transforms_to_usd``
+        # with ``wp.fabricarray`` directly, so no explicit binding setup is needed here.
+
+        # Picking callbacks must be registered after the concrete solver has published its
+        # force-input capability, but before CUDA graph capture.
+        sim = _PhysicsManager._sim
+        if NewtonManager._supports_rigid_body_force_input and sim is not None:
+            sim._prepare_newton_visualizer_for_capture()
+
+        # Bind the solver-specialized delegates so that forward()/step() dispatch correctly even
+        # when invoked through the base class (the data layer imports NewtonManager directly).
+        NewtonManager._eval_fk = cls._eval_fk_impl
+        NewtonManager._reset_solver_internals_delegate = cls._reset_solver_internals
+
+        # Establish the initial kinematically-consistent body state through the bound FK delegate,
+        # before graph capture below so the capture warmup sees a valid body_q.
+        cls._eval_fk(None, None)
+        cls._mark_transforms_dirty()
 
         # --- Pre-run finalize_for_capture (CPU work) BEFORE graph capture ---
         # The block-sparse LDL symbolic factorization reads joint topology
@@ -306,7 +331,11 @@ class NewtonDVIManager(NewtonManager):
         device = PhysicsManager._device
         use_cuda_graph = cfg.use_cuda_graph and "cuda" in device
         if use_cuda_graph:
-            cls._capture_or_defer_cuda_graph()
+            # Upstream renamed ``_capture_or_defer_cuda_graph`` to ``_capture_or_defer_graph``.
+            # Fully graphable Newton actuators defer capture until ``set_decimation`` supplies the
+            # environment's final decimation value.
+            if not cls._is_all_graphable():
+                cls._capture_or_defer_graph()
         else:
             NewtonManager._graph = None
 

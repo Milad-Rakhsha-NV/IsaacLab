@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import MISSING, field
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from isaaclab.renderers import RendererCfg
 from isaaclab.sim import FisheyeCameraCfg, PinholeCameraCfg
 from isaaclab.utils import configclass
 
 from ..sensor_base_cfg import SensorBaseCfg
+from .camera_isp import CameraISPMode
 
 if TYPE_CHECKING:
     from .camera import Camera
@@ -189,8 +190,38 @@ class CameraCfg(SensorBaseCfg):
         on :attr:`renderer_cfg` instead.
     """
 
+    background_color: tuple[float, float, float] | None = None
+    """Background color for the camera as normalized RGB floats ``(red, green, blue)`` in ``[0, 1]``.
+
+    When set, pixels that miss all geometry are filled with this solid color.
+    When ``None`` (the default), each backend uses its own default background.
+    """
+
     renderer_cfg: RendererCfg = field(default_factory=RendererCfg)
     """Renderer configuration for camera sensor."""
+
+    isp_cfg: Any | CameraISPMode | None = None
+    """Post-render ISP cfg applied by the renderer backend after it produces HDR output.
+
+    Defaults to ``None`` (ISP disabled). Auto-discovery is opt-in via a
+    :class:`CameraISPMode` sentinel — see below.
+
+    Accepted values:
+
+    * ``None`` — ISP disabled. No HDR AOV is requested and no RTX-side
+      tonemapping flags are flipped.
+    * A :class:`CameraISPMode` sentinel — the renderer backend walks the USD stage to
+      discover an ISP shader (e.g. via the :mod:`isaaclab_ppisp` package).
+    * A concrete ISP cfg dataclass (e.g. :class:`isaaclab_ppisp.PpispCfg`) — used directly.
+
+    The cfg applies once per Camera sensor batch. The PPISP Warp kernel takes
+    scalar coefficients, so every cloned view in a tiled batch shares the same
+    ISP configuration — there is no per-view ISP today.
+
+    :mod:`isaaclab.sensors.camera` does not depend on any ISP implementation; the
+    annotation is intentionally loose (``Any``) so the sensor layer can carry the
+    cfg through to a renderer that knows what to do with it.
+    """
 
     def __post_init__(self):
         """Forward deprecated RTX-flavored fields onto :attr:`renderer_cfg`.
@@ -199,9 +230,6 @@ class CameraCfg(SensorBaseCfg):
         :class:`DeprecationWarning` and is copied onto ``self.renderer_cfg``
         when that cfg defines the same-named field.
         """
-        # TODO when Camera.__init__ moves rtx_sensor setting out of camera initialization
-        # the default renderer config instantiation can be moved into the render factory
-        # and get_default_render_cfg method can be removed from backend_utils
         renderer_type = getattr(self.renderer_cfg, "renderer_type", None)
         if renderer_type == "default":
             from isaaclab.utils.backend_utils import get_default_renderer_cfg

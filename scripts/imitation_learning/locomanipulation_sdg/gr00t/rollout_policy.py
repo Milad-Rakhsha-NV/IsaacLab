@@ -31,7 +31,8 @@ parser.add_argument(
     "Converts env observations/actions to match. Default is 'xyzw'.",
 )
 AppLauncher.add_app_launcher_args(parser)
-args_cli = parser.parse_args()
+# forward unrecognized args as Hydra-style task config overrides
+args_cli, hydra_overrides = parser.parse_known_args()
 
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
@@ -40,6 +41,7 @@ import gymnasium as gym
 import torch
 from policy import Policy
 
+from isaaclab.envs.mdp.recorders.recorders_cfg import ActionStateRecorderManagerCfg
 from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 from isaaclab.utils.math import convert_quat
 
@@ -373,8 +375,11 @@ if __name__ == "__main__":
 
         policy = Policy(model_path=args_cli.model_path, embodiment_tag=args_cli.embodiment_tag)
 
-        env_cfg = parse_env_cfg(env_name, device=args_cli.device, num_envs=1)
+        env_cfg = parse_env_cfg(env_name, device=args_cli.device, num_envs=1, overrides=hydra_overrides)
         env_cfg.sim.device = args_cli.device
+        # Drop the SDG output-data recorder term: it pulls env._locomanipulation_sdg_output_data,
+        # which is only populated by the data-generation state machine, not during policy rollout.
+        env_cfg.recorders = ActionStateRecorderManagerCfg()
         env_cfg.recorders.dataset_export_dir_path = os.path.dirname(args_cli.output_file)
         env_cfg.recorders.dataset_filename = os.path.basename(args_cli.output_file)
 

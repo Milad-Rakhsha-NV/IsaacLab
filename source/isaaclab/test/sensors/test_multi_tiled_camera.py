@@ -21,6 +21,7 @@ import random
 import numpy as np
 import pytest
 import torch
+import warp as wp
 from flaky import flaky
 
 import omni.replicator.core as rep
@@ -31,7 +32,7 @@ from isaaclab.sensors.camera import TiledCamera, TiledCameraCfg
 
 # Deprecation warnings from TiledCamera/TiledCameraCfg are expected in this file;
 # the deprecation mechanism itself is validated in test_tiled_camera.py.
-pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
+pytestmark = [pytest.mark.integration, pytest.mark.rendering, pytest.mark.filterwarnings("ignore::DeprecationWarning")]
 
 
 @pytest.fixture()
@@ -82,7 +83,7 @@ def test_multi_tiled_camera_init(setup_camera):
 
         # Create camera
         camera_cfg = copy.deepcopy(camera_cfg)
-        camera_cfg.prim_path = f"/World/Origin_{i}.*/CameraSensor"
+        camera_cfg.prim_path = f"/World/Origin_{i}[^/]*/CameraSensor"
         camera = TiledCamera(camera_cfg)
         tiled_cameras.append(camera)
 
@@ -101,11 +102,11 @@ def test_multi_tiled_camera_init(setup_camera):
 
     for camera in tiled_cameras:
         # Check buffers that exists and have correct shapes
-        assert camera.data.pos_w.shape == (num_cameras_per_tiled_camera, 3)
-        assert camera.data.quat_w_ros.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.quat_w_world.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.quat_w_opengl.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.intrinsic_matrices.shape == (num_cameras_per_tiled_camera, 3, 3)
+        assert camera.data.pos_w.torch.shape == (num_cameras_per_tiled_camera, 3)
+        assert camera.data.quat_w_ros.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.quat_w_world.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.quat_w_opengl.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.intrinsic_matrices.torch.shape == (num_cameras_per_tiled_camera, 3, 3)
         assert camera.data.image_shape == (camera.cfg.height, camera.cfg.width)
 
     # Simulate physics
@@ -158,7 +159,7 @@ def test_all_annotators_multi_tiled_camera(setup_camera):
         "normals",
         "motion_vectors",
         "semantic_segmentation",
-        "instance_segmentation_fast",
+        "instance_segmentation",
         "instance_id_segmentation_fast",
     ]
 
@@ -173,7 +174,7 @@ def test_all_annotators_multi_tiled_camera(setup_camera):
         # Create camera
         camera_cfg = copy.deepcopy(camera_cfg)
         camera_cfg.data_types = all_annotator_types
-        camera_cfg.prim_path = f"/World/Origin_{i}.*/CameraSensor"
+        camera_cfg.prim_path = f"/World/Origin_{i}[^/]*/CameraSensor"
         camera = TiledCamera(camera_cfg)
         tiled_cameras.append(camera)
 
@@ -193,11 +194,11 @@ def test_all_annotators_multi_tiled_camera(setup_camera):
 
     for camera in tiled_cameras:
         # Check buffers that exists and have correct shapes
-        assert camera.data.pos_w.shape == (num_cameras_per_tiled_camera, 3)
-        assert camera.data.quat_w_ros.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.quat_w_world.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.quat_w_opengl.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.intrinsic_matrices.shape == (num_cameras_per_tiled_camera, 3, 3)
+        assert camera.data.pos_w.torch.shape == (num_cameras_per_tiled_camera, 3)
+        assert camera.data.quat_w_ros.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.quat_w_world.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.quat_w_opengl.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.intrinsic_matrices.torch.shape == (num_cameras_per_tiled_camera, 3, 3)
         assert camera.data.image_shape == (camera.cfg.height, camera.cfg.width)
 
     # Simulate physics
@@ -215,7 +216,7 @@ def test_all_annotators_multi_tiled_camera(setup_camera):
                     "rgba",
                     "albedo",
                     "semantic_segmentation",
-                    "instance_segmentation_fast",
+                    "instance_segmentation",
                     "instance_id_segmentation_fast",
                 ]:
                     assert im_data.shape == (num_cameras_per_tiled_camera, camera.cfg.height, camera.cfg.width, 4)
@@ -234,19 +235,19 @@ def test_all_annotators_multi_tiled_camera(setup_camera):
         # access image data and compare dtype
         output = camera.data.output
         info = camera.data.info
-        assert output["rgb"].dtype == torch.uint8
-        assert output["rgba"].dtype == torch.uint8
-        assert output["albedo"].dtype == torch.uint8
-        assert output["depth"].dtype == torch.float
-        assert output["distance_to_camera"].dtype == torch.float
-        assert output["distance_to_image_plane"].dtype == torch.float
-        assert output["normals"].dtype == torch.float
-        assert output["motion_vectors"].dtype == torch.float
-        assert output["semantic_segmentation"].dtype == torch.uint8
-        assert output["instance_segmentation_fast"].dtype == torch.uint8
-        assert output["instance_id_segmentation_fast"].dtype == torch.uint8
+        assert output["rgb"].dtype == wp.uint8
+        assert output["rgba"].dtype == wp.uint8
+        assert output["albedo"].dtype == wp.uint8
+        assert output["depth"].dtype == wp.float32
+        assert output["distance_to_camera"].dtype == wp.float32
+        assert output["distance_to_image_plane"].dtype == wp.float32
+        assert output["normals"].dtype == wp.float32
+        assert output["motion_vectors"].dtype == wp.float32
+        assert output["semantic_segmentation"].dtype == wp.uint8
+        assert output["instance_segmentation"].dtype == wp.uint8
+        assert output["instance_id_segmentation_fast"].dtype == wp.uint8
         assert isinstance(info["semantic_segmentation"], dict)
-        assert isinstance(info["instance_segmentation_fast"], dict)
+        assert isinstance(info["instance_segmentation"], dict)
         assert isinstance(info["instance_id_segmentation_fast"], dict)
 
     for camera in tiled_cameras:
@@ -269,7 +270,7 @@ def test_different_resolution_multi_tiled_camera(setup_camera):
 
         # Create camera
         camera_cfg = copy.deepcopy(camera_cfg)
-        camera_cfg.prim_path = f"/World/Origin_{i}.*/CameraSensor"
+        camera_cfg.prim_path = f"/World/Origin_{i}[^/]*/CameraSensor"
         camera_cfg.height, camera_cfg.width = resolutions[i]
         camera = TiledCamera(camera_cfg)
         tiled_cameras.append(camera)
@@ -289,11 +290,11 @@ def test_different_resolution_multi_tiled_camera(setup_camera):
 
     for camera in tiled_cameras:
         # Check buffers that exists and have correct shapes
-        assert camera.data.pos_w.shape == (num_cameras_per_tiled_camera, 3)
-        assert camera.data.quat_w_ros.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.quat_w_world.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.quat_w_opengl.shape == (num_cameras_per_tiled_camera, 4)
-        assert camera.data.intrinsic_matrices.shape == (num_cameras_per_tiled_camera, 3, 3)
+        assert camera.data.pos_w.torch.shape == (num_cameras_per_tiled_camera, 3)
+        assert camera.data.quat_w_ros.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.quat_w_world.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.quat_w_opengl.torch.shape == (num_cameras_per_tiled_camera, 4)
+        assert camera.data.intrinsic_matrices.torch.shape == (num_cameras_per_tiled_camera, 3, 3)
         assert camera.data.image_shape == (camera.cfg.height, camera.cfg.width)
 
     # Simulate physics
@@ -335,7 +336,7 @@ def test_frame_offset_multi_tiled_camera(setup_camera):
 
         # Create camera
         camera_cfg = copy.deepcopy(camera_cfg)
-        camera_cfg.prim_path = f"/World/Origin_{i}.*/CameraSensor"
+        camera_cfg.prim_path = f"/World/Origin_{i}[^/]*/CameraSensor"
         camera = TiledCamera(camera_cfg)
         tiled_cameras.append(camera)
 
@@ -403,7 +404,7 @@ def test_frame_different_poses_multi_tiled_camera(setup_camera):
 
         # Create camera
         camera_cfg = copy.deepcopy(camera_cfg)
-        camera_cfg.prim_path = f"/World/Origin_{i}.*/CameraSensor"
+        camera_cfg.prim_path = f"/World/Origin_{i}[^/]*/CameraSensor"
         camera_cfg.offset = TiledCameraCfg.OffsetCfg(pos=positions[i], rot=rotations[i], convention="ros")
         camera = TiledCamera(camera_cfg)
         tiled_cameras.append(camera)
