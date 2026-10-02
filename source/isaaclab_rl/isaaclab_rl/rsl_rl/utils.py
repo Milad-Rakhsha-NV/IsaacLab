@@ -30,6 +30,8 @@ from .rl_cfg import (
 if TYPE_CHECKING:
     from rsl_rl.env import VecEnv
 
+    from .independent import IndependentOnPolicyRunner, RslRlIndependentVecEnvWrapper
+
 RSL_RL_MIN_VERSION = "5.0.1"
 """Oldest rsl-rl-lib release supported by the entrypoints."""
 
@@ -56,8 +58,8 @@ def check_rsl_rl_version() -> str:
 
 
 def create_rsl_rl_runner(
-    env: VecEnv, agent_cfg: RslRlBaseRunnerCfg, log_dir: str | None = None
-) -> OnPolicyRunner | DistillationRunner:
+    env: VecEnv | RslRlIndependentVecEnvWrapper, agent_cfg: RslRlBaseRunnerCfg, log_dir: str | None = None
+) -> OnPolicyRunner | DistillationRunner | IndependentOnPolicyRunner:
     """Instantiate the RSL-RL runner selected by ``agent_cfg.class_name``.
 
     Args:
@@ -70,6 +72,10 @@ def create_rsl_rl_runner(
     """
     if agent_cfg.class_name == "OnPolicyRunner":
         return OnPolicyRunner(env, to_dict(agent_cfg), log_dir=log_dir, device=agent_cfg.device)
+    if agent_cfg.class_name == "IndependentOnPolicyRunner":
+        from .independent import IndependentOnPolicyRunner
+
+        return IndependentOnPolicyRunner(env, to_dict(agent_cfg), log_dir=log_dir, device=agent_cfg.device)
     if agent_cfg.class_name == "DistillationRunner":
         return DistillationRunner(env, to_dict(agent_cfg), log_dir=log_dir, device=agent_cfg.device)
     raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")

@@ -27,6 +27,7 @@ from ...rsl_rl import (
     create_rsl_rl_runner,
     handle_deprecated_rsl_rl_cfg,
 )
+from ...rsl_rl.independent import RslRlIndependentVecEnvWrapper
 from ...utils.wandb import is_wandb_checkpoint, resolve_wandb_checkpoint
 from ..common import (
     CHECKPOINT_SELECTORS,
@@ -125,16 +126,18 @@ def run(argv: list[str]) -> None:
             apply_video_recording(env_cfg, log_dir, args_cli, subdir="play", checkpoint_path=resume_path)
 
             screen.stage("Creating environment")
+            independent = isinstance(env_cfg, DirectMARLEnvCfg) and env_cfg.independent_resets
             env = create_isaaclab_env(
                 args_cli.task,
                 env_cfg,
                 args_cli,
-                convert_marl_to_single_agent=isinstance(env_cfg, DirectMARLEnvCfg),
+                convert_marl_to_single_agent=isinstance(env_cfg, DirectMARLEnvCfg) and not independent,
             )
             cleanup.callback(lambda: close_env(env))
 
             screen.stage("Loading policy")
-            env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+            wrapper = RslRlIndependentVecEnvWrapper if independent else RslRlVecEnvWrapper
+            env = wrapper(env, clip_actions=agent_cfg.clip_actions)
             print(f"[INFO]: Loading model checkpoint from: {resume_path}")
             runner = create_rsl_rl_runner(env, agent_cfg)
             # configure_seed must run after runner construction so torch determinism does not disturb its initialization

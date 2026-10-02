@@ -57,15 +57,22 @@ def check_skrl_version() -> None:
         raise SystemExit(1)
 
 
-def import_skrl_runner(ml_framework: Literal["torch", "jax"]) -> type:
+def import_skrl_runner(ml_framework: Literal["torch", "jax"], *, independent_agents: bool = False) -> type:
     """Return the skrl :class:`Runner` implementation of the selected ML framework.
 
     Args:
         ml_framework: ML framework the agent runs on.
+        independent_agents: Select the Torch IPPO runner with independent timeout handling.
 
     Raises:
         ValueError: If the ML framework has no skrl runner.
     """
+    if independent_agents:
+        if ml_framework != "torch":
+            raise ValueError("Independent-agent training currently supports skrl with PyTorch only.")
+        from .skrl_independent import IndependentRunner
+
+        return IndependentRunner
     if ml_framework == "torch":
         from skrl.utils.runner.torch import Runner
     elif ml_framework == "jax":

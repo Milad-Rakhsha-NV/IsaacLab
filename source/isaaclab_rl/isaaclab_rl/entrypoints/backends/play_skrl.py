@@ -120,7 +120,10 @@ def _run(args_cli: argparse.Namespace) -> None:
         screen.stage("Launching simulation")
         with launch_simulation(env_cfg, args_cli), contextlib.ExitStack() as cleanup:
             show_run_summary(screen, args_cli, env_cfg, library="skrl", action="play")
-            runner_cls = import_skrl_runner(args_cli.ml_framework)
+            runner_cls = import_skrl_runner(
+                args_cli.ml_framework,
+                independent_agents=isinstance(env_cfg, DirectMARLEnvCfg) and env_cfg.independent_resets,
+            )
             apply_env_overrides(args_cli, env_cfg)
             args_cli.seed = resolve_seed(args_cli.seed)
             if args_cli.seed is not None:

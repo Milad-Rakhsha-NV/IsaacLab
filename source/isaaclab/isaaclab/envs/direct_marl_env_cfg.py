@@ -94,6 +94,15 @@ class DirectMARLEnvCfg:
     ``extras[agent]["final_obs"]`` is not populated, and the extra observation computation is skipped.
     """
 
+    independent_resets: bool = False
+    """Reset completed agents independently instead of resetting their entire world.
+
+    Tasks enabling this mode must implement ``_reset_agent_idx(agent, env_ids)`` and use
+    ``agent_episode_length_buf[agent]`` for timeouts. Reset events are owned by that hook;
+    environment-level reset events cannot be applied to an individual agent.
+    The default preserves the shared episode lifecycle of cooperative tasks.
+    """
+
     episode_length_s: float = MISSING
     """Duration of an episode (in seconds).
 

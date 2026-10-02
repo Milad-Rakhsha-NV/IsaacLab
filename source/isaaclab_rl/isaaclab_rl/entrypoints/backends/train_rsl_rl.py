@@ -31,6 +31,7 @@ from ...rsl_rl import (
     create_rsl_rl_runner,
     handle_deprecated_rsl_rl_cfg,
 )
+from ...rsl_rl.independent import RslRlIndependentVecEnvWrapper
 from ...utils.wandb import announce_new_run, is_wandb_checkpoint, resolve_wandb_checkpoint, resolve_wandb_entity
 from ..common import (
     CHECKPOINT_SELECTORS,
@@ -152,11 +153,12 @@ def _run(args_cli: argparse.Namespace) -> None:
             apply_video_recording(env_cfg, rank_dir, args_cli)
 
             screen.stage("Creating environment")
+            independent = isinstance(env_cfg, DirectMARLEnvCfg) and env_cfg.independent_resets
             env = create_isaaclab_env(
                 args_cli.task,
                 env_cfg,
                 args_cli,
-                convert_marl_to_single_agent=isinstance(env_cfg, DirectMARLEnvCfg),
+                convert_marl_to_single_agent=isinstance(env_cfg, DirectMARLEnvCfg) and not independent,
             )
             cleanup.callback(lambda: close_env(env))
             env = wrap_sensor_capture(env, rank_dir, args_cli)
@@ -164,7 +166,8 @@ def _run(args_cli: argparse.Namespace) -> None:
             screen.stage("Preparing agent")
             start_time = time.time()
             report_activity("Wrapping environment")
-            env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+            wrapper = RslRlIndependentVecEnvWrapper if independent else RslRlVecEnvWrapper
+            env = wrapper(env, clip_actions=agent_cfg.clip_actions)
             report_activity(None)
             report_activity("Building policy")
             runner = create_rsl_rl_runner(env, agent_cfg, log_dir=log_dir)

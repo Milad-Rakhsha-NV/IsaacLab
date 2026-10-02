@@ -206,6 +206,10 @@ class DirectMARLEnv(gym.Env):
         # -- init buffers
         self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
         self.reset_buf = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
+        if self.cfg.independent_resets:
+            self.agent_episode_length_buf = {
+                agent: torch.zeros_like(self.episode_length_buf) for agent in self.cfg.possible_agents
+            }
 
         # setup the observation, state and action spaces
         self._configure_env_spaces()
@@ -423,14 +427,33 @@ class DirectMARLEnv(gym.Env):
         # post-step:
         # -- update env counters (used for curriculum generation)
         self.episode_length_buf += 1  # step in current episode (per env)
+        if self.cfg.independent_resets:
+            for lengths in self.agent_episode_length_buf.values():
+                lengths += 1
         self.common_step_counter += 1  # total step (common for all envs)
 
         self.terminated_dict, self.time_out_dict = self._get_dones()
-        self.reset_buf[:] = math.prod(self.terminated_dict.values()) | math.prod(self.time_out_dict.values())
+        if self.cfg.independent_resets:
+            self.reset_buf.zero_()
+            for agent in self.possible_agents:
+                self.reset_buf |= self.terminated_dict[agent] | self.time_out_dict[agent]
+        else:
+            self.reset_buf[:] = math.prod(self.terminated_dict.values()) | math.prod(self.time_out_dict.values())
         self.reward_dict = self._get_rewards()
+
+        # Independent agents must capture terminal observations before a UI reset as well.
+        reset_requested = self.sim.consume_reset_request()
+        if reset_requested and self.cfg.independent_resets:
+            for terminated in self.terminated_dict.values():
+                terminated.fill_(True)
+            self.reset_buf.fill_(True)
 
         # -- reset envs that terminated/timed-out and log the episode information
         reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        if self.cfg.compute_final_obs:
+            for info in self.extras.values():
+                info.pop("final_obs", None)
+                info.pop("final_obs_mask", None)
         if len(reset_env_ids) > 0:
             # capture the per-agent terminal observation before reset and expose it for Same-Step
             # autoreset. apply the same observation noise as the returned obs so the bootstrapped
@@ -439,10 +462,26 @@ class DirectMARLEnv(gym.Env):
                 terminal_obs = self._compute_observations()
                 for agent, obs in terminal_obs.items():
                     self.extras[agent]["final_obs"] = obs
-            self._reset_idx(reset_env_ids)
+                    self.extras[agent]["final_obs_mask"] = (
+                        self.terminated_dict[agent] | self.time_out_dict[agent]
+                        if self.cfg.independent_resets
+                        else self.reset_buf.clone()
+                    )
+            if self.cfg.independent_resets and not reset_requested:
+                for agent in self.possible_agents:
+                    agent_ids = (self.terminated_dict[agent] | self.time_out_dict[agent]).nonzero().squeeze(-1)
+                    if len(agent_ids) > 0:
+                        self._reset_agent_idx(agent, agent_ids)
+                        index_fill_(self.agent_episode_length_buf[agent], agent_ids, 0)
+                        if self.cfg.action_noise_model and agent in self._action_noise_model:
+                            self._action_noise_model[agent].reset(agent_ids)
+                        if self.cfg.observation_noise_model and agent in self._observation_noise_model:
+                            self._observation_noise_model[agent].reset(agent_ids)
+            else:
+                self._reset_idx(reset_env_ids)
 
         # -- handle episode reset requested from visualizer UI controls
-        if self.sim.consume_reset_request():
+        if reset_requested and not self.cfg.independent_resets:
             not_yet_reset = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
             if len(reset_env_ids) > 0:
                 index_fill_(not_yet_reset, reset_env_ids, False)
@@ -686,6 +725,23 @@ class DirectMARLEnv(gym.Env):
                 noise_model.reset(env_ids)
 
         index_fill_(self.episode_length_buf, env_ids, 0)
+        if self.cfg.independent_resets:
+            for lengths in self.agent_episode_length_buf.values():
+                index_fill_(lengths, env_ids, 0)
+
+    def _reset_agent_idx(self, agent: AgentID, env_ids: Sequence[int]) -> None:
+        """Reset only one agent's assets and task state in the selected worlds.
+
+        Called by independent autoreset after rewards and final observations are captured.
+        The base class resets the agent's episode counter and configured noise models.
+        Task implementations must reset their own assets, sensors, actions and history without
+        calling ``scene.reset`` or resetting another agent's buffers.
+
+        Args:
+            agent: Agent identifier from ``possible_agents``.
+            env_ids: World indices in which this agent's episode has ended.
+        """
+        raise NotImplementedError("Independent resets require the task to implement _reset_agent_idx.")
 
     """
     Implementation-specific functions.
