@@ -3,18 +3,15 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Launch Isaac Sim Simulator first."""
+from isaaclab.test.utils import launch_test_simulation
 
-from isaaclab.app import AppLauncher
-
-# launch omniverse app
-simulation_app = AppLauncher(headless=True).app
-
-"""Rest everything follows."""
-
+launch_test_simulation()
 
 import pytest
-from isaaclab_physx.sim.spawners.materials.physics_materials_cfg import DeformableBodyMaterialCfg
+from isaaclab_physx.sim.spawners.materials.physics_materials_cfg import (
+    PhysxDeformableBodyMaterialCfg,
+    PhysxSurfaceDeformableBodyMaterialCfg,
+)
 
 import isaaclab.sim as sim_utils
 from isaaclab.sim import SimulationCfg, SimulationContext
@@ -28,15 +25,14 @@ def sim():
     sim_utils.create_new_stage()
     dt = 0.1
     sim = SimulationContext(SimulationCfg(dt=dt))
-    sim_utils.update_stage()
     yield sim
     sim.stop()
     sim.clear_instance()
 
 
 def test_spawn_deformable_body_material(sim):
-    """Test spawning a deformable body material."""
-    cfg = DeformableBodyMaterialCfg(
+    """Test spawning volume and surface deformable body materials."""
+    cfg = PhysxDeformableBodyMaterialCfg(
         density=1.0,
         dynamic_friction=0.25,
         youngs_modulus=50000000.0,
@@ -52,4 +48,22 @@ def test_spawn_deformable_body_material(sim):
     assert prim.GetAttribute("omniphysics:dynamicFriction").Get() == cfg.dynamic_friction
     assert prim.GetAttribute("omniphysics:youngsModulus").Get() == cfg.youngs_modulus
     assert prim.GetAttribute("omniphysics:poissonsRatio").Get() == cfg.poissons_ratio
-    assert prim.GetAttribute("physxDeformableBody:elasticityDamping").Get() == pytest.approx(cfg.elasticity_damping)
+    assert prim.GetAttribute("physxDeformableMaterial:elasticityDamping").Get() == pytest.approx(cfg.elasticity_damping)
+
+    surface_cfg = PhysxSurfaceDeformableBodyMaterialCfg(
+        density=1.0,
+        youngs_modulus=50000000.0,
+        poissons_ratio=0.5,
+        elasticity_damping=0.005,
+        bend_damping=0.01,
+    )
+    prim = surface_cfg.func("/Looks/SurfaceDeformableBodyMaterial", surface_cfg)
+    # Check validity
+    assert prim.IsValid()
+    assert sim.stage.GetPrimAtPath("/Looks/SurfaceDeformableBodyMaterial").IsValid()
+    # Check PhysX properties
+    assert "PhysxSurfaceDeformableMaterialAPI" in prim.GetAppliedSchemas()
+    assert prim.GetAttribute("physxDeformableMaterial:elasticityDamping").Get() == pytest.approx(
+        surface_cfg.elasticity_damping
+    )
+    assert prim.GetAttribute("physxDeformableMaterial:bendDamping").Get() == pytest.approx(surface_cfg.bend_damping)

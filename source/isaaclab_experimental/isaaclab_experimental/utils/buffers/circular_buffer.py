@@ -4,10 +4,14 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 
 import torch
 import warp as wp
+
+from isaaclab.utils import index_fill_
 
 
 class CircularBuffer:
@@ -121,15 +125,12 @@ class CircularBuffer:
         elif isinstance(batch_ids, wp.array):
             batch_ids = wp.to_torch(batch_ids)
 
-        # resolve all indices
-        if batch_ids is None:
-            batch_ids = slice(None)
         # reset the number of pushes for the specified batch indices
-        self._num_pushes[batch_ids] = 0
+        index_fill_(self._num_pushes, batch_ids, 0)
         if self._buffer is not None:
             # set buffer at batch_id reset indices to 0.0 so that the buffer() getter
             # returns the cleared circular buffer after reset.
-            self._buffer[:, batch_ids, :] = 0.0
+            index_fill_(self._buffer, batch_ids, 0.0, dim=1)
 
     def append(self, data: torch.Tensor):
         """Append the data to the circular buffer.

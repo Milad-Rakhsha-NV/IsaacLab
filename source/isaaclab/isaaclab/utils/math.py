@@ -16,7 +16,6 @@ import numpy as np
 import torch
 import torch.nn.functional
 
-# import logger
 logger = logging.getLogger(__name__)
 
 """
@@ -220,26 +219,13 @@ def convert_quat(quat: torch.Tensor | np.ndarray, to: Literal["xyzw", "wxyz"] = 
     if to not in ["xyzw", "wxyz"]:
         msg = f"Expected input argument `to` to be 'xyzw' or 'wxyz'. Received: {to}."
         raise ValueError(msg)
-    # check if input is numpy array (we support this backend since some classes use numpy)
+    # wxyz -> xyzw moves the leading w to the end; xyzw -> wxyz moves the trailing w to the front
+    shift = -1 if to == "xyzw" else 1
     if isinstance(quat, np.ndarray):
-        # use numpy functions
-        if to == "xyzw":
-            # wxyz -> xyzw
-            return np.roll(quat, -1, axis=-1)
-        else:
-            # xyzw -> wxyz
-            return np.roll(quat, 1, axis=-1)
-    else:
-        # convert to torch (sanity check)
-        if not isinstance(quat, torch.Tensor):
-            quat = torch.tensor(quat, dtype=float)
-        # convert to specified quaternion type
-        if to == "xyzw":
-            # wxyz -> xyzw
-            return quat.roll(-1, dims=-1)
-        else:
-            # xyzw -> wxyz
-            return quat.roll(1, dims=-1)
+        return np.roll(quat, shift, axis=-1)
+    if not isinstance(quat, torch.Tensor):
+        quat = torch.tensor(quat, dtype=float)
+    return quat.roll(shift, dims=-1)
 
 
 @torch.jit.script
@@ -322,7 +308,9 @@ def quat_from_matrix(matrix: torch.Tensor) -> torch.Tensor:
         matrix: The rotation matrices. Shape is (..., 3, 3).
 
     Returns:
-        The quaternion in (x, y, z, w). Shape is (..., 4).
+        The quaternion in (x, y, z, w). Shape is (..., 4). Rows whose input is not a
+        valid rotation (e.g. singular, reflection, or scale-error matrices) are filled
+        with NaN, so callers can detect them via :func:`torch.isnan`.
 
     Reference:
         https://github.com/facebookresearch/pytorch3d/blob/main/pytorch3d/transforms/rotation_conversions.py#L102-L161
@@ -368,9 +356,13 @@ def quat_from_matrix(matrix: torch.Tensor) -> torch.Tensor:
 
     # if not for numerical problems, quat_candidates[i] should be same (up to a sign),
     # forall i; we pick the best-conditioned one (with the largest denominator)
-    return quat_candidates[torch.nn.functional.one_hot(q_abs.argmax(dim=-1), num_classes=4) > 0.5, :].reshape(
+    quat = quat_candidates[torch.nn.functional.one_hot(q_abs.argmax(dim=-1), num_classes=4) > 0.5, :].reshape(
         batch_dim + (4,)
     )
+    # guard against non-rotation input: a valid rotation must yield a unit quaternion.
+    # Threshold is 2x the worst-case float32 accumulated error (~1e-5) through this function.
+    invalid = (quat.norm(p=2, dim=-1, keepdim=True) - 1.0).abs() > 2e-5
+    return torch.where(invalid, torch.full_like(quat, float("nan")), quat)
 
 
 def _axis_angle_rotation(axis: Literal["X", "Y", "Z"], angle: torch.Tensor) -> torch.Tensor:
@@ -430,7 +422,6 @@ def matrix_from_euler(euler_angles: torch.Tensor, convention: str) -> torch.Tens
         if letter not in ("X", "Y", "Z"):
             raise ValueError(f"Invalid letter {letter} in convention string.")
     matrices = [_axis_angle_rotation(c, e) for c, e in zip(convention, torch.unbind(euler_angles, -1))]
-    # return functools.reduce(torch.matmul, matrices)
     return torch.matmul(torch.matmul(matrices[0], matrices[1]), matrices[2])
 
 
@@ -630,44 +621,36 @@ def quat_box_plus(q: torch.Tensor, delta: torch.Tensor, eps: float = 1.0e-6) -> 
 def quat_apply(quat: torch.Tensor, vec: torch.Tensor) -> torch.Tensor:
     """Apply a quaternion rotation to a vector.
 
+    Leading dimensions follow NumPy broadcasting rules. Incompatible batch shapes raise an error.
+
     Args:
         quat: The quaternion in (x, y, z, w). Shape is (..., 4).
         vec: The vector in (x, y, z). Shape is (..., 3).
 
     Returns:
-        The rotated vector in (x, y, z). Shape is (..., 3).
+        The rotated vector in (x, y, z). Shape is the broadcast batch shape followed by (3,).
     """
-    # store shape
-    shape = vec.shape
-    # reshape to (N, 3) for multiplication
-    quat = quat.reshape(-1, 4)
-    vec = vec.reshape(-1, 3)
-    # extract components from quaternions (xyzw format)
-    xyz = quat[:, :3]
+    xyz, vec = torch.broadcast_tensors(quat[..., :3], vec)
     t = xyz.cross(vec, dim=-1) * 2
-    return (vec + quat[:, 3:4] * t + xyz.cross(t, dim=-1)).view(shape)
+    return vec + quat[..., 3:4] * t + xyz.cross(t, dim=-1)
 
 
 @torch.jit.script
 def quat_apply_inverse(quat: torch.Tensor, vec: torch.Tensor) -> torch.Tensor:
     """Apply an inverse quaternion rotation to a vector.
 
+    Leading dimensions follow NumPy broadcasting rules. Incompatible batch shapes raise an error.
+
     Args:
         quat: The quaternion in (x, y, z, w). Shape is (..., 4).
         vec: The vector in (x, y, z). Shape is (..., 3).
 
     Returns:
-        The rotated vector in (x, y, z). Shape is (..., 3).
+        The rotated vector in (x, y, z). Shape is the broadcast batch shape followed by (3,).
     """
-    # store shape
-    shape = vec.shape
-    # reshape to (N, 3) for multiplication
-    quat = quat.reshape(-1, 4)
-    vec = vec.reshape(-1, 3)
-    # extract components from quaternions (xyzw format)
-    xyz = quat[:, :3]
+    xyz, vec = torch.broadcast_tensors(quat[..., :3], vec)
     t = xyz.cross(vec, dim=-1) * 2
-    return (vec - quat[:, 3:4] * t + xyz.cross(t, dim=-1)).view(shape)
+    return vec - quat[..., 3:4] * t + xyz.cross(t, dim=-1)
 
 
 @torch.jit.script
@@ -806,7 +789,7 @@ def combine_frame_transforms(
     r"""Combine transformations between two reference frames into a stationary frame.
 
     It performs the following transformation operation: :math:`T_{02} = T_{01} \times T_{12}`,
-    where :math:`T_{AB}` is the homogeneous transformation matrix from frame A to B.
+    where :math:`T_{AB}` is the homogeneous transformation matrix from frame B to A.
 
     Args:
         t01: Position of frame 1 w.r.t. frame 0. Shape is (N, 3).
@@ -871,14 +854,13 @@ def rigid_body_twist_transform(
     return v1, w1
 
 
-# @torch.jit.script
 def subtract_frame_transforms(
     t01: torch.Tensor, q01: torch.Tensor, t02: torch.Tensor | None = None, q02: torch.Tensor | None = None
 ) -> tuple[torch.Tensor, torch.Tensor]:
     r"""Subtract transformations between two reference frames into a stationary frame.
 
     It performs the following transformation operation: :math:`T_{12} = T_{01}^{-1} \times T_{02}`,
-    where :math:`T_{AB}` is the homogeneous transformation matrix from frame A to B.
+    where :math:`T_{AB}` is the homogeneous transformation matrix from frame B to A.
 
     Args:
         t01: Position of frame 1 w.r.t. frame 0. Shape is (N, 3).
@@ -906,7 +888,6 @@ def subtract_frame_transforms(
     return t12, q12
 
 
-# @torch.jit.script
 def compute_pose_error(
     t01: torch.Tensor,
     q01: torch.Tensor,
@@ -988,19 +969,17 @@ def apply_delta_pose(
     # interpret delta_pose[:, 3:6] as target rotation displacements
     rot_actions = delta_pose[:, 3:6]
     angle = torch.linalg.vector_norm(rot_actions, dim=1)
-    axis = rot_actions / angle.unsqueeze(-1)
+    # Keep the unselected branch finite for autograd at zero rotation.
+    axis = rot_actions / angle.clamp_min(eps).unsqueeze(-1)
     # change from axis-angle to quat convention (xyzw format: identity is [0, 0, 0, 1])
     identity_quat = torch.tensor([0.0, 0.0, 0.0, 1.0], device=device).repeat(num_poses, 1)
-    rot_delta_quat = torch.where(
-        angle.unsqueeze(-1).repeat(1, 4) > eps, quat_from_angle_axis(angle, axis), identity_quat
-    )
+    rot_delta_quat = torch.where(angle.unsqueeze(-1) > eps, quat_from_angle_axis(angle, axis), identity_quat)
     # TODO: Check if this is the correct order for this multiplication.
     target_rot = quat_mul(rot_delta_quat, source_rot)
 
     return target_pos, target_rot
 
 
-# @torch.jit.script
 def transform_points(
     points: torch.Tensor, pos: torch.Tensor | None = None, quat: torch.Tensor | None = None
 ) -> torch.Tensor:
@@ -1237,7 +1216,7 @@ def unproject_depth(depth: torch.Tensor, intrinsics: torch.Tensor, is_ortho: boo
     indices_u = torch.arange(im_width, device=depth.device, dtype=depth.dtype)
     indices_v = torch.arange(im_height, device=depth.device, dtype=depth.dtype)
     img_indices = torch.stack(torch.meshgrid([indices_u, indices_v], indexing="ij"), dim=0).reshape(2, -1)
-    pixels = torch.nn.functional.pad(img_indices, (0, 0, 1, 0), mode="constant", value=1.0)
+    pixels = torch.nn.functional.pad(img_indices, (0, 0, 0, 1), mode="constant", value=1.0)
     pixels = pixels.unsqueeze(0)  # (3, H x W) -> (1, 3, H x W)
 
     # unproject points into 3D space
@@ -1289,7 +1268,7 @@ def project_points(points: torch.Tensor, intrinsics: torch.Tensor) -> torch.Tens
     intrinsics_batch = intrinsics.clone()
 
     # check if inputs are batched
-    is_batched = points_batch.dim() == 2
+    is_batched = points_batch.dim() == 3
     # make sure inputs are batched
     if points_batch.dim() == 2:
         points_batch = points_batch[None]  # (P, 3) -> (1, P, 3)
@@ -1310,7 +1289,7 @@ def project_points(points: torch.Tensor, intrinsics: torch.Tensor) -> torch.Tens
 
     # return points in same shape as input
     if not is_batched:
-        points_2d = points_2d.squeeze(0)  # (1, 3, P) -> (3, P)
+        points_2d = points_2d.squeeze(0)  # (1, P, 3) -> (P, 3)
 
     return points_2d
 
@@ -1458,20 +1437,22 @@ def sample_gaussian(
     """Sample using gaussian distribution.
 
     Args:
-        mean: Mean of the gaussian.
-        std: Std of the gaussian.
+        mean: Mean of the gaussian. Must be broadcastable to :attr:`size`.
+        std: Non-negative standard deviation. Must be broadcastable to :attr:`size`.
         size: The shape of the tensor.
-        device: Device to create tensor on.
+        device: Device on which to generate the samples.
 
     Returns:
-        Sampled tensor.
+        Independently sampled tensor with shape :attr:`size`.
+
+    Raises:
+        RuntimeError: If either parameter cannot expand to :attr:`size`, or a standard deviation is negative.
     """
-    if isinstance(mean, float):
-        if isinstance(size, int):
-            size = (size,)
-        return torch.normal(mean=mean, std=std, size=size).to(device=device)
-    else:
-        return torch.normal(mean=mean, std=std).to(device=device)
+    if isinstance(size, int):
+        size = (size,)
+    mean = torch.as_tensor(mean, device=device).expand(size)
+    std = torch.as_tensor(std, device=device).expand(size)
+    return torch.normal(mean=mean, std=std)
 
 
 def sample_cylinder(
@@ -1570,8 +1551,8 @@ def convert_camera_frame_orientation_convention(
     if origin == "ros":
         # convert from ros to opengl convention
         rotm = matrix_from_quat(orientation)
-        rotm[:, :, 2] = -rotm[:, :, 2]
-        rotm[:, :, 1] = -rotm[:, :, 1]
+        rotm[..., 2] = -rotm[..., 2]
+        rotm[..., 1] = -rotm[..., 1]
         # convert to opengl convention
         quat_gl = quat_from_matrix(rotm)
     elif origin == "world":
@@ -1590,8 +1571,8 @@ def convert_camera_frame_orientation_convention(
     if target == "ros":
         # convert from opengl to ros convention
         rotm = matrix_from_quat(quat_gl)
-        rotm[:, :, 2] = -rotm[:, :, 2]
-        rotm[:, :, 1] = -rotm[:, :, 1]
+        rotm[..., 2] = -rotm[..., 2]
+        rotm[..., 1] = -rotm[..., 1]
         return quat_from_matrix(rotm)
     elif target == "world":
         # convert from opengl to world (x forward and z up) convention
@@ -1633,28 +1614,47 @@ def create_rotation_matrix_from_view(
     The vectors are broadcast against each other so they all have shape (N, 3).
 
     Returns:
-        R: (N, 3, 3) batched rotation matrices
+        ``(N, 3, 3)`` batched rotation matrices. Rows with an undefined forward
+        direction (``eyes == targets`` or non-finite input) are filled with NaN.
+        Callers detect per-row failure with ``torch.isnan(R).any(dim=(-2, -1))``
+        and total failure with ``.all()``.
+
+    Note:
+        When the look-at direction is parallel to ``up_axis`` the camera roll
+        is mathematically undefined; a deterministic frame is returned via an
+        alternate reference vector. Tracking a target continuously through the
+        singularity will produce a discontinuous rotation -- smooth tracking
+        requires interpolation at the caller (e.g., quaternion slerp).
 
     Reference:
     Based on PyTorch3D (https://github.com/facebookresearch/pytorch3d/blob/eaf0709d6af0025fe94d1ee7cec454bc3054826a/pytorch3d/renderer/cameras.py#L1635-L1685)
     """
-    if up_axis == "Y":
-        up_axis_vec = torch.tensor((0, 1, 0), device=device, dtype=torch.float32).repeat(eyes.shape[0], 1)
-    elif up_axis == "Z":
-        up_axis_vec = torch.tensor((0, 0, 1), device=device, dtype=torch.float32).repeat(eyes.shape[0], 1)
-    else:
+    if up_axis not in ("Y", "Z"):
         raise ValueError(f"Invalid up axis: {up_axis}. Valid options are 'Y' and 'Z'.")
+    up = (0.0, 1.0, 0.0) if up_axis == "Y" else (0.0, 0.0, 1.0)
+    up_axis_vec = torch.tensor(up, device=device, dtype=torch.float32).repeat(eyes.shape[0], 1)
+
+    forward = targets - eyes
+    # 1e-5 matches the torch.nn.functional.normalize eps below: smaller magnitudes produce a sub-unit z_axis
+    undefined_forward = (torch.linalg.norm(forward, dim=1, keepdim=True) < 1e-5) | ~torch.isfinite(forward).all(
+        dim=1, keepdim=True
+    )
 
     # get rotation matrix in opengl format (-Z forward, +Y up)
-    z_axis = -torch.nn.functional.normalize(targets - eyes, eps=1e-5)
+    z_axis = -torch.nn.functional.normalize(forward, eps=1e-5)
     x_axis = torch.nn.functional.normalize(torch.cross(up_axis_vec, z_axis, dim=1), eps=1e-5)
     y_axis = torch.nn.functional.normalize(torch.cross(z_axis, x_axis, dim=1), eps=1e-5)
     is_close = torch.isclose(x_axis, torch.tensor(0.0), atol=5e-3).all(dim=1, keepdim=True)
     if is_close.any():
-        replacement = torch.nn.functional.normalize(torch.cross(y_axis, z_axis, dim=1), eps=1e-5)
-        x_axis = torch.where(is_close, replacement, x_axis)
-    R = torch.cat((x_axis[:, None, :], y_axis[:, None, :], z_axis[:, None, :]), dim=1)
-    return R.transpose(1, 2)
+        # alt-up substitution when up_axis_vec is parallel to z_axis; both x and y must be recomputed.
+        # World X is non-parallel to z whenever the symptom fires for the supported up_axis values.
+        alt_up = torch.tensor((1.0, 0.0, 0.0), device=device, dtype=torch.float32).repeat(eyes.shape[0], 1)
+        replacement_x = torch.nn.functional.normalize(torch.cross(alt_up, z_axis, dim=1), eps=1e-5)
+        replacement_y = torch.nn.functional.normalize(torch.cross(z_axis, replacement_x, dim=1), eps=1e-5)
+        x_axis = torch.where(is_close, replacement_x, x_axis)
+        y_axis = torch.where(is_close, replacement_y, y_axis)
+    R = torch.cat((x_axis[:, None, :], y_axis[:, None, :], z_axis[:, None, :]), dim=1).transpose(1, 2)
+    return torch.where(undefined_forward.unsqueeze(-1), torch.full_like(R, float("nan")), R)
 
 
 def make_pose(pos: torch.Tensor, rot: torch.Tensor) -> torch.Tensor:
@@ -1765,9 +1765,9 @@ def quat_slerp(q1: torch.Tensor, q2: torch.Tensor, tau: float) -> torch.Tensor:
     if abs(abs(d) - 1.0) < torch.finfo(q1.dtype).eps * 4.0:
         return q1
     if d < 0.0:
-        # Invert rotation
+        # take the shorter arc without mutating the caller's quaternion
         d = -d
-        q2 *= -1.0
+        q2 = -q2
     angle = torch.acos(torch.clamp(d, -1, 1))
     if abs(angle) < torch.finfo(q1.dtype).eps * 4.0:
         return q1
@@ -1861,11 +1861,7 @@ def interpolate_poses(
 
     if num_steps == 0:
         # Skip interpolation
-        return (
-            torch.cat([pos1[None], pos2[None]], dim=0),
-            torch.cat([rot1[None], rot2[None]], dim=0),
-            num_steps,
-        )
+        return make_pose(torch.stack([pos1, pos2]), torch.stack([rot1, rot2])), num_steps
 
     delta_pos = pos2 - pos1
     if num_steps is None:

@@ -5,36 +5,40 @@
 
 """Tests for USD cloner utilities (no PhysX dependency)."""
 
-"""Launch Isaac Sim Simulator first."""
+from isaaclab.test.utils import launch_test_simulation
 
-from isaaclab.app import AppLauncher
+launch_test_simulation()
 
-# launch omniverse app
-simulation_app = AppLauncher(headless=True).app
+from unittest.mock import patch
 
-"""Rest everything follows."""
-
+import numpy as np
 import pytest
-import torch
 
-from pxr import UsdGeom
+from pxr import Sdf, Usd, UsdGeom
 
 import isaaclab.sim as sim_utils
-from isaaclab.cloner import ClonePlan, TemplateCloneCfg, clone_from_template, sequential, usd_replicate
-from isaaclab.sim import build_simulation_context
+from isaaclab import cloner
+from isaaclab.assets import AssetBaseCfg
+from isaaclab.cloner import UsdReplicateContext, grid_transforms, make_clone_plan, usd_replicate
+from isaaclab.sim import SpawnerCfg, build_simulation_context
+from isaaclab.sim.utils import queries
+from isaaclab.test.utils import resolve_test_sim_device
 
-pytestmark = pytest.mark.isaacsim_ci
+pytestmark = [pytest.mark.integration, pytest.mark.isaacsim_ci]
 
 
-@pytest.fixture(params=["cpu", "cuda"])
-def sim(request):
-    """Provide a fresh simulation context for each test on CPU and CUDA."""
-    with build_simulation_context(device=request.param, dt=0.01, add_lighting=False) as sim:
+@pytest.fixture
+def sim():
+    """Provide a fresh simulation context for each test.
+
+    The cloner utilities author USD and plan bookkeeping only, with no device branch, so one device suffices.
+    """
+    with build_simulation_context(device=resolve_test_sim_device(), dt=0.01, add_lighting=False) as sim:
         yield sim
 
 
 def test_usd_replicate_with_positions_and_mask(sim):
-    """Replicate sources to selected envs and author translate ops from positions."""
+    """Replicate sources only to the envs selected by the mask."""
     # Prepare sources under /World/template
     sim_utils.create_prim("/World/template", "Xform")
     sim_utils.create_prim("/World/template/A", "Xform")
@@ -42,13 +46,13 @@ def test_usd_replicate_with_positions_and_mask(sim):
 
     # Prepare destination env namespaces
     num_envs = 3
-    env_ids = torch.arange(num_envs, dtype=torch.long)
+    env_ids = np.arange(num_envs, dtype=np.int64)
     sim_utils.create_prim("/World/envs", "Xform")
     for i in range(num_envs):
         sim_utils.create_prim(f"/World/envs/env_{i}", "Xform")
 
     # Map A -> env 0 and 2; B -> env 1 only
-    mask = torch.zeros((2, num_envs), dtype=torch.bool)
+    mask = np.zeros((2, num_envs), dtype=np.bool_)
     mask[0, [0, 2]] = True
     mask[1, [1]] = True
 
@@ -60,7 +64,7 @@ def test_usd_replicate_with_positions_and_mask(sim):
         mask=mask,
     )
 
-    # Validate replication and translate op
+    # Validate replication follows the mask
     stage = sim_utils.get_current_stage()
     assert stage.GetPrimAtPath("/World/envs/env_0/Object/A").IsValid()
     assert not stage.GetPrimAtPath("/World/envs/env_0/Object/B").IsValid()
@@ -68,11 +72,81 @@ def test_usd_replicate_with_positions_and_mask(sim):
     assert not stage.GetPrimAtPath("/World/envs/env_1/Object/A").IsValid()
     assert stage.GetPrimAtPath("/World/envs/env_2/Object/A").IsValid()
 
-    # Check xformOp:translate authored for env_2/A
-    prim = stage.GetPrimAtPath("/World/envs/env_2/Object/A")
-    xform = UsdGeom.Xformable(prim)
-    ops = xform.GetOrderedXformOps()
-    assert any(op.GetOpType() == UsdGeom.XformOp.TypeTranslate for op in ops)
+
+def test_usd_replicate_context_consumes_plan(sim):
+    """UsdReplicateContext consumes the same plan used by every clone backend."""
+    sim_utils.create_prim("/World/template/A", "Cube")
+    sim_utils.create_prim("/World/envs", "Xform")
+
+    stage = sim_utils.get_current_stage()
+    asset = AssetBaseCfg(prim_path="/World/envs/env_[^/]+", spawn=SpawnerCfg(spawn_path="/World/template/A"))
+    positions = np.asarray([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
+    plan = make_clone_plan((asset,), ((), (0,)), 2, positions=positions)
+    UsdReplicateContext(sim).replicate(plan, (0,))
+
+    assert not stage.GetPrimAtPath("/World/envs/env_0").IsA(UsdGeom.Cube)
+    prim = stage.GetPrimAtPath("/World/envs/env_1")
+    assert prim.IsValid() and prim.IsA(UsdGeom.Cube)
+    assert tuple(UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(0).ExtractTranslation()) == (4.0, 5.0, 6.0)
+
+
+def test_usd_replicate_nested_asset_preserves_local_offset_with_positions(sim):
+    """Grid positions are authored on env roots but not on nested replicated assets."""
+    camera_offset = (0.57, -0.8, 0.5)
+    num_envs = 2
+    env_ids = np.arange(num_envs, dtype=np.int64)
+    positions, _ = grid_transforms(num_envs, 3.0)
+
+    sim_utils.create_prim("/World/envs", "Xform")
+    sim_utils.create_prim("/World/envs/env_0", "Xform")
+    sim_utils.create_prim("/World/envs/env_0/Camera", "Camera", translation=camera_offset)
+
+    stage = sim_utils.get_current_stage()
+    with patch.object(Sdf, "CopySpec", wraps=Sdf.CopySpec) as copy:
+        for suffix in ("", "/Camera"):
+            sources, destinations = ["/World/envs/env_0" + suffix], ["/World/envs/env_{}" + suffix]
+            usd_replicate(stage, sources, destinations, env_ids, positions=positions)
+    assert all(call.args[1] != call.args[3] for call in copy.call_args_list), "CopySpec must never copy onto itself"
+    assert any(str(call.args[3]) == "/World/envs/env_1" for call in copy.call_args_list)
+
+    for env_idx in range(num_envs):
+        env_prim = stage.GetPrimAtPath(f"/World/envs/env_{env_idx}")
+        assert env_prim.IsValid()
+        env_translate = env_prim.GetAttribute("xformOp:translate").Get()
+        assert env_translate is not None
+        expected_env_pos = positions[env_idx].tolist()
+        assert (env_translate[0], env_translate[1], env_translate[2]) == pytest.approx(expected_env_pos)
+
+        camera_prim = stage.GetPrimAtPath(f"/World/envs/env_{env_idx}/Camera")
+        assert camera_prim.IsValid()
+        camera_translate = camera_prim.GetAttribute("xformOp:translate").Get()
+        assert camera_translate is not None
+        assert (camera_translate[0], camera_translate[1], camera_translate[2]) == pytest.approx(camera_offset)
+
+
+def test_disabled_fabric_change_notifies_noops_when_usdrt_unavailable(monkeypatch):
+    """Fabric notice suspension no-ops when Carbonite bindings exist but ``usdrt`` does not."""
+    import builtins
+
+    from isaaclab.cloner import fabric_notices
+
+    class _FakeBindings:
+        def validate_with(self, fabric_id: int) -> bool:
+            raise AssertionError("missing usdrt should prevent fabric-id lookup")
+
+    monkeypatch.setattr(fabric_notices, "get_bindings", lambda: _FakeBindings())
+
+    real_import = builtins.__import__
+
+    def _import_without_usdrt(name, *args, **kwargs):
+        if name == "usdrt":
+            raise ModuleNotFoundError("No module named 'usdrt'", name="usdrt")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _import_without_usdrt)
+
+    with fabric_notices.disabled_fabric_change_notifies(Usd.Stage.CreateInMemory()):
+        pass
 
 
 def test_usd_replicate_depth_order_parent_child(sim):
@@ -83,7 +157,7 @@ def test_usd_replicate_depth_order_parent_child(sim):
     sim_utils.create_prim("/World/template/Parent/Child", "Xform")
 
     # Destinations (single env)
-    env_ids = torch.tensor([0, 1], dtype=torch.long)
+    env_ids = np.asarray([0, 1], dtype=np.int64)
     sim_utils.create_prim("/World/envs", "Xform")
     sim_utils.create_prim("/World/envs/env_0", "Xform")
     sim_utils.create_prim("/World/envs/env_1", "Xform")
@@ -102,54 +176,15 @@ def test_usd_replicate_depth_order_parent_child(sim):
         assert stage.GetPrimAtPath(f"/World/envs/env_{i}/Parent/Child").IsValid()
 
 
-def test_usd_replicate_self_copy_skips_copy_spec(sim):
-    """usd_replicate must not call Sdf.CopySpec when source and destination paths are identical.
-
-    Sdf.CopySpec(src, src) is a no-op in the current USD version so it does not corrupt children,
-    but the call is still wasteful. The guard ensures it is skipped entirely. This test mocks
-    Sdf.CopySpec to verify it is called exactly once (for env_1) and never for the self case (env_0).
-    """
-    from unittest.mock import patch
-
-    import isaaclab.cloner.cloner_utils as _cloner_mod
-
-    stage = sim_utils.get_current_stage()
-    sim_utils.create_prim("/World/envs", "Xform")
-    sim_utils.create_prim("/World/envs/env_0", "Xform")
-    sim_utils.create_prim("/World/envs/env_0/Robot", "Xform")
-    sim_utils.create_prim("/World/envs/env_0/Robot/base_link", "Xform")
-    sim_utils.create_prim("/World/envs/env_1", "Xform")
-
-    copy_calls: list[tuple[str, str]] = []
-    real_copy_spec = _cloner_mod.Sdf.CopySpec
-
-    def capturing_copy_spec(src_layer, src_path, dst_layer, dst_path):
-        copy_calls.append((str(src_path), str(dst_path)))
-        return real_copy_spec(src_layer, src_path, dst_layer, dst_path)
-
-    with patch.object(_cloner_mod.Sdf, "CopySpec", capturing_copy_spec):
-        usd_replicate(
-            stage,
-            sources=["/World/envs/env_0"],
-            destinations=["/World/envs/env_{}"],
-            env_ids=torch.tensor([0, 1], dtype=torch.long),
-            mask=torch.ones((1, 2), dtype=torch.bool),
-        )
-
-    # CopySpec must be called for env_1 but never for env_0 (self-copy)
-    assert all(src != dst for src, dst in copy_calls), f"Self-copy detected in CopySpec calls: {copy_calls}"
-    assert any(dst == "/World/envs/env_1" for _, dst in copy_calls), "CopySpec was not called for env_1"
-
-
 @pytest.mark.parametrize(
     "parent_paths, spawn_pattern, expected_child_paths, bad_path, match_expr",
     [
         (
             ["/World/rig_0_alpha", "/World/rig_0_beta", "/World/rig_0_gamma"],
-            "/World/rig_0_.*/Sensor",
+            "/World/rig_0_[^/]*/Sensor",
             ["/World/rig_0_alpha/Sensor", "/World/rig_0_beta/Sensor", "/World/rig_0_gamma/Sensor"],
             "/World/rig_00/Sensor",
-            "/World/rig_0_.*",
+            "/World/rig_0_[^/]*",
         ),
         (
             [
@@ -158,7 +193,7 @@ def test_usd_replicate_self_copy_skips_copy_spec(sim):
                 "/World/group_b/slot_0",
                 "/World/group_b/slot_1",
             ],
-            "/World/group_.*/slot_.*/Sensor",
+            "/World/group_[^/]*/slot_[^/]*/Sensor",
             [
                 "/World/group_a/slot_0/Sensor",
                 "/World/group_a/slot_1/Sensor",
@@ -166,7 +201,7 @@ def test_usd_replicate_self_copy_skips_copy_spec(sim):
                 "/World/group_b/slot_1/Sensor",
             ],
             "/World/group_0/slot_0/Sensor",
-            "/World/group_.*/slot_.*",
+            "/World/group_[^/]*/slot_[^/]*",
         ),
         (
             ["/World/template/Object"],
@@ -180,19 +215,7 @@ def test_usd_replicate_self_copy_skips_copy_spec(sim):
 def test_clone_decorator_wildcard_patterns(
     sim, parent_paths, spawn_pattern, expected_child_paths, bad_path, match_expr
 ):
-    """The @clone decorator handles two distinct wildcard patterns correctly.
-
-    Case A – ``.*`` in root_path (parent is a regex): the child prim is spawned at
-    ``source_prim_paths[0]`` as a prototype and then copied to every other matching
-    parent via ``Sdf.CopySpec``, so **all** parents end up with the child.  The old
-    ``prim_path.replace(".*", "0")`` approach created spurious intermediate prims
-    that inflated ``find_matching_prims`` counts and broke tiled-camera initialization.
-
-    Case B – ``.*`` only in asset_path (leaf): no parent regex, so
-    ``source_prim_paths == [root_path]`` (one entry, no copy step).  Replacing
-    ``".*"`` → ``"0"`` in the asset name gives the intended prototype name
-    (e.g. ``proto_asset_0``) under the single real parent.
-    """
+    """The @clone decorator handles two distinct wildcard patterns correctly."""
     for path in parent_paths:
         sim_utils.create_prim(path, "Xform")
 
@@ -201,19 +224,16 @@ def test_clone_decorator_wildcard_patterns(
 
     stage = sim_utils.get_current_stage()
 
-    # Every expected child path must exist
     for child_path in expected_child_paths:
         assert stage.GetPrimAtPath(child_path).IsValid(), (
             f"Prim was not spawned at '{child_path}'. The @clone decorator may have used the wrong spawn path."
         )
 
-    # The spurious path from the old replace(".*", "0") must NOT exist
     assert not stage.GetPrimAtPath(bad_path).IsValid(), (
         f"Spurious prim found at '{bad_path}'. "
         "The @clone decorator incorrectly derived the spawn path by replacing '.*' with '0'."
     )
 
-    # find_matching_prims must see exactly the original parents — no spurious extras
     all_matching = sim_utils.find_matching_prims(match_expr)
     assert len(all_matching) == len(parent_paths), (
         f"Expected {len(parent_paths)} matching prims, got {len(all_matching)}. "
@@ -221,56 +241,47 @@ def test_clone_decorator_wildcard_patterns(
     )
 
 
-def test_clone_from_template_returns_clone_plan(sim):
-    """clone_from_template exposes per-group ClonePlan dicts with prototype-to-env masks.
-
-    Builds two USD prototypes under one group, clones across four envs with the deterministic
-    sequential strategy, and asserts the returned dict has one entry keyed by the group's
-    destination template, with a ``[2, 4]`` boolean mask whose columns sum to one.
-    """
-    num_clones = 4
-    cfg = TemplateCloneCfg(device=sim.cfg.device, clone_strategy=sequential, clone_physics=False)
-
-    sim_utils.create_prim(cfg.template_root, "Xform")
-    sim_utils.create_prim(f"{cfg.template_root}/Object", "Xform")
-    sim_utils.create_prim(f"{cfg.template_root}/Object/proto_asset_0", "Xform")
-    sim_utils.create_prim(f"{cfg.template_root}/Object/proto_asset_1", "Xform")
-    sim_utils.create_prim("/World/envs", "Xform")
-    for i in range(num_clones):
-        sim_utils.create_prim(f"/World/envs/env_{i}", "Xform", translation=(0, 0, 0))
-
+@pytest.mark.parametrize("with_clone_plan", [True, False])
+def test_resolve_matching_prims_from_source(sim, with_clone_plan):
+    """Discovery returns unique source prims, preserving order and multi-instance expressions."""
     stage = sim_utils.get_current_stage()
-    plans = clone_from_template(stage, num_clones=num_clones, template_clone_cfg=cfg)
+    for path in (
+        "/World/envs/env_0/Robot/foo",
+        "/World/envs/env_0/Robot/foo/bar",
+        "/World/envs/env_0/Robot/other",
+        "/World/envs/env_0/Robot/other/bar",
+        "/World/envs/env_1/Robot/clone_only",
+    ):
+        stage.DefinePrim(path, "Xform")
+    if with_clone_plan:
+        assets = (AssetBaseCfg(prim_path="/World/envs/env_[^/]+/Robot"),)
+        cloner.clone_plan_from_env_0(cloner.CloneCfg(), assets, 2, 0.0)
 
-    assert isinstance(plans, dict)
-    assert list(plans.keys()) == ["/World/envs/env_{}/Object"]
-    plan = plans["/World/envs/env_{}/Object"]
-    assert isinstance(plan, ClonePlan)
-    assert plan.dest_template == "/World/envs/env_{}/Object"
-    assert sorted(plan.prototype_paths) == [
-        "/World/template/Object/proto_asset_0",
-        "/World/template/Object/proto_asset_1",
+    matches = queries.resolve_matching_prims_from_source(r"/World/envs/env_[^/]+/Robot/[^A]+")
+
+    # the clone-only prim under env_1 would match the expression if cloned destinations were traversed
+    assert [prim.GetPath().pathString for prim, _ in matches] == [
+        "/World/envs/env_0/Robot/foo",
+        "/World/envs/env_0/Robot/foo/bar",
+        "/World/envs/env_0/Robot/other",
+        "/World/envs/env_0/Robot/other/bar",
     ]
-    assert plan.clone_mask.shape == (2, num_clones)
-    assert plan.clone_mask.dtype == torch.bool
-    # Each env gets exactly one prototype (column-sum invariant)
-    assert torch.all(plan.clone_mask.sum(dim=0) == 1)
-    # Sequential strategy assigns env i → prototype (i % num_protos)
-    actual_proto_idx = plan.clone_mask.to(torch.int).argmax(dim=0).cpu()
-    assert torch.equal(actual_proto_idx, torch.tensor([0, 1, 0, 1]))
+    assert [path_expr for _, path_expr in matches] == [
+        "/World/envs/env_[^/]+/Robot/foo",
+        "/World/envs/env_[^/]+/Robot/foo/bar",
+        "/World/envs/env_[^/]+/Robot/other",
+        "/World/envs/env_[^/]+/Robot/other/bar",
+    ]
 
-
-def test_clone_from_template_returns_empty_dict_when_no_prototypes(sim):
-    """clone_from_template returns an empty dict when no prototypes match the identifier."""
-    num_clones = 2
-    cfg = TemplateCloneCfg(device=sim.cfg.device, clone_strategy=sequential, clone_physics=False)
-
-    sim_utils.create_prim(cfg.template_root, "Xform")
-    sim_utils.create_prim("/World/envs", "Xform")
-    for i in range(num_clones):
-        sim_utils.create_prim(f"/World/envs/env_{i}", "Xform", translation=(0, 0, 0))
-
-    stage = sim_utils.get_current_stage()
-    plans = clone_from_template(stage, num_clones=num_clones, template_clone_cfg=cfg)
-
-    assert plans == {}
+    # Each bar is reachable through two matching roots; distinct paths with the same name remain distinct.
+    matches = queries.resolve_matching_prims_from_source(
+        r"/World/envs/env_[^/]+/Robot/.*", predicate=lambda prim: prim.GetName() == "bar", expected_num_matches=2
+    )
+    assert [prim.GetPath().pathString for prim, _ in matches] == [
+        "/World/envs/env_0/Robot/foo/bar",
+        "/World/envs/env_0/Robot/other/bar",
+    ]
+    assert [path_expr for _, path_expr in matches] == [
+        "/World/envs/env_[^/]+/Robot/foo/bar",
+        "/World/envs/env_[^/]+/Robot/other/bar",
+    ]

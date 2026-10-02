@@ -122,8 +122,8 @@ class ProxyArray:
     def torch(self) -> torch.Tensor:
         """A cached, zero-copy :class:`torch.Tensor` view of the warp array.
 
-        The tensor is created on first access via :func:`warp.to_torch` and cached
-        for subsequent calls. Since this is a zero-copy view, modifications to the
+        The tensor is created on first access and cached for subsequent calls.
+        Since this is a zero-copy view, modifications to the
         tensor are visible through the warp array and vice versa.
 
         When the underlying warp array has dtype ``wp.quatf`` and the
@@ -201,6 +201,24 @@ class ProxyArray:
             AttributeError: If the underlying warp array is not on a CPU device.
         """
         return self._warp.__array_interface__
+
+    # ------------------------------------------------------------------
+    # Attribute forwarding (deprecation bridge — delegates to .torch)
+    # ------------------------------------------------------------------
+
+    def __getattr__(self, name: str):
+        """Forward unknown attribute access to the torch view (deprecation bridge).
+
+        Called only when normal attribute lookup fails (i.e. the attribute is not
+        defined on :class:`ProxyArray` itself), so explicit properties such as
+        ``shape``, ``dtype``, ``device``, ``warp``, and ``torch`` are unaffected.
+
+        This allows tensor instance methods (``float()``, ``clone()``, ``cpu()``,
+        ``permute()``, etc.) to be called on a :class:`ProxyArray` without an
+        explicit ``.torch`` accessor, emitting a one-time :class:`DeprecationWarning`.
+        """
+        self._warn_implicit()
+        return getattr(self.torch, name)
 
     # ------------------------------------------------------------------
     # Indexing (deprecation bridge — delegates to .torch)

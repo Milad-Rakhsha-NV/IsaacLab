@@ -10,20 +10,18 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import torch
-import warp as wp
 
 import isaaclab.utils.math as math_utils
 import isaaclab.utils.string as string_utils
 from isaaclab.assets.articulation import Articulation
 from isaaclab.controllers.rmp_flow import RmpFlowController
 from isaaclab.managers.action_manager import ActionTerm
+from isaaclab.utils import index_fill_
 
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedEnv
-
+    from ... import ManagerBasedEnv
     from . import rmpflow_actions_cfg
 
-# import logger
 logger = logging.getLogger(__name__)
 
 
@@ -56,15 +54,8 @@ class RMPFlowAction(ActionTerm):
         self._body_idx = body_ids[0]
         self._body_name = body_names[0]
 
-        # check if articulation is fixed-base
-        # if fixed-base then the jacobian for the base is not computed
-        # this means that number of bodies is one less than the articulation's number of bodies
-        if self._asset.is_fixed_base:
-            self._jacobi_body_idx = self._body_idx - 1
-            self._jacobi_joint_ids = self._joint_ids
-        else:
-            self._jacobi_body_idx = self._body_idx
-            self._jacobi_joint_ids = [i + 6 for i in self._joint_ids]
+        self._jacobi_body_idx = self._body_idx - 1 if self._asset.is_fixed_base else self._body_idx
+        self._jacobi_joint_ids = [j + self._asset.num_base_dofs for j in self._joint_ids]
 
         # log info for debugging
         logger.info(
@@ -128,7 +119,7 @@ class RMPFlowAction(ActionTerm):
 
     @property
     def jacobian_w(self) -> torch.Tensor:
-        return wp.to_torch(self._asset.root_view.get_jacobians())[:, self._jacobi_body_idx, :, self._jacobi_joint_ids]
+        return self._asset.data.body_link_jacobian_w.torch[:, self._jacobi_body_idx, :, self._jacobi_joint_ids]
 
     @property
     def jacobian_b(self) -> torch.Tensor:
@@ -192,7 +183,7 @@ class RMPFlowAction(ActionTerm):
         self._asset.set_joint_velocity_target_index(target=joint_vel_des, joint_ids=self._joint_ids)
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
-        self._raw_actions[env_ids] = 0.0
+        index_fill_(self._raw_actions, env_ids, 0.0)
         self._rmpflow_controller.initialize(self.num_envs, list(self._asset.joint_names))
 
     """

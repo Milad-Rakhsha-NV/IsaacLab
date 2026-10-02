@@ -9,7 +9,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import torch
-import warp as wp
 from pink.tasks import FrameTask
 
 import isaaclab.utils.math as math_utils
@@ -17,11 +16,11 @@ from isaaclab.assets.articulation import Articulation
 from isaaclab.controllers.pink_ik import PinkIKController
 from isaaclab.controllers.pink_ik.pink_tasks import LocalFrameTask
 from isaaclab.managers.action_manager import ActionTerm
+from isaaclab.utils import clone, index_fill_
 
 if TYPE_CHECKING:
-    from isaaclab.envs import ManagerBasedEnv
-    from isaaclab.envs.utils.io_descriptors import GenericActionIODescriptor
-
+    from ... import ManagerBasedEnv
+    from ...utils.io_descriptors import GenericActionIODescriptor
     from . import pink_actions_cfg
 
 
@@ -60,9 +59,6 @@ class PinkInverseKinematicsAction(ActionTerm):
         self._raw_actions = torch.zeros(self.num_envs, self.action_dim, device=self.device)
         self._processed_actions = torch.zeros_like(self._raw_actions)
 
-        # PhysX Articulation Floating joint indices offset from IsaacLab Articulation joint indices
-        self._physx_floating_joint_indices_offset = 6
-
         # Pre-allocate tensors for runtime use
         self._initialize_helper_tensors()
 
@@ -91,7 +87,7 @@ class PinkInverseKinematicsAction(ActionTerm):
         for _ in range(self._env.num_envs):
             self._ik_controllers.append(
                 PinkIKController(
-                    cfg=self.cfg.controller.copy(),
+                    cfg=clone(self.cfg.controller),
                     robot_cfg=self._env.scene.cfg.robot,
                     device=self.device,
                     controlled_joint_indices=self._isaaclab_controlled_joint_ids,
@@ -324,20 +320,22 @@ class PinkInverseKinematicsAction(ActionTerm):
         )
 
     def _apply_gravity_compensation(self) -> None:
-        """Apply gravity compensation to arm joints if not disabled in props."""
+        """Apply gravity compensation to arm joints if not disabled in props.
+
+        Reads :attr:`~isaaclab.assets.BaseArticulationData.gravity_compensation_forces`
+        and applies it as a joint-effort target on the controlled arm joints, on top
+        of the joint-position targets from IK. Supported on both the PhysX and the
+        Newton backend.
+        """
         if not self._asset.cfg.spawn.rigid_props.disable_gravity:
-            # Get gravity compensation forces using cached tensor
+            # ``gravity_compensation_forces`` shape is ``(N, num_joints + num_base_dofs)``.
+            # Shift actuated-joint ids by ``num_base_dofs`` to skip the leading floating-
+            # base columns (0 for fixed-base, 6 for floating-base).
+            jacobi_ids = self._controlled_joint_ids_tensor + self._asset.num_base_dofs
             if self._asset.is_fixed_base:
-                gravity = torch.zeros_like(
-                    wp.to_torch(self._asset.root_view.get_gravity_compensation_forces())[
-                        :, self._controlled_joint_ids_tensor
-                    ]
-                )
+                gravity = torch.zeros_like(self._asset.data.gravity_compensation_forces.torch[:, jacobi_ids])
             else:
-                # If floating base, then need to skip the first 6 joints (base)
-                gravity = wp.to_torch(self._asset.root_view.get_gravity_compensation_forces())[
-                    :, self._controlled_joint_ids_tensor + self._physx_floating_joint_indices_offset
-                ]
+                gravity = self._asset.data.gravity_compensation_forces.torch[:, jacobi_ids]
 
             # Apply gravity compensation to arm joints
             self._asset.set_joint_effort_target_index(target=gravity, joint_ids=self._controlled_joint_ids)
@@ -368,4 +366,4 @@ class PinkInverseKinematicsAction(ActionTerm):
         Args:
             env_ids: A list of environment IDs to reset. If None, all environments are reset.
         """
-        self._raw_actions[env_ids] = torch.zeros(self.action_dim, device=self.device)
+        index_fill_(self._raw_actions, env_ids, 0.0)

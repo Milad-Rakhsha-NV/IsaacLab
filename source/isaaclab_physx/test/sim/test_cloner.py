@@ -5,30 +5,37 @@
 
 """Tests for PhysX-dependent cloner utilities."""
 
-"""Launch Isaac Sim Simulator first."""
+from isaaclab.assets import AssetBaseCfg
+from isaaclab.test.utils import DeviceScope, launch_test_simulation, test_devices
 
-from isaaclab.app import AppLauncher
+launch_test_simulation()
 
-# launch omniverse app
-simulation_app = AppLauncher(headless=True).app
-
-"""Rest everything follows."""
-
+import numpy as np
 import pytest
 import torch
 import warp as wp
-from isaaclab_physx.cloner import physx_replicate
+from isaaclab_physx.cloner import PhysxReplicateContext, physx_replicate
+from isaaclab_physx.sim.schemas import PhysxRigidBodyCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.cloner import (
-    TemplateCloneCfg,
-    _fabric_notices,
-    clone_from_template,
     disabled_fabric_change_notifies,
-    sequential,
+    fabric_notices,
+    make_clone_plan,
     usd_replicate,
 )
 from isaaclab.sim import build_simulation_context
+
+
+def _make_flat_clone_plan(num_variants: int, num_clones: int, destination: str):
+    """Raw paths and a round-robin mask for testing the native replication API."""
+    chosen = np.arange(num_clones) % num_variants
+    mask = np.zeros((num_variants, num_clones), dtype=np.bool_)
+    mask[chosen, np.arange(num_clones)] = True
+    sources = tuple(destination.format(i) for i in range(num_variants))
+    destinations = tuple([destination] * num_variants)
+    return sources, destinations, mask
+
 
 wp.init()
 
@@ -42,26 +49,23 @@ def sim(request):
         yield sim
 
 
-def test_physx_replicate_no_error(sim):
-    """PhysX replicator call runs without raising exceptions for simple mapping."""
-    sim_utils.create_prim("/World/envs", "Xform")
-    sim_utils.create_prim("/World/template", "Xform")
-    sim_utils.create_prim("/World/template/A", "Xform")
+# Replicator bookkeeping (mapping checks, world lists, Fabric notices) does not depend on the
+# simulation device, so those tests run on CUDA only.
+cuda_only = pytest.mark.parametrize("sim", test_devices(DeviceScope.DEFAULT_CUDA), indirect=True)
 
-    num_envs = 2
-    env_ids = torch.arange(num_envs, dtype=torch.long)
-    for i in range(num_envs):
-        sim_utils.create_prim(f"/World/envs/env_{i}", "Xform")
 
-    mapping = torch.ones((1, num_envs), dtype=torch.bool)
-
-    physx_replicate(
-        sim_utils.get_current_stage(),
-        sources=["/World/template/A"],
-        destinations=["/World/envs/env_{}/A"],
-        env_ids=env_ids,
-        mapping=mapping,
-    )
+@cuda_only
+def test_physx_replicate_validates_mapping_shape(sim):
+    """Mapping rows and columns match the declared sources and environments."""
+    env_ids = np.arange(2, dtype=np.int64)
+    with pytest.raises(ValueError, match="mapping must have shape"):
+        physx_replicate(
+            sim_utils.get_current_stage(),
+            sources=["/World/template/A"],
+            destinations=["/World/envs/env_{}/A"],
+            env_ids=env_ids,
+            mapping=np.ones((1, len(env_ids) + 1), dtype=np.bool_),
+        )
 
 
 def _make_mock_physx_rep():
@@ -108,6 +112,25 @@ def _make_mock_physx_rep_detailed():
     return mock_rep, replicate_calls, attach_excluded
 
 
+@cuda_only
+@pytest.mark.parametrize("world_prototypes", [((0,),), ((0,), (0,))])
+def test_physx_replicate_context_consumes_plan(sim, world_prototypes):
+    """PhysX batches an asset's destinations across world-prototype boundaries."""
+    from unittest.mock import patch
+
+    sim_utils.create_prim("/World/envs", "Xform")
+    for i in range(3):
+        sim_utils.create_prim(f"/World/envs/env_{i}", "Xform")
+
+    mock_rep, replicate_calls = _make_mock_physx_rep()
+    with patch("isaaclab_physx.cloner.replicate.get_physx_replicator_interface", return_value=mock_rep):
+        plan = make_clone_plan((AssetBaseCfg(prim_path="/World/envs/env_[^/]+/Object"),), world_prototypes, 3)
+        PhysxReplicateContext(sim).replicate(plan, (0,))
+
+    assert replicate_calls == [2]
+
+
+@cuda_only
 @pytest.mark.parametrize(
     "num_envs,src,expected_worlds",
     [
@@ -136,13 +159,13 @@ def test_physx_replicate_world_counts(sim, num_envs, src, expected_worlds):
         sim_utils.create_prim(f"/World/envs/env_{i}", "Xform")
 
     mock_rep, replicate_calls = _make_mock_physx_rep()
-    with patch("isaaclab_physx.cloner.physx_replicate.get_physx_replicator_interface", return_value=mock_rep):
+    with patch("isaaclab_physx.cloner.replicate.get_physx_replicator_interface", return_value=mock_rep):
         physx_replicate(
             stage,
-            sources=[src],
-            destinations=["/World/envs/env_{}"],
-            env_ids=torch.arange(num_envs, dtype=torch.long),
-            mapping=torch.ones((1, num_envs), dtype=torch.bool),
+            sources=[src, src],
+            destinations=["/World/envs/env_{}"] * 2,
+            env_ids=np.arange(num_envs, dtype=np.int64),
+            mapping=np.array([[True] * num_envs, [False] * num_envs], dtype=np.bool_),
         )
 
     assert replicate_calls == expected_worlds, (
@@ -150,8 +173,7 @@ def test_physx_replicate_world_counts(sim, num_envs, src, expected_worlds):
     )
 
 
-@pytest.mark.parametrize("device", ["cpu", "cuda"])
-def test_physx_replicate_isolated_source_loaded_without_replication(sim, device):
+def test_physx_replicate_isolated_source_loaded_without_replication(sim):
     """A single-env source (worlds=[self]) is correctly loaded after physx_replicate.
 
     When there is only one environment and the source maps to itself,
@@ -165,9 +187,9 @@ def test_physx_replicate_isolated_source_loaded_without_replication(sim, device)
     sim_utils.create_prim("/World/template", "Xform")
     sphere_cfg = sim_utils.SphereCfg(
         radius=0.1,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-        mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-        collision_props=sim_utils.CollisionPropertiesCfg(),
+        rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(),
+        mass_props=sim_utils.MassCfg(mass=1.0),
+        collision_props=sim_utils.UsdPhysicsCollisionCfg(),
     )
     sphere_cfg.func("/World/envs/env_0/Sphere", sphere_cfg)
 
@@ -175,9 +197,8 @@ def test_physx_replicate_isolated_source_loaded_without_replication(sim, device)
         stage,
         sources=["/World/envs/env_0/Sphere"],
         destinations=["/World/envs/env_{}/Sphere"],
-        env_ids=torch.tensor([0], dtype=torch.long),
-        mapping=torch.ones((1, 1), dtype=torch.bool),
-        device=device,
+        env_ids=np.array([0], dtype=np.int64),
+        mapping=np.ones((1, 1), dtype=np.bool_),
     )
 
     sim.reset()
@@ -189,11 +210,11 @@ def test_physx_replicate_isolated_source_loaded_without_replication(sim, device)
     )
 
 
-@pytest.mark.parametrize("device", ["cpu", "cuda"])
-def test_physx_replicate_heterogeneous_isolated_sources(sim, device):
+@cuda_only
+def test_physx_replicate_heterogeneous_isolated_sources(sim):
     """physx_replicate handles heterogeneous sources excluding self from world lists.
 
-    This is the Dexsuite scenario: multiple object types, each with a designated proto-env.
+    This is the Lift scenario: multiple object types, each with a designated proto-env.
     With ``exclude_self_replication=True`` (default), self is removed from the world list
     only when the source also maps to other environments.  Self-only sources keep self so
     that ``rep.replicate()`` still fires and the source prim gets its physics body (since
@@ -212,20 +233,19 @@ def test_physx_replicate_heterogeneous_isolated_sources(sim, device):
     for i in range(num_envs):
         sim_utils.create_prim(f"/World/envs/env_{i}", "Xform")
 
-    mapping = torch.zeros((3, num_envs), dtype=torch.bool)
+    mapping = np.zeros((3, num_envs), dtype=np.bool_)
     mapping[0, [0, 2, 4]] = True
     mapping[1, [5]] = True
     mapping[2, [7, 11]] = True
 
     mock_rep, replicate_calls, attach_excluded = _make_mock_physx_rep_detailed()
-    with patch("isaaclab_physx.cloner.physx_replicate.get_physx_replicator_interface", return_value=mock_rep):
+    with patch("isaaclab_physx.cloner.replicate.get_physx_replicator_interface", return_value=mock_rep):
         physx_replicate(
             stage,
             sources=["/World/envs/env_0/Object", "/World/envs/env_5/Object", "/World/envs/env_7/Object"],
             destinations=["/World/envs/env_{}/Object"] * 3,
-            env_ids=torch.arange(num_envs, dtype=torch.long),
+            env_ids=np.arange(num_envs, dtype=np.int64),
             mapping=mapping,
-            device=device,
         )
 
     expected = [
@@ -242,19 +262,9 @@ def test_physx_replicate_heterogeneous_isolated_sources(sim, device):
     assert "/World/envs" in attach_excluded
 
 
-def test_clone_from_template(sim):
-    """Clone prototypes via TemplateCloneCfg and clone_from_template and exercise both USD and PhysX.
-
-    Steps:
-    - Create /World/template and /World/envs/env_0..env_31
-    - Spawn three prototypes under /World/template/Object/proto_asset_.*
-    - Clone using TemplateCloneCfg with random_heterogeneous_cloning=False (modulo mapping)
-    - Verify modulo placement exists; then call sim.reset(), and create PhysX view
-    """
+def test_direct_clone_plan_multi_asset(sim):
+    """Clone representative env sources directly and exercise both USD and PhysX."""
     num_clones = 32
-    clone_cfg = TemplateCloneCfg(device=sim.cfg.device, clone_strategy=sequential)
-    sim_utils.create_prim(clone_cfg.template_root, "Xform")
-    sim_utils.create_prim(f"{clone_cfg.template_root}/Object", "Xform")
     sim_utils.create_prim("/World/envs", "Xform")
     for i in range(num_clones):
         sim_utils.create_prim(f"/World/envs/env_{i}", "Xform", translation=(0, 0, 0))
@@ -265,7 +275,7 @@ def test_clone_from_template(sim):
                 radius=0.3,
                 height=0.6,
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
-                mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
+                mass_props=sim_utils.MassCfg(mass=100.0),
             ),
             sim_utils.CuboidCfg(
                 size=(0.3, 0.3, 0.3),
@@ -276,17 +286,23 @@ def test_clone_from_template(sim):
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
             ),
         ],
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            solver_position_iteration_count=4, solver_velocity_iteration_count=0
-        ),
-        mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-        collision_props=sim_utils.CollisionPropertiesCfg(),
+        rigid_props=PhysxRigidBodyCfg(solver_position_iteration_count=4, solver_velocity_iteration_count=0),
+        mass_props=sim_utils.MassCfg(mass=1.0),
+        collision_props=sim_utils.UsdPhysicsCollisionCfg(),
     )
-    prim = cfg.func(f"{clone_cfg.template_root}/Object/{clone_cfg.template_prototype_identifier}_.*", cfg)
+    sources, destinations, clone_mask = _make_flat_clone_plan(
+        num_variants=len(cfg.assets_cfg),
+        num_clones=num_clones,
+        destination="/World/envs/env_{}/Object",
+    )
+    cfg.spawn_paths = list(sources)
+    prim = cfg.func("/World/unused", cfg)
     assert prim.IsValid()
 
     stage = sim_utils.get_current_stage()
-    clone_from_template(stage, num_clones=num_clones, template_clone_cfg=clone_cfg)
+    env_ids = np.arange(num_clones, dtype=np.int64)
+    physx_replicate(stage, sources, destinations, env_ids, clone_mask)
+    usd_replicate(stage, sources, destinations, env_ids, clone_mask)
 
     primitive_prims = sim_utils.get_all_matching_child_prims(
         "/World/envs", predicate=lambda prim: prim.GetTypeName() in ["Cone", "Cube", "Sphere"]
@@ -302,27 +318,35 @@ def test_clone_from_template(sim):
             assert primitive_prim.GetTypeName() == "Sphere"
 
     sim.reset()
-    object_view_regex = f"{clone_cfg.clone_regex}/Object".replace(".*", "*")
     physics_sim_view = sim.physics_manager.get_physics_sim_view()
-    physx_view = physics_sim_view.create_rigid_body_view(object_view_regex)
-    assert physx_view is not None
+    physx_view = physics_sim_view.create_rigid_body_view("/World/envs/env_*/Object")
+    assert physx_view.count == num_clones
 
 
 def _run_colocation_collision_filter(sim, asset_cfg, expected_types, assert_count=False):
     """Shared harness for colocated collision filter checks across devices."""
     num_clones = 32
-    clone_cfg = TemplateCloneCfg(device=sim.cfg.device, clone_strategy=sequential)
-    sim_utils.create_prim(clone_cfg.template_root, "Xform")
-    sim_utils.create_prim(f"{clone_cfg.template_root}/Object", "Xform")
     sim_utils.create_prim("/World/envs", "Xform")
     for i in range(num_clones):
         sim_utils.create_prim(f"/World/envs/env_{i}", "Xform", translation=(0, 0, 0))
 
-    prim = asset_cfg.func(f"{clone_cfg.template_root}/Object/{clone_cfg.template_prototype_identifier}_.*", asset_cfg)
+    num_variants = len(asset_cfg.assets_cfg) if isinstance(asset_cfg, sim_utils.MultiAssetSpawnerCfg) else 1
+    sources, destinations, clone_mask = _make_flat_clone_plan(
+        num_variants=num_variants,
+        num_clones=num_clones,
+        destination="/World/envs/env_{}/Object",
+    )
+    if isinstance(asset_cfg, sim_utils.MultiAssetSpawnerCfg):
+        asset_cfg.spawn_paths = list(sources)
+        prim = asset_cfg.func("/World/unused", asset_cfg)
+    else:
+        prim = asset_cfg.func(sources[0], asset_cfg)
     assert prim.IsValid()
 
     stage = sim_utils.get_current_stage()
-    clone_from_template(stage, num_clones=num_clones, template_clone_cfg=clone_cfg)
+    env_ids = np.arange(num_clones, dtype=np.int64)
+    physx_replicate(stage, sources, destinations, env_ids, clone_mask)
+    usd_replicate(stage, sources, destinations, env_ids, clone_mask)
 
     primitive_prims = sim_utils.get_all_matching_child_prims(
         "/World/envs", predicate=lambda prim: prim.GetTypeName() in expected_types
@@ -335,9 +359,8 @@ def _run_colocation_collision_filter(sim, asset_cfg, expected_types, assert_coun
         assert primitive_prim.GetTypeName() == expected_types[i % len(expected_types)]
 
     sim.reset()
-    object_view_regex = f"{clone_cfg.clone_regex}/Object".replace(".*", "*")
     physics_sim_view = sim.physics_manager.get_physics_sim_view()
-    physx_view = physics_sim_view.create_rigid_body_view(object_view_regex)
+    physx_view = physics_sim_view.create_rigid_body_view("/World/envs/env_*/Object")
     for _ in range(100):
         sim.step()
     transforms = wp.to_torch(physx_view.get_transforms())
@@ -358,51 +381,12 @@ def test_colocation_collision_filter_homogeneous(sim):
             radius=0.3,
             height=0.6,
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
-            mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                solver_position_iteration_count=4, solver_velocity_iteration_count=0
-            ),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
+            mass_props=sim_utils.MassCfg(mass=100.0),
+            rigid_props=PhysxRigidBodyCfg(solver_position_iteration_count=4, solver_velocity_iteration_count=0),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
         ),
         expected_types=["Cone"],
         assert_count=True,
-    )
-
-
-@pytest.mark.xfail(reason="Heterogeneous cloning with collision filtering not yet fully supported")
-def test_colocation_collision_filter_heterogeneous(sim):
-    """Verify colocated clones of multiple prototypes retain modulo ordering and remain stable.
-
-    The cone, cube, and sphere are all spawned in the identical pose for every clone; an incorrect
-    collision filter would blow up the simulation on reset. This guards both modulo ordering and
-    that the colocated set stays stable through PhysX steps across CPU and CUDA.
-    """
-    _run_colocation_collision_filter(
-        sim,
-        sim_utils.MultiAssetSpawnerCfg(
-            assets_cfg=[
-                sim_utils.ConeCfg(
-                    radius=0.3,
-                    height=0.6,
-                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
-                    mass_props=sim_utils.MassPropertiesCfg(mass=100.0),
-                ),
-                sim_utils.CuboidCfg(
-                    size=(0.3, 0.3, 0.3),
-                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
-                ),
-                sim_utils.SphereCfg(
-                    radius=0.3,
-                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
-                ),
-            ],
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                solver_position_iteration_count=4, solver_velocity_iteration_count=0
-            ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
-            collision_props=sim_utils.CollisionPropertiesCfg(),
-        ),
-        expected_types=["Cone", "Cube", "Sphere"],
     )
 
 
@@ -420,15 +404,15 @@ def _run_sphere_velocity_sim(sim, use_physx_replicate: bool, num_steps: int = 10
 
     sphere_cfg = sim_utils.SphereCfg(
         radius=0.25,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(),
-        mass_props=sim_utils.MassPropertiesCfg(mass=0.5),
-        collision_props=sim_utils.CollisionPropertiesCfg(),
+        rigid_props=sim_utils.UsdPhysicsRigidBodyCfg(),
+        mass_props=sim_utils.MassCfg(mass=0.5),
+        collision_props=sim_utils.UsdPhysicsCollisionCfg(),
     )
     sphere_cfg.func("/World/envs/env_0/ball", sphere_cfg, translation=(0.0, 0.0, 0.5))
 
-    env_ids = torch.arange(num_envs, dtype=torch.long)
-    positions = torch.tensor([[0.0, 0.0, 0.0], [spacing, 0.0, 0.0]])
-    mapping = torch.ones((1, num_envs), dtype=torch.bool)
+    env_ids = np.arange(num_envs, dtype=np.int64)
+    positions = np.array([[0.0, 0.0, 0.0], [spacing, 0.0, 0.0]], dtype=np.float32)
+    mapping = np.ones((1, num_envs), dtype=np.bool_)
 
     if use_physx_replicate:
         physx_replicate(
@@ -437,7 +421,6 @@ def _run_sphere_velocity_sim(sim, use_physx_replicate: bool, num_steps: int = 10
             destinations=["/World/envs/env_{}/ball"],
             env_ids=env_ids,
             mapping=mapping,
-            device=sim.cfg.device,
         )
 
     usd_replicate(
@@ -469,25 +452,14 @@ def _run_sphere_velocity_sim(sim, use_physx_replicate: bool, num_steps: int = 10
     return torch.stack(velocities)
 
 
-def test_physx_replicate_env_consistency(sim):
-    """Test that env_0 and env_1 produce matching velocities when using physx_replicate."""
-    trajectory = _run_sphere_velocity_sim(sim, use_physx_replicate=True)
-
-    for idx in range(trajectory.shape[0]):
-        v0 = trajectory[idx, 0]
-        v1 = trajectory[idx, 1]
-        diff = (v0 - v1).abs().max().item()
-        assert diff < 1e-3, f"step {idx}: env_0 and env_1 diverge, max_diff={diff}"
-
-
-@pytest.mark.xfail(reason="Source env gets physics from replicator, not USD parsing; may diverge from baseline.")
-@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("device", test_devices(DeviceScope.CPU_AND_DEFAULT_CUDA))
 def test_physx_replicate_vs_no_replicate(device):
     """Test that physx_replicate does not change the physics behavior of env_0.
 
     With ``attach_fn`` excluding ``/World/envs``, env_0 receives its physics body
     from the replicator (as the source of ``rep.replicate()``) rather than from
-    normal USD parsing, which may produce subtly different behaviour.
+    normal USD parsing; the resulting trajectory must match the USD-parsed baseline,
+    and the replicated env_1 must match env_0.
     """
     with build_simulation_context(device=device, dt=0.01, add_lighting=False) as sim_no_rep:
         baseline = _run_sphere_velocity_sim(sim_no_rep, use_physx_replicate=False)
@@ -498,13 +470,16 @@ def test_physx_replicate_vs_no_replicate(device):
     for idx in range(baseline.shape[0]):
         diff = (with_rep[idx, 0] - baseline[idx, 0]).abs().max().item()
         assert diff < 1e-3, f"step {idx}: replicate vs no-replicate diverge, max_diff={diff}"
+        diff = (with_rep[idx, 0] - with_rep[idx, 1]).abs().max().item()
+        assert diff < 1e-3, f"step {idx}: env_0 and env_1 diverge, max_diff={diff}"
 
 
+@cuda_only
 def test_disabled_fabric_change_notifies_toggles_ifabricusd_flag(sim):
     """Regression: ``disabled_fabric_change_notifies`` actually toggles the IFabricUsd flag.
 
     The PR's perf win depends on ``setEnableChangeNotifies`` being driven correctly by the
-    ctypes binding in ``_fabric_notices.py``. That binding reads hardcoded vtable offsets
+    ctypes binding in ``fabric_notices.py``. That binding reads hardcoded vtable offsets
     and could silently no-op if Kit's ABI shifts (offsets drift) or libcarb fails to load.
 
     A perf-delta assertion can't be done reliably in synthetic isolation — the listener's
@@ -517,7 +492,7 @@ def test_disabled_fabric_change_notifies_toggles_ifabricusd_flag(sim):
     import usdrt
     from pxr import UsdUtils
 
-    bindings = _fabric_notices.get_bindings()
+    bindings = fabric_notices.get_bindings()
     if bindings is None:
         pytest.skip("omni::fabric::IFabricUsd unavailable — Fabric notice path inert here")
 
@@ -550,95 +525,3 @@ def test_disabled_fabric_change_notifies_toggles_ifabricusd_flag(sim):
             assert not bindings.is_enabled(fabric_id)
         assert not bindings.is_enabled(fabric_id), "inner exit must not re-enable while outer is active"
     assert bindings.is_enabled(fabric_id), "outer exit should restore the flag"
-
-
-@pytest.mark.skip(
-    reason=(
-        "Local-only perf regression; correctness is covered by"
-        " test_disabled_fabric_change_notifies_toggles_ifabricusd_flag."
-        " Re-enable manually when touching listener suspension."
-    )
-)
-def test_disabled_fabric_change_notifies_speedup_regression():
-    """Local-only perf regression: listener suspension speeds up clone+reset by >= 1.2x.
-
-    Skipped unconditionally — the suspension mechanism's correctness is covered by
-    :func:`test_disabled_fabric_change_notifies_toggles_ifabricusd_flag`; the wall-clock
-    win is platform-sensitive (deferred Fabric resync in ``sim.reset`` can offset the
-    scene-time savings on some hardware). Re-verify locally when touching the suspension.
-
-    Scene knobs from bisection: ``rigid_props`` is required (plain Xforms give ~1.0x),
-    ``replicate_physics=True`` is required (drops to ~1.19x without), and 16 bodies x
-    4096 envs ≈ 64K firings keeps listener cost above noise. See PR #5432.
-    """
-    import time
-
-    import isaaclab.cloner._fabric_notices as fabric_notices_mod
-    import isaaclab.sim as sim_utils
-    from isaaclab.assets import RigidObjectCfg
-    from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
-    from isaaclab.utils import configclass
-
-    if fabric_notices_mod.get_bindings() is None:
-        pytest.skip("omni::fabric::IFabricUsd unavailable")
-
-    def _body(i: int) -> RigidObjectCfg:
-        return RigidObjectCfg(
-            prim_path=f"/World/envs/env_.*/Body_{i}",
-            spawn=sim_utils.SphereCfg(radius=0.1, rigid_props=sim_utils.RigidBodyPropertiesCfg()),
-            init_state=RigidObjectCfg.InitialStateCfg(pos=(0.3 * (i % 4), 0.3 * (i // 4), 0.5)),
-        )
-
-    @configclass
-    class _SceneCfg(InteractiveSceneCfg):
-        pass
-
-    for _i in range(16):
-        setattr(_SceneCfg, f"body_{_i}", _body(_i))
-
-    def _probe_flag(stage) -> bool | None:
-        try:
-            import usdrt
-            from pxr import UsdUtils
-
-            cid = UsdUtils.StageCache.Get().GetId(stage)
-            sid = cid.ToLongInt() if cid.IsValid() else UsdUtils.StageCache.Get().Insert(stage).ToLongInt()
-            fid = usdrt.Usd.Stage.Attach(sid).GetFabricId().id
-            b = fabric_notices_mod.get_bindings()
-            return None if b is None else bool(b.is_enabled(fid))
-        except Exception:
-            return None
-
-    def _measure(simulate_pre_pr: bool) -> tuple[float, float, bool | None]:
-        original = fabric_notices_mod.get_bindings
-        if simulate_pre_pr:
-            fabric_notices_mod.get_bindings = lambda: None
-            assert fabric_notices_mod.get_bindings() is None, "monkey-patch did not take effect"
-        try:
-            with build_simulation_context(device="cpu", dt=0.01, add_lighting=False) as sim:
-                t0 = time.perf_counter()
-                scene = InteractiveScene(_SceneCfg(num_envs=4096, env_spacing=4.0, replicate_physics=True))
-                scene_dt = time.perf_counter() - t0
-                # Probe before reset so we see whether suspension actually engaged.
-                fabric_notices_mod.get_bindings = original
-                flag = _probe_flag(scene.stage)
-                if simulate_pre_pr:
-                    fabric_notices_mod.get_bindings = lambda: None
-                t0 = time.perf_counter()
-                sim.reset()
-                return scene_dt, time.perf_counter() - t0, flag
-        finally:
-            fabric_notices_mod.get_bindings = original
-
-    _measure(simulate_pre_pr=False)  # warmup
-    s_scene, s_reset, s_flag = _measure(simulate_pre_pr=False)
-    a_scene, a_reset, a_flag = _measure(simulate_pre_pr=True)
-
-    suspended = s_scene + s_reset
-    active = a_scene + a_reset
-    speedup = active / suspended
-    print(
-        f"\n[fabric-notice perf] active={active:.2f}s (flag={a_flag})"
-        f" suspended={suspended:.2f}s (flag={s_flag}) speedup={speedup:.2f}x"
-    )
-    assert speedup >= 1.2, f"expected >= 1.2x, got {speedup:.2f}x (active={active:.2f}s suspended={suspended:.2f}s)"

@@ -8,7 +8,7 @@
 Tests for kernels in ``sensors/ray_caster/kernels.py`` and
 ``utils/warp/kernels.py``.  Exercised directly with hand-crafted warp arrays
 and analytically computed expected outputs.  No simulation, no stage, no
-AppLauncher -- just warp and numpy on CPU (or CUDA when available).
+the Kit launcher -- just warp and numpy on CPU (or CUDA when available).
 
 See ``test_update_ray_caster_kernel.py`` for tests of
 :func:`update_ray_caster_kernel`.
@@ -16,50 +16,24 @@ See ``test_update_ray_caster_kernel.py`` for tests of
 
 from __future__ import annotations
 
-import importlib.util
 import math
-import os
 
 import numpy as np
 import pytest
+import trimesh
 import warp as wp
 
-# ---------------------------------------------------------------------------
-# Import kernel modules directly (avoids Isaac Sim / Omniverse dependencies)
-# ---------------------------------------------------------------------------
+pytestmark = pytest.mark.unit
 
-_SENSOR_KERNEL_PATH = os.path.join(
-    os.path.dirname(__file__),
-    os.pardir,
-    os.pardir,
-    "isaaclab",
-    "sensors",
-    "ray_caster",
-    "kernels.py",
+from isaaclab.sensors.ray_caster.kernels import (
+    apply_z_drift_kernel,
+    compute_distance_to_image_plane_to_image_masked_kernel,
+    copy_float2d_to_image1_depth_clipped_masked_kernel,
+    fill_ray_hits_distance_inf_kernel,
+    quat_yaw_only,
 )
-_spec = importlib.util.spec_from_file_location("ray_caster_kernels", os.path.normpath(_SENSOR_KERNEL_PATH))
-_sensor_mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_sensor_mod)
-
-_WARP_KERNEL_PATH = os.path.join(
-    os.path.dirname(__file__),
-    os.pardir,
-    os.pardir,
-    "isaaclab",
-    "utils",
-    "warp",
-    "kernels.py",
-)
-_warp_spec = importlib.util.spec_from_file_location("warp_kernels", os.path.normpath(_WARP_KERNEL_PATH))
-_warp_mod = importlib.util.module_from_spec(_warp_spec)
-_warp_spec.loader.exec_module(_warp_mod)
-
-compute_distance_to_image_plane_masked_kernel = _sensor_mod.compute_distance_to_image_plane_masked_kernel
-apply_depth_clipping_masked_kernel = _sensor_mod.apply_depth_clipping_masked_kernel
-apply_z_drift_kernel = _sensor_mod.apply_z_drift_kernel
-quat_yaw_only = _sensor_mod.quat_yaw_only
-
-raycast_dynamic_meshes_kernel = _warp_mod.raycast_dynamic_meshes_kernel
+from isaaclab.utils.warp.kernels import raycast_dynamic_meshes_kernel, raycast_mesh_masked_kernel
+from isaaclab.utils.warp.ops import convert_to_warp_mesh
 
 # ---------------------------------------------------------------------------
 # Constants & setup
@@ -118,6 +92,66 @@ def _make_flat_mesh(size: float = 4.0) -> wp.Mesh:
 def _to_numpy(a: wp.array) -> np.ndarray:
     """Convert a warp array to numpy, handling GPU arrays transparently."""
     return a.numpy()
+
+
+# ---------------------------------------------------------------------------
+# Tests: fill_ray_hits_distance_inf_kernel
+# ---------------------------------------------------------------------------
+
+
+class TestFillRayHitsDistanceInfKernel:
+    """Tests for :func:`fill_ray_hits_distance_inf_kernel`."""
+
+    def test_active_envs_are_filled_and_masked_envs_are_preserved(self):
+        """Active environments are filled with infinity while masked environments retain prior values."""
+        env_mask = wp.array(np.array([False, True], dtype=np.bool_), dtype=wp.bool, device=DEVICE)
+        ray_hits = wp.array(
+            np.array(
+                [
+                    [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+                    [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0]],
+                ],
+                dtype=np.float32,
+            ),
+            dtype=wp.vec3f,
+            device=DEVICE,
+        )
+        ray_distance = wp.array(
+            np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+            dtype=wp.float32,
+            device=DEVICE,
+        )
+        ray_normals = wp.array(
+            np.array(
+                [
+                    [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]],
+                    [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                ],
+                dtype=np.float32,
+            ),
+            dtype=wp.vec3f,
+            device=DEVICE,
+        )
+
+        wp.launch(
+            fill_ray_hits_distance_inf_kernel,
+            dim=(2, 2),
+            inputs=[env_mask, True],
+            outputs=[ray_hits, ray_distance, ray_normals],
+            device=DEVICE,
+        )
+        wp.synchronize_device(DEVICE)
+
+        hits_np = _to_numpy(ray_hits)
+        distance_np = _to_numpy(ray_distance)
+        normals_np = _to_numpy(ray_normals)
+
+        np.testing.assert_allclose(hits_np[0], [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], atol=ATOL)
+        np.testing.assert_allclose(distance_np[0], [1.0, 2.0], atol=ATOL)
+        np.testing.assert_allclose(normals_np[0], [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]], atol=ATOL)
+        assert np.isinf(hits_np[1]).all()
+        assert np.isinf(distance_np[1]).all()
+        assert np.isinf(normals_np[1]).all()
 
 
 # ---------------------------------------------------------------------------
@@ -321,167 +355,177 @@ class TestRaycastDynamicMeshesKernel:
 
 
 # ---------------------------------------------------------------------------
-# Tests: compute_distance_to_image_plane_masked_kernel
+# Tests: raycast_mesh_masked_kernel
 # ---------------------------------------------------------------------------
 
+_SENTINEL = -2.0
+"""Pre-fill for distance/normal buffers; outside [-1, 1] so it cannot equal a unit-normal component."""
 
-class TestComputeDistanceToImagePlaneMaskedKernel:
-    """Tests for :func:`compute_distance_to_image_plane_masked_kernel`."""
 
-    @staticmethod
-    def _launch(
-        quat_xyzw: list[float],
-        ray_distance: list[list[float]],
-        ray_dirs: list[list[list[float]]],
-        env_mask: list[bool] | None = None,
-    ) -> np.ndarray:
-        """Launch kernel and return distance_to_image_plane as numpy."""
-        num_envs = len(ray_distance)
-        num_rays = len(ray_distance[0])
-        if env_mask is None:
-            env_mask = [True] * num_envs
+class TestRaycastMeshMaskedKernel:
+    """Tests for :func:`raycast_mesh_masked_kernel` from ``utils/warp/kernels.py``.
 
-        mask_wp = wp.array(np.array(env_mask, dtype=np.bool_), dtype=wp.bool, device=DEVICE)
-        quat_np = np.array([quat_xyzw] * num_envs, dtype=np.float32)
-        quat_wp = wp.array(quat_np, dtype=wp.quatf, device=DEVICE)
-        ray_dist_wp = wp.array(np.array(ray_distance, dtype=np.float32), dtype=wp.float32, device=DEVICE)
-        dirs_wp = wp.array(np.array(ray_dirs, dtype=np.float32), dtype=wp.vec3f, device=DEVICE)
-        out_wp = wp.zeros((num_envs, num_rays), dtype=wp.float32, device=DEVICE)
+    Two rays start at z=-5 and travel +z into a 2x2x1 box centered at the origin, hitting its
+    bottom face at z=-0.5 (distance 4.5, normal -z).
+    """
+
+    RAY_STARTS = [[0.0, -0.35, -5.0], [0.25, 0.35, -5.0]]
+    EXPECTED_HITS = [[0.0, -0.35, -0.5], [0.25, 0.35, -0.5]]
+
+    def _launch(self, env_mask: list[bool], return_distance: int, return_normal: int) -> dict[str, np.ndarray]:
+        """Launch the kernel with hits pre-filled with inf and distance/normal with :data:`_SENTINEL`."""
+        box = trimesh.creation.box([2, 2, 1])
+        mesh = convert_to_warp_mesh(box.vertices, box.faces, DEVICE)
+        num_envs, num_rays = len(env_mask), len(self.RAY_STARTS)
+        starts = np.tile(np.array(self.RAY_STARTS, dtype=np.float32), (num_envs, 1, 1))
+        dirs = np.tile(np.array([0.0, 0.0, 1.0], dtype=np.float32), (num_envs, num_rays, 1))
+        ray_hits = wp.array(np.full((num_envs, num_rays, 3), np.inf, dtype=np.float32), dtype=wp.vec3f, device=DEVICE)
+        ray_dist = wp.array(np.full((num_envs, num_rays), _SENTINEL, dtype=np.float32), dtype=wp.float32, device=DEVICE)
+        ray_normal = wp.array(
+            np.full((num_envs, num_rays, 3), _SENTINEL, dtype=np.float32), dtype=wp.vec3f, device=DEVICE
+        )
 
         wp.launch(
-            compute_distance_to_image_plane_masked_kernel,
+            raycast_mesh_masked_kernel,
             dim=(num_envs, num_rays),
-            inputs=[mask_wp, quat_wp, ray_dist_wp, dirs_wp],
-            outputs=[out_wp],
+            inputs=[
+                mesh.id,
+                wp.array(np.array(env_mask, dtype=np.bool_), dtype=wp.bool, device=DEVICE),
+                wp.array(starts, dtype=wp.vec3f, device=DEVICE),
+                wp.array(dirs, dtype=wp.vec3f, device=DEVICE),
+                float(1e6),
+                return_distance,
+                return_normal,
+                ray_hits,
+                ray_dist,
+                ray_normal,
+            ],
             device=DEVICE,
         )
         wp.synchronize_device(DEVICE)
-        return _to_numpy(out_wp)
+        return {"hits": _to_numpy(ray_hits), "distance": _to_numpy(ray_dist), "normal": _to_numpy(ray_normal)}
 
-    def test_known_camera_orientation(self):
-        """Identity camera, ray along +X at distance 5 -- d2ip equals 5."""
-        result = self._launch(
-            quat_xyzw=[0, 0, 0, 1],
-            ray_distance=[[5.0]],
-            ray_dirs=[[[1, 0, 0]]],
-        )
-        assert result[0, 0] == pytest.approx(5.0, abs=ATOL)
+    def test_hits_only(self):
+        """return_distance=0, return_normal=0: only ray hits are written on a hit."""
+        out = self._launch([True], return_distance=0, return_normal=0)
 
-    def test_off_axis_camera(self):
-        """Camera pitched 45 deg around Y, ray going world -Z.
+        np.testing.assert_allclose(out["hits"][0], self.EXPECTED_HITS, atol=ATOL)
+        assert np.all(out["distance"] == _SENTINEL), "Distance buffer must not be written when return_distance=0"
+        assert np.all(out["normal"] == _SENTINEL), "Normal buffer must not be written when return_normal=0"
 
-        Camera forward (+X_cam) in world = (cos45, 0, -sin45).
-        Displacement = 10 * (0, 0, -1) = (0, 0, -10).
-        Projection onto camera forward = dot((0,0,-10), (cos45,0,-sin45))
-                                       = 10 * sin(45 deg).
-        """
-        pitch45 = list(_euler_to_quat_xyzw(0, math.pi / 4, 0))
-        result = self._launch(
-            quat_xyzw=pitch45,
-            ray_distance=[[10.0]],
-            ray_dirs=[[[0, 0, -1]]],
-        )
-        expected = 10.0 * math.sin(math.pi / 4)
-        assert result[0, 0] == pytest.approx(expected, abs=ATOL)
+    def test_distance_and_normal(self):
+        """return_distance=1, return_normal=1: both distances and surface normals are written."""
+        out = self._launch([True], return_distance=1, return_normal=1)
 
-    def test_inf_distance(self):
-        """Inf distance produces NaN through the projection (inf * 0 = NaN).
-
-        When a ray misses, ray_distance is inf.  Multiplying inf by zero-valued
-        ray-direction components yields NaN (IEEE 754), which propagates through
-        the quaternion rotation.  The downstream
-        :func:`apply_depth_clipping_masked_kernel` handles NaN correctly via
-        ``wp.isnan()``, so the overall pipeline is sound.
-        """
-        result = self._launch(
-            quat_xyzw=[0, 0, 0, 1],
-            ray_distance=[[float("inf")]],
-            ray_dirs=[[[1, 0, 0]]],
-        )
-        assert np.isnan(result[0, 0]), f"Expected NaN from inf*0 contamination, got {result[0, 0]}"
-
-
-# ---------------------------------------------------------------------------
-# Tests: apply_depth_clipping_masked_kernel
-# ---------------------------------------------------------------------------
-
-
-class TestApplyDepthClippingMaskedKernel:
-    """Tests for :func:`apply_depth_clipping_masked_kernel`."""
-
-    @staticmethod
-    def _launch(
-        depth_values: list[list[float]],
-        max_dist: float,
-        fill_val: float,
-        env_mask: list[bool] | None = None,
-    ) -> np.ndarray:
-        """Launch kernel and return clipped depth as numpy."""
-        num_envs = len(depth_values)
-        num_rays = len(depth_values[0])
-        if env_mask is None:
-            env_mask = [True] * num_envs
-
-        mask_wp = wp.array(np.array(env_mask, dtype=np.bool_), dtype=wp.bool, device=DEVICE)
-        depth_wp = wp.array(np.array(depth_values, dtype=np.float32), dtype=wp.float32, device=DEVICE)
-
-        wp.launch(
-            apply_depth_clipping_masked_kernel,
-            dim=(num_envs, num_rays),
-            inputs=[mask_wp, max_dist, fill_val],
-            outputs=[depth_wp],
-            device=DEVICE,
-        )
-        wp.synchronize_device(DEVICE)
-        return _to_numpy(depth_wp)
-
-    def test_boundary_at_max_dist(self):
-        """Value at exactly max_dist is preserved (not clipped)."""
-        result = self._launch([[10.0]], max_dist=10.0, fill_val=0.0)
-        assert result[0, 0] == pytest.approx(10.0, abs=ATOL)
-
-    def test_above_max_dist(self):
-        """Value above max_dist is replaced with fill_val."""
-        result = self._launch([[10.001]], max_dist=10.0, fill_val=0.0)
-        assert result[0, 0] == pytest.approx(0.0, abs=ATOL)
-
-    def test_nan_value(self):
-        """NaN value is replaced with fill_val."""
-        result = self._launch([[float("nan")]], max_dist=10.0, fill_val=0.0)
-        assert result[0, 0] == pytest.approx(0.0, abs=ATOL)
-
-    def test_inf_value(self):
-        """Inf is clipped (inf > max_dist is true)."""
-        result = self._launch([[float("inf")]], max_dist=10.0, fill_val=0.0)
-        assert result[0, 0] == pytest.approx(0.0, abs=ATOL)
-
-    def test_negative_depth(self):
-        """Negative depth passes through unclipped (valid for distance-to-image-plane)."""
-        result = self._launch([[-3.5]], max_dist=10.0, fill_val=0.0)
-        assert result[0, 0] == pytest.approx(-3.5, abs=ATOL)
+        np.testing.assert_allclose(out["distance"][0], [4.5, 4.5], atol=ATOL)
+        np.testing.assert_allclose(out["normal"][0], [[0.0, 0.0, -1.0], [0.0, 0.0, -1.0]], atol=ATOL)
 
     def test_env_mask(self):
-        """Masked env retains original value -- clipping is not applied."""
-        result = self._launch(
-            depth_values=[[15.0], [15.0]],
-            max_dist=10.0,
-            fill_val=0.0,
-            env_mask=[False, True],
+        """Masked-out environments are not written; return_normal=0 leaves normals untouched."""
+        out = self._launch([True, False], return_distance=1, return_normal=0)
+
+        assert not np.isinf(out["hits"][0]).any(), "Active env 0 should have valid hits"
+        np.testing.assert_allclose(out["distance"][0], [4.5, 4.5], atol=ATOL)
+        assert np.isinf(out["hits"][1]).all(), "Masked env 1 hits must remain inf"
+        assert np.all(out["distance"][1] == _SENTINEL), "Masked env 1 distances must remain at sentinel"
+        assert np.all(out["normal"] == _SENTINEL), "Normal buffer must not be written when return_normal=0"
+
+
+class TestComputeDistanceToImagePlaneToImageMaskedKernel:
+    """Tests for :func:`compute_distance_to_image_plane_to_image_masked_kernel`."""
+
+    def test_compute_clip_and_copy_to_image(self):
+        """Distance-to-image-plane is computed, clipped, reshaped, and masked in one kernel."""
+        env_mask = wp.array(np.array([False, True], dtype=np.bool_), dtype=wp.bool, device=DEVICE)
+        quat_w = wp.array(np.array([[0, 0, 0, 1], [0, 0, 0, 1]], dtype=np.float32), dtype=wp.quatf, device=DEVICE)
+        ray_distance = wp.array(np.array([[1.0, 2.0], [3.0, 7.0]], dtype=np.float32), dtype=wp.float32, device=DEVICE)
+        ray_directions_w = wp.array(
+            np.array(
+                [
+                    [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+                    [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+                ],
+                dtype=np.float32,
+            ),
+            dtype=wp.vec3f,
+            device=DEVICE,
         )
-        # Env 0 (masked): unchanged
-        assert result[0, 0] == pytest.approx(15.0, abs=ATOL)
-        # Env 1 (active): clipped
-        assert result[1, 0] == pytest.approx(0.0, abs=ATOL)
+        dst = wp.array(np.full((2, 1, 2, 1), -1.0, dtype=np.float32), dtype=wp.float32, device=DEVICE)
 
-    def test_fill_val_zero_vs_max(self):
-        """fill_val=0.0 and fill_val=max_dist produce correct replacements."""
-        max_dist = 10.0
+        wp.launch(
+            compute_distance_to_image_plane_to_image_masked_kernel,
+            dim=(2, 2),
+            inputs=[env_mask, quat_w, ray_distance, ray_directions_w, 2, True, 5.0, 0.0],
+            outputs=[dst],
+            device=DEVICE,
+        )
+        wp.synchronize_device(DEVICE)
 
-        result_zero = self._launch([[15.0]], max_dist=max_dist, fill_val=0.0)
-        assert result_zero[0, 0] == pytest.approx(0.0, abs=ATOL)
+        dst_np = _to_numpy(dst)
+        np.testing.assert_allclose(dst_np[0, :, :, 0], [[-1.0, -1.0]], atol=ATOL)
+        np.testing.assert_allclose(dst_np[1, :, :, 0], [[3.0, 0.0]], atol=ATOL)
 
-        result_max = self._launch([[15.0]], max_dist=max_dist, fill_val=max_dist)
-        assert result_max[0, 0] == pytest.approx(max_dist, abs=ATOL)
+    def test_off_axis_camera_without_clipping(self):
+        """Camera pitched 45 deg around Y, ray going world -Z."""
+        env_mask = wp.array(np.array([True], dtype=np.bool_), dtype=wp.bool, device=DEVICE)
+        quat_w = wp.array(
+            np.array([_euler_to_quat_xyzw(0, math.pi / 4, 0)], dtype=np.float32), dtype=wp.quatf, device=DEVICE
+        )
+        ray_distance = wp.array(np.array([[10.0]], dtype=np.float32), dtype=wp.float32, device=DEVICE)
+        ray_directions_w = wp.array(np.array([[[0.0, 0.0, -1.0]]], dtype=np.float32), dtype=wp.vec3f, device=DEVICE)
+        dst = wp.array(np.full((1, 1, 1, 1), -1.0, dtype=np.float32), dtype=wp.float32, device=DEVICE)
+
+        wp.launch(
+            compute_distance_to_image_plane_to_image_masked_kernel,
+            dim=(1, 1),
+            inputs=[env_mask, quat_w, ray_distance, ray_directions_w, 1, False, 5.0, 0.0],
+            outputs=[dst],
+            device=DEVICE,
+        )
+        wp.synchronize_device(DEVICE)
+
+        expected = 10.0 * math.sin(math.pi / 4)
+        assert _to_numpy(dst)[0, 0, 0, 0] == pytest.approx(expected, abs=ATOL)
+
+    def test_inf_distance_is_clipped(self):
+        """Inf distance produces NaN through projection and is replaced by fill value."""
+        env_mask = wp.array(np.array([True], dtype=np.bool_), dtype=wp.bool, device=DEVICE)
+        quat_w = wp.array(np.array([[0, 0, 0, 1]], dtype=np.float32), dtype=wp.quatf, device=DEVICE)
+        ray_distance = wp.array(np.array([[float("inf")]], dtype=np.float32), dtype=wp.float32, device=DEVICE)
+        ray_directions_w = wp.array(np.array([[[1.0, 0.0, 0.0]]], dtype=np.float32), dtype=wp.vec3f, device=DEVICE)
+        dst = wp.array(np.full((1, 1, 1, 1), -1.0, dtype=np.float32), dtype=wp.float32, device=DEVICE)
+
+        wp.launch(
+            compute_distance_to_image_plane_to_image_masked_kernel,
+            dim=(1, 1),
+            inputs=[env_mask, quat_w, ray_distance, ray_directions_w, 1, True, 5.0, 0.0],
+            outputs=[dst],
+            device=DEVICE,
+        )
+        wp.synchronize_device(DEVICE)
+
+        assert _to_numpy(dst)[0, 0, 0, 0] == pytest.approx(0.0, abs=ATOL)
+
+
+class TestCopyFloat2dToImage1DepthClippedMaskedKernel:
+    """Tests for :func:`copy_float2d_to_image1_depth_clipped_masked_kernel`."""
+
+    def test_clip_and_copy_to_image(self):
+        """Flat distances are optionally clipped while copying to image layout."""
+        env_mask = wp.array(np.array([True], dtype=np.bool_), dtype=wp.bool, device=DEVICE)
+        src = wp.array(np.array([[1.0, 7.0, np.nan]], dtype=np.float32), dtype=wp.float32, device=DEVICE)
+        dst = wp.array(np.full((1, 1, 3, 1), -1.0, dtype=np.float32), dtype=wp.float32, device=DEVICE)
+
+        wp.launch(
+            copy_float2d_to_image1_depth_clipped_masked_kernel,
+            dim=(1, 3),
+            inputs=[env_mask, src, 3, True, 5.0, 0.0],
+            outputs=[dst],
+            device=DEVICE,
+        )
+        wp.synchronize_device(DEVICE)
+
+        np.testing.assert_allclose(_to_numpy(dst)[0, :, :, 0], [[1.0, 0.0, 0.0]], atol=ATOL)
 
 
 # ---------------------------------------------------------------------------
@@ -517,14 +561,6 @@ class TestApplyZDriftKernel:
         )
         wp.synchronize_device(DEVICE)
         return _to_numpy(hits_wp)
-
-    def test_known_drift(self):
-        """ray_cast_drift = (0, 0, 1.5) shifts ray hit z by exactly 1.5."""
-        result = self._launch(
-            hits=[[[3.0, 4.0, 5.0]]],
-            drift=[[0.0, 0.0, 1.5]],
-        )
-        np.testing.assert_allclose(result[0, 0], [3.0, 4.0, 6.5], atol=ATOL)
 
     def test_only_z_component(self):
         """Only z-component of drift is applied; x and y are unchanged."""
@@ -575,3 +611,21 @@ class TestQuatYawOnly:
             # Must be unit-norm
             norm = math.sqrt(float(qx) ** 2 + float(qy) ** 2 + float(qz) ** 2 + float(qw) ** 2)
             assert norm == pytest.approx(1.0, abs=ATOL), f"Non-unit quaternion at index {i}: norm={norm}"
+
+    def test_with_pitch_roll(self):
+        """Non-zero pitch and roll keep only the yaw component.
+
+        Regression for zeroing qx/qy and renormalizing, which is wrong once roll or pitch is non-zero.
+        """
+        # (roll, pitch, yaw); the last case has heavy pitch+roll and zero yaw, so the result is identity
+        cases = [(0.3, 0.4, 1.2), (0.5, 0.0, 0.7), (-0.2, 0.6, -1.0), (1.0, 1.0, 0.0)]
+        q_in = wp.array(
+            np.array([_euler_to_quat_xyzw(*c) for c in cases], dtype=np.float32), dtype=wp.quatf, device=DEVICE
+        )
+        q_out = wp.zeros(len(cases), dtype=wp.quatf, device=DEVICE)
+
+        wp.launch(_quat_yaw_only_test_kernel, dim=len(cases), inputs=[q_in], outputs=[q_out], device=DEVICE)
+        wp.synchronize_device(DEVICE)
+
+        expected = [[0.0, 0.0, math.sin(yaw / 2), math.cos(yaw / 2)] for _, _, yaw in cases]
+        np.testing.assert_allclose(_to_numpy(q_out), expected, atol=ATOL)

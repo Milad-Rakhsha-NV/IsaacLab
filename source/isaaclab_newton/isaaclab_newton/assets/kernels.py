@@ -13,6 +13,20 @@ Shared @wp.func helpers.
 
 
 @wp.func
+def pack_body_wrench_to_world(
+    force_b: wp.vec3f,
+    torque_b: wp.vec3f,
+    body_rot_w: wp.quatf,
+) -> wp.spatial_vectorf:
+    """Rotate a body-frame COM wrench into world frame and pack it."""
+    return wp.spatial_vector(
+        wp.quat_rotate(body_rot_w, force_b),
+        wp.quat_rotate(body_rot_w, torque_b),
+        wp.float32,
+    )
+
+
+@wp.func
 def update_wrench_with_force_and_torque(
     force: wp.vec3f,
     torque: wp.vec3f,
@@ -439,6 +453,28 @@ def quat_apply_inverse_2D_kernel(
     """
     i, j = wp.tid()
     result[i, j] = wp.quat_rotate_inv(quat[i, j], vec[i, j])
+
+
+@wp.kernel
+def projected_gravity_b_kernel(
+    gravity_w: wp.array(dtype=wp.vec3f),
+    quat: wp.array(dtype=wp.quatf),
+    projected_gravity_b: wp.array(dtype=wp.vec3f),
+):
+    """Project normalized world gravity into each root-body frame."""
+    i = wp.tid()
+    projected_gravity_b[i] = wp.quat_rotate_inv(quat[i], wp.normalize(gravity_w[i]))
+
+
+@wp.kernel
+def projected_gravity_b_2D_kernel(
+    gravity_w: wp.array(dtype=wp.vec3f),
+    quat: wp.array2d(dtype=wp.quatf),
+    projected_gravity_b: wp.array2d(dtype=wp.vec3f),
+):
+    """Project normalized world gravity into each per-body frame."""
+    i, j = wp.tid()
+    projected_gravity_b[i, j] = wp.quat_rotate_inv(quat[i, j], wp.normalize(gravity_w[i]))
 
 
 @wp.kernel

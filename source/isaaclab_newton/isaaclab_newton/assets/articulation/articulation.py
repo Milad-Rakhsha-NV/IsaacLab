@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import warnings
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
@@ -18,24 +19,27 @@ import torch
 import warp as wp
 from newton import JointType
 from newton.selection import ArticulationView
-from newton.solvers import SolverNotifyFlags
+from newton import ModelFlags
 from prettytable import PrettyTable
 
 from pxr import UsdPhysics
 
-from isaaclab.actuators import ActuatorBase, ActuatorBaseCfg, ImplicitActuator
+from isaaclab.actuators import ActuatorBase, ActuatorBaseCfg, ActuatorCollection, ImplicitActuator
 from isaaclab.assets.articulation.base_articulation import BaseArticulation
 from isaaclab.physics import PhysicsEvent
-from isaaclab.sim.utils.queries import find_first_matching_prim, get_all_matching_child_prims
+from isaaclab.sim import SimulationContext
+from isaaclab.sim.utils.queries import resolve_matching_prims_from_source
 from isaaclab.utils.string import resolve_matching_names, resolve_matching_names_values
 from isaaclab.utils.types import ArticulationActions
 from isaaclab.utils.version import get_isaac_sim_version, has_kit
+from isaaclab.utils.warp import ProxyArray
 from isaaclab.utils.wrench_composer import WrenchComposer
 
 from isaaclab_newton.assets import kernels as shared_kernels
 from isaaclab_newton.assets.articulation import kernels as articulation_kernels
 from isaaclab_newton.physics import NewtonManager as SimulationManager
 
+from .actuator_control import NewtonActuatorControl
 from .articulation_data import ArticulationData
 
 if TYPE_CHECKING:
@@ -43,6 +47,18 @@ if TYPE_CHECKING:
 
 # import logger
 logger = logging.getLogger(__name__)
+
+
+def _resolve_articulation_root_prim_path_expr(cfg: ArticulationCfg) -> str:
+    """Resolve a source articulation root to the release-3.0 multi-world expression."""
+    if cfg.articulation_root_prim_path is not None:
+        return cfg.prim_path + cfg.articulation_root_prim_path
+
+    return resolve_matching_prims_from_source(
+        cfg.prim_path,
+        predicate=lambda prim: bool(prim.HasAPI(UsdPhysics.ArticulationRootAPI)),
+        expected_num_matches=1,
+    )[0][1]
 
 
 class Articulation(BaseArticulation):
@@ -114,6 +130,8 @@ class Articulation(BaseArticulation):
             cfg: A configuration instance.
         """
         super().__init__(cfg)
+        sim_ctx = SimulationContext.instance()
+        self._sim_cfg = sim_ctx.cfg if sim_ctx is not None else None
 
     """
     Properties
@@ -236,9 +254,8 @@ class Articulation(BaseArticulation):
         # use ellipses object to skip initial indices.
         if (env_ids is None) or (env_ids == slice(None)):
             env_ids = slice(None)
-        # reset actuators
-        for actuator in self.actuators.values():
-            actuator.reset(env_ids)
+        # Reset Isaac Lab and, when configured, Newton-native actuator state.
+        self.actuators.reset(None if env_ids == slice(None) else env_ids)
         # reset external wrenches.
         self._instantaneous_wrench_composer.reset(env_ids, env_mask)
         self._permanent_wrench_composer.reset(env_ids, env_mask)
@@ -275,14 +292,12 @@ class Articulation(BaseArticulation):
             )
         self._instantaneous_wrench_composer.reset()
 
-        # apply actuator models
-        self._apply_actuator_model()
-        # write actions into simulation via Newton bindings
-        self.data._sim_bind_joint_effort.assign(self._joint_effort_target_sim)
-        # position and velocity targets only for implicit actuators
-        if self._has_implicit_actuators:
-            self.data._sim_bind_joint_position_target.assign(self._joint_pos_target_sim)
-            self.data._sim_bind_joint_velocity_target.assign(self._joint_vel_target_sim)
+        # Compute processed commands and submit them through the Newton control
+        # adapter. This is the Isaac Lab 3.0 actuator interface; the legacy
+        # per-actuator constructor no longer accepts solver properties such as
+        # armature and friction.
+        self.actuators.compute(SimulationManager.get_physics_dt())
+        self.actuators.submit_commands()
 
     def update(self, dt: float):
         """Updates the simulation data.
@@ -296,42 +311,32 @@ class Articulation(BaseArticulation):
     Operations - Finders.
     """
 
-    def find_bodies(self, name_keys: str | Sequence[str], preserve_order: bool = False) -> tuple[list[int], list[str]]:
-        """Find bodies in the articulation based on the name keys.
-
-        Please check the :meth:`isaaclab.utils.string_utils.resolve_matching_names` function for more
-        information on the name matching.
-
-        Args:
-            name_keys: A regular expression or a list of regular expressions to match the body names.
-            preserve_order: Whether to preserve the order of the name keys in the output. Defaults to False.
-
-        Returns:
-            A tuple of lists containing the body indices and names.
-        """
-        return resolve_matching_names(name_keys, self.body_names, preserve_order)
+    def find_bodies(
+        self, name_keys: str | Sequence[str], preserve_order: bool = False, *, as_proxy: bool = False
+    ) -> tuple[list[int] | ProxyArray, list[str]]:
+        """Find bodies, optionally returning device-resident indices for the 3.0 control API."""
+        body_ids, body_names = resolve_matching_names(name_keys, self.body_names, preserve_order)
+        if as_proxy:
+            return ProxyArray(wp.array(body_ids, dtype=wp.int32, device=self.device)), body_names
+        return body_ids, body_names
 
     def find_joints(
-        self, name_keys: str | Sequence[str], joint_subset: list[str] | None = None, preserve_order: bool = False
-    ) -> tuple[list[int], list[str]]:
-        """Find joints in the articulation based on the name keys.
-
-        Please see the :func:`isaaclab.utils.string.resolve_matching_names` function for more information
-        on the name matching.
-
-        Args:
-            name_keys: A regular expression or a list of regular expressions to match the joint names.
-            joint_subset: A subset of joints to search for. Defaults to None, which means all joints
-                in the articulation are searched.
-            preserve_order: Whether to preserve the order of the name keys in the output. Defaults to False.
-
-        Returns:
-            A tuple of lists containing the joint indices and names.
-        """
+        self,
+        name_keys: str | Sequence[str],
+        joint_subset: list[str] | None = None,
+        preserve_order: bool = False,
+        *,
+        as_proxy: bool = False,
+    ) -> tuple[list[int] | ProxyArray, list[str]]:
+        """Find joints, optionally returning device-resident indices for the 3.0 control API."""
         if joint_subset is None:
             joint_subset = self.joint_names
-        # find joints
-        return resolve_matching_names(name_keys, joint_subset, preserve_order)
+        joint_ids, joint_names = resolve_matching_names(name_keys, joint_subset, preserve_order)
+        # A subset can have local indices; map them back to articulation-global DOF indices.
+        global_joint_ids = [self.joint_names.index(name) for name in joint_names]
+        if as_proxy:
+            return ProxyArray(wp.array(global_joint_ids, dtype=wp.int32, device=self.device)), joint_names
+        return joint_ids, joint_names
 
     def find_fixed_tendons(
         self, name_keys: str | Sequence[str], tendon_subsets: list[str] | None = None, preserve_order: bool = False
@@ -956,7 +961,7 @@ class Articulation(BaseArticulation):
         self.assert_shape_and_dtype(position, (env_ids.shape[0], joint_ids.shape[0]), wp.float32, "position")
         self.assert_shape_and_dtype(velocity, (env_ids.shape[0], joint_ids.shape[0]), wp.float32, "velocity")
         wp.launch(
-            articulation_kernels.write_joint_state_data_index,
+            articulation_kernels.write_joint_state_data_index_kernel(env_ids, joint_ids),
             dim=(env_ids.shape[0], joint_ids.shape[0]),
             inputs=[
                 position,
@@ -1315,7 +1320,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_stiffness_to_sim_mask(
         self,
@@ -1370,7 +1375,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_damping_to_sim_index(
         self,
@@ -1428,7 +1433,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_damping_to_sim_mask(
         self,
@@ -1483,7 +1488,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_position_limit_to_sim_index(
         self,
@@ -1549,7 +1554,7 @@ class Articulation(BaseArticulation):
             else:
                 logger.info(violation_message)
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_position_limit_to_sim_mask(
         self,
@@ -1610,7 +1615,7 @@ class Articulation(BaseArticulation):
             else:
                 logger.info(violation_message)
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_velocity_limit_to_sim_index(
         self,
@@ -1671,7 +1676,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_velocity_limit_to_sim_mask(
         self,
@@ -1730,7 +1735,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_effort_limit_to_sim_index(
         self,
@@ -1791,7 +1796,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_effort_limit_to_sim_mask(
         self,
@@ -1849,7 +1854,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_armature_to_sim_index(
         self,
@@ -1909,7 +1914,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_armature_to_sim_mask(
         self,
@@ -1968,12 +1973,14 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_friction_coefficient_to_sim_index(
         self,
         *,
         joint_friction_coeff: torch.Tensor | wp.array | float,
+        joint_dynamic_friction_coeff: torch.Tensor | wp.array | float | None = None,
+        joint_viscous_friction_coeff: torch.Tensor | wp.array | float | None = None,
         joint_ids: Sequence[int] | torch.Tensor | wp.array | None = None,
         env_ids: Sequence[int] | torch.Tensor | wp.array | None = None,
     ):
@@ -2001,9 +2008,30 @@ class Articulation(BaseArticulation):
         Args:
             joint_friction_coeff: Joint friction force/torque [N or N·m, depending on joint type].
                 Shape is (len(env_ids), len(joint_ids)).
+            joint_dynamic_friction_coeff: Dynamic friction values. Newton has no dynamic joint
+                friction property; nonzero values are ignored with a warning.
+            joint_viscous_friction_coeff: Viscous friction values. If None, the viscous component
+                is not updated.
             joint_ids: Joint indices. If None, then all joints are used.
             env_ids: Environment indices. If None, then all indices are used.
         """
+        # Newton 1.6 exposes dry and viscous friction only. This preserves the
+        # Isaac Lab 3.0 interface while making the unsupported dynamic term explicit.
+        if joint_dynamic_friction_coeff is not None:
+            dynamic = joint_dynamic_friction_coeff
+            if isinstance(dynamic, wp.array):
+                dynamic = wp.to_torch(dynamic)
+            has_dynamic = dynamic != 0.0 if isinstance(dynamic, (float, int)) else bool(torch.any(dynamic != 0.0))
+            if has_dynamic:
+                logger.warning(
+                    "Newton has no dynamic joint friction property; ignoring nonzero 'joint_dynamic_friction_coeff'."
+                )
+        if joint_viscous_friction_coeff is not None:
+            self.write_joint_viscous_friction_coefficient_to_sim_index(
+                joint_viscous_friction_coeff=joint_viscous_friction_coeff,
+                joint_ids=joint_ids,
+                env_ids=env_ids,
+            )
         # resolve all indices
         env_ids = self._resolve_env_ids(env_ids)
         joint_ids = self._resolve_joint_ids(joint_ids)
@@ -2040,7 +2068,7 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     def write_joint_friction_coefficient_to_sim_mask(
         self,
@@ -2110,7 +2138,41 @@ class Articulation(BaseArticulation):
                 device=self.device,
             )
         # tell the physics engine that some of the joint properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.JOINT_DOF_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
+
+    def write_joint_viscous_friction_coefficient_to_sim_index(
+        self,
+        *,
+        joint_viscous_friction_coeff: torch.Tensor | wp.array | float,
+        joint_ids: Sequence[int] | torch.Tensor | wp.array | None = None,
+        env_ids: Sequence[int] | torch.Tensor | wp.array | None = None,
+    ) -> None:
+        """Write passive Newton joint damping over selected environments and joints."""
+        env_ids = self._resolve_env_ids(env_ids)
+        joint_ids = self._resolve_joint_ids(joint_ids)
+        if isinstance(joint_viscous_friction_coeff, float):
+            wp.launch(
+                articulation_kernels.float_data_to_buffer_with_indices,
+                dim=(env_ids.shape[0], joint_ids.shape[0]),
+                inputs=[joint_viscous_friction_coeff, env_ids, joint_ids],
+                outputs=[self.data.joint_viscous_friction_coeff],
+                device=self.device,
+            )
+        else:
+            self.assert_shape_and_dtype(
+                joint_viscous_friction_coeff,
+                (env_ids.shape[0], joint_ids.shape[0]),
+                wp.float32,
+                "joint_viscous_friction_coeff",
+            )
+            wp.launch(
+                shared_kernels.write_2d_data_to_buffer_with_indices,
+                dim=(env_ids.shape[0], joint_ids.shape[0]),
+                inputs=[joint_viscous_friction_coeff, env_ids, joint_ids],
+                outputs=[self.data.joint_viscous_friction_coeff],
+                device=self.device,
+            )
+        SimulationManager.add_model_change(ModelFlags.JOINT_DOF_PROPERTIES)
 
     """
     Operations - Setters.
@@ -2156,7 +2218,7 @@ class Articulation(BaseArticulation):
             device=self.device,
         )
         # tell the physics engine that some of the body properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.BODY_INERTIAL_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.BODY_INERTIAL_PROPERTIES)
 
     def set_masses_mask(
         self,
@@ -2197,7 +2259,7 @@ class Articulation(BaseArticulation):
             device=self.device,
         )
         # tell the physics engine that some of the body properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.BODY_INERTIAL_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.BODY_INERTIAL_PROPERTIES)
 
     def set_coms_index(
         self,
@@ -2245,7 +2307,7 @@ class Articulation(BaseArticulation):
             device=self.device,
         )
         # tell the physics engine that some of the body properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.BODY_INERTIAL_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.BODY_INERTIAL_PROPERTIES)
 
     def set_coms_mask(
         self,
@@ -2293,7 +2355,7 @@ class Articulation(BaseArticulation):
             device=self.device,
         )
         # tell the physics engine that some of the body properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.BODY_INERTIAL_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.BODY_INERTIAL_PROPERTIES)
 
     def set_inertias_index(
         self,
@@ -2336,7 +2398,7 @@ class Articulation(BaseArticulation):
             device=self.device,
         )
         # tell the physics engine that some of the body properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.BODY_INERTIAL_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.BODY_INERTIAL_PROPERTIES)
 
     def set_inertias_mask(
         self,
@@ -2377,7 +2439,7 @@ class Articulation(BaseArticulation):
             device=self.device,
         )
         # tell the physics engine that some of the body properties have been updated
-        SimulationManager.add_model_change(SolverNotifyFlags.BODY_INERTIAL_PROPERTIES)
+        SimulationManager.add_model_change(ModelFlags.BODY_INERTIAL_PROPERTIES)
 
     def set_joint_position_target_index(
         self,
@@ -2908,6 +2970,26 @@ class Articulation(BaseArticulation):
         """
         raise NotImplementedError()
 
+    def set_fixed_tendon_position_target_index(
+        self,
+        *,
+        target: torch.Tensor | wp.array,
+        fixed_tendon_ids: Sequence[int] | torch.Tensor | wp.array | None = None,
+        env_ids: Sequence[int] | torch.Tensor | wp.array | None = None,
+    ) -> None:
+        """Set fixed-tendon position targets (unsupported by the Newton backend)."""
+        raise NotImplementedError()
+
+    def set_fixed_tendon_position_target_mask(
+        self,
+        *,
+        target: torch.Tensor | wp.array,
+        fixed_tendon_mask: wp.array | None = None,
+        env_mask: wp.array | None = None,
+    ) -> None:
+        """Set fixed-tendon position targets using masks (unsupported by Newton)."""
+        raise NotImplementedError()
+
     def set_fixed_tendon_offset_index(
         self,
         *,
@@ -3257,88 +3339,25 @@ class Articulation(BaseArticulation):
     """
 
     def _initialize_impl(self):
-        # obtain global simulation view
-        self._physics_sim_view = SimulationManager.get_physics_sim_view()
-
-        if self.cfg.articulation_root_prim_path is not None:
-            # The articulation root prim path is specified explicitly, so we can just use this.
-            root_prim_path_expr = self.cfg.prim_path + self.cfg.articulation_root_prim_path
-        else:
-            # No articulation root prim path was specified, so we need to search
-            # for it. We search for this in the first environment and then
-            # create a regex that matches all environments.
-            first_env_matching_prim = find_first_matching_prim(self.cfg.prim_path)
-            if first_env_matching_prim is None:
-                raise RuntimeError(f"Failed to find prim for expression: '{self.cfg.prim_path}'.")
-            first_env_matching_prim_path = first_env_matching_prim.GetPath().pathString
-
-            # Find all articulation root prims in the first environment.
-            first_env_root_prims = get_all_matching_child_prims(
-                first_env_matching_prim_path,
-                predicate=lambda prim: prim.HasAPI(UsdPhysics.ArticulationRootAPI),
-                traverse_instance_prims=False,
-            )
-            # Detect closed kinematic loops (e.g. DR Legs parallel linkage). Such robots
-            # have cyclic joint graphs that cannot form a tree-structured Newton
-            # ``ArticulationView`` and often lack a ``ArticulationRootAPI`` entirely.
-            from isaaclab_newton.cloner.newton_replicate import _prim_has_closed_kinematic_loops
-
-            has_closed_loops = _prim_has_closed_kinematic_loops(first_env_matching_prim)
-            if len(first_env_root_prims) == 0 or has_closed_loops:
-                # Use ``ClosedLoopView``, which provides strided views into the global
-                # Newton model arrays instead of a tree articulation.
-                from .closed_loop_view import ClosedLoopView
-
-                if has_closed_loops and len(first_env_root_prims) > 0:
-                    logger.info(
-                        f"Closed kinematic loops detected under '{first_env_matching_prim_path}';"
-                        " using ClosedLoopView despite ArticulationRootAPI presence."
-                    )
-                else:
-                    logger.info(
-                        f"No ArticulationRootAPI found under '{first_env_matching_prim_path}'."
-                        " Using ClosedLoopView for closed-loop robot support."
-                    )
-                self._root_view = ClosedLoopView(
-                    SimulationManager.get_model(),
-                    self.cfg.prim_path.replace(".*", "*"),
-                )
-                SimulationManager.get_physics_sim_view().append(self._root_view)
-                self._data = ArticulationData(self.root_view, self.device)
-                self._physics_ready_handle = SimulationManager.register_callback(
-                    lambda _: self._data._create_simulation_bindings(),
-                    PhysicsEvent.PHYSICS_READY,
-                    name=f"articulation_rebind_{self.cfg.prim_path}",
-                )
-                self._create_buffers()
-                self._process_cfg()
-                self._process_actuators_cfg()
-                self._process_tendons()
-                # Let the articulation data know that it is fully instantiated and ready to use.
-                self.data.is_primed = True
-                return
-            if len(first_env_root_prims) > 1:
-                raise RuntimeError(
-                    f"Failed to find a single articulation when resolving '{first_env_matching_prim_path}'."
-                    f" Found multiple '{first_env_root_prims}' under '{first_env_matching_prim_path}'."
-                    " Please ensure that there is only one articulation in the prim path tree."
-                )
-
-            # Now we convert the found articulation root from the first
-            # environment back into a regex that matches all environments.
-            first_env_root_prim_path = first_env_root_prims[0].GetPath().pathString
-            root_prim_path_relative_to_prim_path = first_env_root_prim_path[len(first_env_matching_prim_path) :]
-            root_prim_path_expr = self.cfg.prim_path + root_prim_path_relative_to_prim_path
-
-        # -- articulation
-        self._root_view = ArticulationView(
-            SimulationManager.get_model(),
-            root_prim_path_expr.replace(".*", "*"),
+        # Keep the release-3.0 resolver/cache contract: resolve the root from the
+        # source world, then construct one regex view over all replicated worlds.
+        root_prim_path_expr = _resolve_articulation_root_prim_path_expr(self.cfg)
+        model = SimulationManager.get_model()
+        matching_labels = [label for label in model.articulation_label if re.fullmatch(root_prim_path_expr, label)]
+        logger.warning(
+            "Newton articulation selection: expr=%r worlds=%d articulations=%d matches=%d labels=%r",
+            root_prim_path_expr,
+            model.world_count,
+            model.articulation_count,
+            len(matching_labels),
+            matching_labels,
+        )
+        self._root_view = SimulationManager.views[SimulationManager, root_prim_path_expr] = ArticulationView(
+            model,
+            re.compile(root_prim_path_expr),
             verbose=False,
             exclude_joint_types=[JointType.FREE, JointType.FIXED],
         )
-        # Register view with Newton manager so sensors (e.g. FrameTransformer) can find it.
-        SimulationManager.get_physics_sim_view().append(self._root_view)
 
         # container for data access
         self._data = ArticulationData(self.root_view, self.device)
@@ -3584,157 +3603,16 @@ class Articulation(BaseArticulation):
     """
 
     def _process_actuators_cfg(self):
-        """Process and apply articulation joint properties."""
-        # create actuators
-        self.actuators = dict()
-        # flag for implicit actuators
-        # if this is false, we by-pass certain checks when doing actuator-related operations
-        self._has_implicit_actuators = False
-
-        # iterate over all actuator configurations
-        for actuator_name, actuator_cfg in self.cfg.actuators.items():
-            # type annotation for type checkers
-            actuator_cfg: ActuatorBaseCfg
-            # create actuator group
-            joint_ids, joint_names = self.find_joints(actuator_cfg.joint_names_expr)
-            # check if any joints are found
-            if len(joint_names) == 0:
-                raise ValueError(
-                    f"No joints found for actuator group: {actuator_name} with joint name expression:"
-                    f" {actuator_cfg.joint_names_expr}."
-                )
-            # resolve joint indices
-            # we pass a slice if all joints are selected to avoid indexing overhead
-            if len(joint_names) == self.num_joints:
-                joint_ids = slice(None)
-            else:
-                joint_ids = torch.tensor(joint_ids, device=self.device, dtype=torch.int32)
-            # create actuator collection
-            # note: for efficiency avoid indexing when over all indices
-            actuator: ActuatorBase = actuator_cfg.class_type(
-                cfg=actuator_cfg,
-                joint_names=joint_names,
-                joint_ids=joint_ids,
-                num_envs=self.num_instances,
-                device=self.device,
-                stiffness=self._data.joint_stiffness.torch[:, joint_ids],
-                damping=self._data.joint_damping.torch[:, joint_ids],
-                armature=self._data.joint_armature.torch[:, joint_ids],
-                friction=self._data.joint_friction_coeff.torch[:, joint_ids],
-                effort_limit=self._data.joint_effort_limits.torch[:, joint_ids].clone(),
-                velocity_limit=self._data.joint_vel_limits.torch[:, joint_ids],
-            )
-            # store actuator group
-            self.actuators[actuator_name] = actuator
-            # set the passed gains and limits into the simulation
-            if isinstance(actuator, ImplicitActuator):
-                self._has_implicit_actuators = True
-                # the gains and limits are set into the simulation since actuator model is implicit
-                self.write_joint_stiffness_to_sim_index(stiffness=actuator.stiffness, joint_ids=actuator.joint_indices)
-                self.write_joint_damping_to_sim_index(damping=actuator.damping, joint_ids=actuator.joint_indices)
-            else:
-                # the gains and limits are processed by the actuator model
-                # we set gains to zero, and torque limit to a high value in simulation to avoid any interference
-                self.write_joint_stiffness_to_sim_index(stiffness=0.0, joint_ids=actuator.joint_indices)
-                self.write_joint_damping_to_sim_index(damping=0.0, joint_ids=actuator.joint_indices)
-
-            # Set common properties into the simulation
-            self.write_joint_effort_limit_to_sim_index(
-                limits=actuator.effort_limit_sim, joint_ids=actuator.joint_indices
-            )
-            self.write_joint_velocity_limit_to_sim_index(
-                limits=actuator.velocity_limit_sim, joint_ids=actuator.joint_indices
-            )
-            self.write_joint_armature_to_sim_index(armature=actuator.armature, joint_ids=actuator.joint_indices)
-            self.write_joint_friction_coefficient_to_sim_index(
-                joint_friction_coeff=actuator.friction, joint_ids=actuator.joint_indices
-            )
-
-            # Store the configured values from the actuator model
-            # note: this is the value configured in the actuator model (for implicit and explicit actuators)
-            joint_ids = actuator.joint_indices
-            if joint_ids == slice(None):
-                joint_ids = self._ALL_JOINT_INDICES
-            # BUG FIX: _sim_bind_joint_stiffness_sim and _sim_bind_joint_damping_sim are direct
-            # references to model.joint_target_ke/kd. For explicit actuators (DCMotor, IdealPD),
-            # we already zeroed these above. Writing the actuator's configured stiffness/damping
-            # back here would undo the zeroing, causing double-PD when implicit_pd is enabled
-            # in the solver (the solver folds ke/kd into the mass matrix AND the explicit actuator
-            # applies PD torques via joint_f). Only write for implicit actuators.
-            if isinstance(actuator, ImplicitActuator):
-                wp.launch(
-                    shared_kernels.write_2d_data_to_buffer_with_indices,
-                    dim=(self.num_instances, joint_ids.shape[0]),
-                    inputs=[
-                        actuator.stiffness,
-                        self._ALL_INDICES,
-                        joint_ids,
-                    ],
-                    outputs=[
-                        self.data._sim_bind_joint_stiffness_sim,
-                    ],
-                    device=self.device,
-                )
-                wp.launch(
-                    shared_kernels.write_2d_data_to_buffer_with_indices,
-                    dim=(self.num_instances, joint_ids.shape[0]),
-                    inputs=[
-                        actuator.damping,
-                        self._ALL_INDICES,
-                        joint_ids,
-                    ],
-                    outputs=[
-                        self.data._sim_bind_joint_damping_sim,
-                    ],
-                    device=self.device,
-                )
-            wp.launch(
-                shared_kernels.write_2d_data_to_buffer_with_indices,
-                dim=(self.num_instances, joint_ids.shape[0]),
-                inputs=[
-                    actuator.armature,
-                    self._ALL_INDICES,
-                    joint_ids,
-                ],
-                outputs=[
-                    self.data._sim_bind_joint_armature,
-                ],
-                device=self.device,
-            )
-            wp.launch(
-                shared_kernels.write_2d_data_to_buffer_with_indices,
-                dim=(self.num_instances, joint_ids.shape[0]),
-                inputs=[
-                    actuator.friction,
-                    self._ALL_INDICES,
-                    joint_ids,
-                ],
-                outputs=[
-                    self.data._sim_bind_joint_friction_coeff,
-                ],
-                device=self.device,
-            )
-
-        # perform some sanity checks to ensure actuators are prepared correctly
-        total_act_joints = sum(actuator.num_joints for actuator in self.actuators.values())
-        if total_act_joints != (self.num_joints - self.num_fixed_tendons):
-            logger.warning(
-                "Not all actuators are configured! Total number of actuated joints not equal to number of"
-                f" joints available: {total_act_joints} != {self.num_joints - self.num_fixed_tendons}."
-            )
-
-        if self.cfg.actuator_value_resolution_debug_print:
-            t = PrettyTable(["Group", "Property", "Name", "ID", "USD Value", "ActutatorCfg Value", "Applied"])
-            for actuator_group, actuator in self.actuators.items():
-                group_count = 0
-                for property, resolution_details in actuator.joint_property_resolution_table.items():
-                    for prop_idx, resolution_detail in enumerate(resolution_details):
-                        actuator_group_str = actuator_group if group_count == 0 else ""
-                        property_str = property if prop_idx == 0 else ""
-                        fmt = [f"{v:.2e}" if isinstance(v, float) else str(v) for v in resolution_detail]
-                        t.add_row([actuator_group_str, property_str, *fmt])
-                        group_count += 1
-            logger.warning(f"\nActuatorCfg-USD Value Discrepancy Resolution (matching values are skipped): \n{t}")
+        """Construct actuator groups through Isaac Lab 3.0's collection API."""
+        self._actuator_control = NewtonActuatorControl(self)
+        self.actuators = ActuatorCollection(
+            self.cfg.actuators,
+            self._actuator_control,
+            debug_value_resolution=self.cfg.actuator_value_resolution_debug_print,
+        )
+        self._has_implicit_actuators = self.actuators.has_implicit_actuators
+        self._has_newton_actuators = self._actuator_control.native_actuator_path_active
+        self._data.bind_actuator_collection(self.actuators)
 
     def _process_tendons(self):
         """Process fixed and spatial tendons."""

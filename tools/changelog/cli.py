@@ -34,6 +34,12 @@ Usage:
     # CI invocation on every pull_request:
     cli.py check <base-branch>
 
+    # Local invocation used by pre-commit (defaults to develop):
+    cli.py check --include-worktree
+
+    # Override the local base for a release branch:
+    ISAACLAB_CHANGELOG_BASE_REF=release/6.0 cli.py check --include-worktree
+
     # ── compile ───────────────────────────────────────────────────
     # Normal release-time invocation — bump every managed package
     # from accumulated fragments, write entries, delete fragments:
@@ -59,6 +65,7 @@ incremental bumps, not for jumps.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -81,6 +88,14 @@ PACKAGES_ROOT = REPO_ROOT / "source"
 # contributors and the gate.
 FRAGMENT_RE = re.compile(r"^(?P<slug>[^./][^./]*)(?:\.(?P<bump>minor|major))?\.rst$")
 SKIP_RE = re.compile(r"^(?P<slug>[^./][^./]*)\.skip$")
+
+# Anchor the compile-time insertion point in ``CHANGELOG.rst``. A managed
+# package's file must contain at minimum ``Changelog\n---+\n\n`` — header,
+# underline, then a blank line — so the bot has a place to prepend the next
+# version block. Imported by both ``Package.write_changelog_entry`` (the
+# producer) and ``test_validate`` (the regression gate) so the two cannot
+# drift on what "valid header" means.
+CHANGELOG_HEADER_RE = re.compile(r"^Changelog\n-+\s*\n\s*\n", re.MULTILINE)
 
 
 def _display_path(p: Path) -> str:
@@ -299,6 +314,28 @@ class Fragment:
                 f"section(s) {', '.join(repr(s) for s in empty)} have no bullet entries — "
                 "use ``* `` to start each entry, or remove the heading"
             )
+        # Every line inside a section body must be a bullet (``* ``), a
+        # continuation (leading whitespace), or blank. A column-0 non-blank
+        # line that isn't a bullet terminates the list under RST rules and
+        # then sits as a paragraph adjacent to the next ``* `` — which the
+        # compile step splices into ``CHANGELOG.rst`` under the same
+        # ``^^^`` subheading and Sphinx then rejects with
+        # ``Unexpected indentation``. Catch it here before merge.
+        for section, lines in sections.items():
+            for offset, line in enumerate(lines):
+                if not line.strip():
+                    continue
+                if line[0].isspace() or line.lstrip().startswith("*"):
+                    continue
+                snippet = line.strip()[:80]
+                return (
+                    f"section {section!r} contains an orphan paragraph "
+                    f"(non-bullet line {offset + 1}: {snippet!r}). Every line under "
+                    "a section heading must start with ``* `` (new bullet) or whitespace "
+                    "(continuation of the previous bullet). A flush-left paragraph here "
+                    "splits the bullet list and Sphinx fails the doc build with "
+                    "``Unexpected indentation``."
+                )
         return None
 
 
@@ -501,7 +538,7 @@ class Package:
 
     @property
     def toml_path(self) -> Path:
-        return self.root / "config" / "extension.toml"
+        return self.root / "pyproject.toml"
 
     @property
     def default_fragment_dir(self) -> Path:
@@ -512,15 +549,29 @@ class Package:
         return self.toml_path.is_file() and self.changelog_path.is_file()
 
     def current_version(self) -> Version:
+        in_project = False
         for line in self.toml_path.read_text(encoding="utf-8").splitlines():
-            m = re.match(r'^version\s*=\s*"([^"]+)"', line)
-            if m:
-                return Version(m.group(1))
-        raise ValueError(f"No version field found in {self.toml_path}")
+            if re.match(r"^\[project\]", line):
+                in_project = True
+            elif re.match(r"^\[", line):
+                in_project = False
+            if in_project:
+                m = re.match(r'^version\s*=\s*"([^"]+)"', line)
+                if m:
+                    return Version(m.group(1))
+        raise ValueError(f"{self.name}: no version field found under [project] in {self.toml_path}")
 
     def write_changelog_entry(self, entry: str, *, dry_run: bool) -> None:
         text = self.changelog_path.read_text(encoding="utf-8")
-        m = re.search(r"^Changelog\n-+\s*\n\s*\n", text, re.MULTILINE)
+        # Self-heal a header that lacks the trailing blank line. The compile
+        # regex needs ``Changelog\n---+\n\n`` as an anchor; a contributor who
+        # ships ``Changelog\n---+\n`` (the isaaclab_ppisp shape PR #5748
+        # introduced) would otherwise wedge the nightly. Insert the missing
+        # ``\n`` in-memory and write it back so the on-disk file ends up
+        # canonical on first compile. No-op when the blank line is already
+        # there (negative lookahead).
+        text = re.sub(r"^(Changelog\n-+)\n(?!\n)", r"\1\n\n", text, count=1, flags=re.MULTILINE)
+        m = CHANGELOG_HEADER_RE.search(text)
         if not m:
             raise ValueError(f"Could not locate changelog header in {self.changelog_path}")
         updated = text[: m.end()] + entry + "\n" + text[m.end() :]
@@ -534,11 +585,20 @@ class Package:
 
     def write_version(self, new_version: Version, *, dry_run: bool) -> None:
         text = self.toml_path.read_text(encoding="utf-8")
-        updated = re.sub(r'^version\s*=\s*"[^"]+"', f'version = "{new_version}"', text, flags=re.MULTILINE)
+        in_project = False
+        new_lines = []
+        for line in text.splitlines(keepends=True):
+            if re.match(r"^\[project\]", line):
+                in_project = True
+            elif re.match(r"^\[", line):
+                in_project = False
+            if in_project and re.match(r'^version\s*=\s*"[^"]+"', line):
+                line = re.sub(r'^(version\s*=\s*)"[^"]+"', f'\\1"{new_version}"', line)
+            new_lines.append(line)
         if dry_run:
             print(f'DRY RUN — would set version = "{new_version}" in {_display_path(self.toml_path)}')
         else:
-            self.toml_path.write_text(updated, encoding="utf-8")
+            self.toml_path.write_text("".join(new_lines), encoding="utf-8")
 
     @classmethod
     def from_name(cls, name: str, packages_root: Path = PACKAGES_ROOT) -> Package:
@@ -672,12 +732,31 @@ class PRDiff:
     added: set[str]
 
     @classmethod
-    def from_git(cls, base_ref: str) -> PRDiff:
-        """Run ``git diff`` against ``origin/<base_ref>...HEAD`` to populate the diff."""
+    def from_git(cls, base_ref: str, *, include_worktree: bool = False) -> PRDiff:
+        """Collect the branch diff against ``origin/<base_ref>``.
+
+        Args:
+            base_ref: Base branch name.
+            include_worktree: Whether to include staged and unstaged tracked
+                changes in addition to committed branch changes.
+        """
+
+        remote_base = f"origin/{base_ref}"
+        if include_worktree:
+            merge_base = subprocess.run(
+                ["git", "merge-base", remote_base, "HEAD"],
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=REPO_ROOT,
+            ).stdout.strip()
+            diff_target = merge_base
+        else:
+            diff_target = f"{remote_base}...HEAD"
 
         def _diff(extra_args: list[str]) -> set[str]:
             result = subprocess.run(
-                ["git", "diff", "--name-only", *extra_args, f"origin/{base_ref}...HEAD"],
+                ["git", "diff", "--name-only", *extra_args, diff_target],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -685,7 +764,9 @@ class PRDiff:
             )
             return {f for f in result.stdout.splitlines() if f}
 
-        return cls(changed=_diff([]), added=_diff(["--diff-filter=A"]))
+        changed = _diff([])
+        added = _diff(["--diff-filter=A"])
+        return cls(changed=changed, added=added)
 
     def evaluate(
         self,
@@ -826,7 +907,7 @@ def cmd_compile(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
         )
     # Validate ``--version`` shape up front so a typo like ``--version 4.7``
     # fails at argument parsing instead of silently writing ``4.7`` into
-    # ``CHANGELOG.rst`` and ``extension.toml``.
+    # ``CHANGELOG.rst`` and ``pyproject.toml``.
     explicit_version: Version | None = None
     if args.version is not None:
         try:
@@ -840,14 +921,19 @@ def cmd_compile(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
             parser.error(f"--package {args.package!r}: directory not found at {pkg.root}")
         if not pkg.is_managed:
             parser.error(
-                f"--package {args.package!r} is not managed: missing config/extension.toml or "
+                f"--package {args.package!r} is not managed: missing pyproject.toml or "
                 f"docs/CHANGELOG.rst at {pkg.root}. Run with --all to see the discovered list."
             )
         packages = [pkg]
     else:
         packages = Package.discover()
 
+    # Per-package isolation: one package's failure must not abort the batch.
+    # The nightly workflow commits and pushes whatever compiled successfully,
+    # so a malformed file in one package only loses that package's release
+    # notes for this cycle — the rest still ships.
     any_compiled = False
+    failures: list[tuple[str, str]] = []
     for pkg in packages:
         try:
             compiled = pkg.compile(
@@ -856,9 +942,17 @@ def cmd_compile(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
                 dry_run=args.dry_run,
             )
         except (FileNotFoundError, ValueError) as e:
-            print(f"  ERROR: {e}", file=sys.stderr)
-            return 1
+            print(f"  ERROR ({pkg.name}): {e}", file=sys.stderr)
+            failures.append((pkg.name, str(e)))
+            continue
         any_compiled = any_compiled or compiled
+
+    if failures:
+        print(file=sys.stderr)
+        print(f"::error::{len(failures)} package(s) failed to compile:", file=sys.stderr)
+        for name, reason in failures:
+            print(f"  • {name}: {reason}", file=sys.stderr)
+        return 1
 
     if not any_compiled:
         print("No fragments found in any package.")
@@ -867,12 +961,28 @@ def cmd_compile(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
 
 def cmd_check(args: argparse.Namespace, _parser: argparse.ArgumentParser) -> int:
     try:
-        diff = PRDiff.from_git(args.base_ref)
+        diff = PRDiff.from_git(args.base_ref, include_worktree=args.include_worktree)
     except subprocess.CalledProcessError as e:
         print(f"ERROR: git diff failed: {e.stderr}", file=sys.stderr)
         return 1
 
-    missing, invalid_fragments = diff.evaluate(Package.discover())
+    packages = Package.discover()
+
+    # Header invariant — every managed package's ``CHANGELOG.rst`` must
+    # contain a parseable header. ``write_changelog_entry`` self-heals the
+    # narrow "missing trailing blank line" case, but every other broken
+    # shape (no ``Changelog`` header, no underline, wrong underline char,
+    # leading whitespace, etc.) still raises at compile time and would
+    # wedge the next nightly. Block those at PR time with a clear error.
+    malformed_headers: list[str] = []
+    for pkg in packages:
+        text = pkg.changelog_path.read_text(encoding="utf-8")
+        # Apply the same normalization compile would apply, then check.
+        text = re.sub(r"^(Changelog\n-+)\n(?!\n)", r"\1\n\n", text, count=1, flags=re.MULTILINE)
+        if CHANGELOG_HEADER_RE.search(text) is None:
+            malformed_headers.append(str(pkg.changelog_path.relative_to(REPO_ROOT)))
+
+    missing, invalid_fragments = diff.evaluate(packages)
 
     if invalid_fragments:
         print("::error::Invalid changelog fragment(s) in this PR:")
@@ -906,7 +1016,27 @@ def cmd_check(args: argparse.Namespace, _parser: argparse.ArgumentParser) -> int
         print()
         print("See AGENTS.md ## Changelog for full guidance.")
 
-    if invalid_fragments or missing:
+    if malformed_headers:
+        print("::error::Malformed CHANGELOG.rst — header must contain ``Changelog\\n---------\\n\\n``")
+        print("(header line, underline, then a blank line — the anchor the nightly compile prepends to):")
+        for path in malformed_headers:
+            print(f"  • {path}")
+        print()
+        print("Seed the file with at minimum:")
+        print()
+        print("    Changelog")
+        print("    ---------")
+        print()
+        print("    0.1.0 (YYYY-MM-DD)")
+        print("    ~~~~~~~~~~~~~~~~~~")
+        print()
+        print("    Added")
+        print("    ^^^^^")
+        print()
+        print("    * Initial release.")
+        print()
+
+    if invalid_fragments or missing or malformed_headers:
         return 1
 
     print("✓ All modified packages have valid changelog fragments.")
@@ -990,10 +1120,17 @@ def _build_parser() -> argparse.ArgumentParser:
     p_check.set_defaults(func=cmd_check)
     p_check.add_argument(
         "base_ref",
+        nargs="?",
+        default=os.environ.get("ISAACLAB_CHANGELOG_BASE_REF", "develop"),
         help=(
             "Base branch to diff against (e.g. 'main' or 'develop'). "
-            "The diff is taken against ``origin/<base_ref>...HEAD``."
+            "Defaults to ISAACLAB_CHANGELOG_BASE_REF or 'develop'."
         ),
+    )
+    p_check.add_argument(
+        "--include-worktree",
+        action="store_true",
+        help=("Include staged and unstaged tracked changes in the branch diff. Used by the local pre-commit hook."),
     )
 
     return parser

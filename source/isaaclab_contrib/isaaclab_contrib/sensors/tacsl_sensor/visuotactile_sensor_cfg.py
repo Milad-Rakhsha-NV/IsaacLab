@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.markers.config import VISUO_TACTILE_SENSOR_MARKER_CFG
 from isaaclab.sensors import CameraCfg, SensorBaseCfg
-from isaaclab.utils import configclass
+from isaaclab.utils import configclass, replace
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 
 if TYPE_CHECKING:
@@ -154,7 +154,7 @@ class VisuoTactileSensorCfg(SensorBaseCfg):
         The expression can contain the environment namespace regex ``{ENV_REGEX_NS}`` which
         will be replaced with the environment namespace.
 
-        Example: ``{ENV_REGEX_NS}/ContactObject`` will be replaced with ``/World/envs/env_.*/ContactObject``.
+        Example: ``{ENV_REGEX_NS}/ContactObject`` will be replaced with ``/World/envs/env_[^/]+/ContactObject``.
 
     .. attention::
         For force field computation to work properly, the contact object must have an SDF collision mesh.
@@ -178,8 +178,8 @@ class VisuoTactileSensorCfg(SensorBaseCfg):
     """
 
     # Visualization
-    visualizer_cfg: VisualizationMarkersCfg = VISUO_TACTILE_SENSOR_MARKER_CFG.replace(
-        prim_path="/Visuals/TactileSensor"
+    visualizer_cfg: VisualizationMarkersCfg = replace(
+        VISUO_TACTILE_SENSOR_MARKER_CFG, prim_path="/Visuals/TactileSensor"
     )
     """The configuration object for the visualization markers.
 

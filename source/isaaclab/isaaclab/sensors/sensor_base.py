@@ -13,17 +13,22 @@ from __future__ import annotations
 
 import inspect
 import logging
-import re
+import sys
 import weakref
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import warp as wp
 
-import isaaclab.sim as sim_utils
-from isaaclab.physics import PhysicsEvent, PhysicsManager
+from isaaclab.utils import clone, validate
 
+from .. import sim as sim_utils
+from ..cloner.cloner_cfg import expand_env_regex_ns
+from ..physics import PhysicsEvent, PhysicsManager
+from ..sim.utils.queries import get_first_matching_ancestor_prim
+from ..sim.utils.transforms import resolve_prim_pose
+from ..utils import index_fill_
 from .kernels import reset_envs_kernel, update_outdated_envs_kernel, update_timestamp_kernel
 
 if TYPE_CHECKING:
@@ -35,10 +40,9 @@ logger = logging.getLogger(__name__)
 class SensorBase(ABC):
     """The base class for implementing a sensor.
 
-    The implementation is based on lazy evaluation. The sensor data is only updated when the user
-    tries accessing the data through the :attr:`data` property or sets ``force_compute=True`` in
-    the :meth:`update` method. This is done to avoid unnecessary computation when the sensor data
-    is not used.
+    The implementation is based on lazy evaluation. Sensor buffers are refreshed through the
+    :attr:`data` property, by setting ``force_recompute=True`` in :meth:`update`, or by calling
+    :meth:`update_batch`. This avoids unnecessary computation when sensor data is not used.
 
     The sensor is updated at the specified update period. If the update period is zero, then the
     sensor is updated at every simulation step.
@@ -50,27 +54,33 @@ class SensorBase(ABC):
         Args:
             cfg: The configuration parameters for the sensor.
         """
-        # check that the config is valid
-        cfg.validate()
-        # store inputs
-        self.cfg = cfg.copy()
-        # flag for whether the sensor is initialized
+        # start with unset callback handles so cleanup is safe if construction fails part way
+        self._initialize_handle = None
+        self._invalidate_initialize_handle = None
+        self._prim_deletion_handle = None
+        # handle for debug visualization (this is set to a valid handle inside set_debug_vis)
+        self._debug_vis_handle = None
+
+        validate(cfg)
+        cfg.prim_path = expand_env_regex_ns(cfg.prim_path)
+        self.cfg = clone(cfg)
         self._is_initialized = False
-        # flag for whether the sensor is in visualization mode
         self._is_visualizing = False
         self.stage = sim_utils.get_current_stage()
 
-        # register various callback functions
         self._register_callbacks()
-
-        # add handle for debug visualization (this is set to a valid handle inside set_debug_vis)
-        self._debug_vis_handle = None
-        # set initial state of debug visualization
         self.set_debug_vis(self.cfg.debug_vis)
 
-    def __del__(self):
-        """Unsubscribe from the callbacks."""
-        # clear physics events handles
+    def __del__(self, _sys=sys):
+        """Unsubscribe from the callbacks.
+
+        Skips cleanup during interpreter shutdown. ``sys`` is bound as a default argument so it
+        survives module teardown. Running :meth:`_clear_callbacks` after import machinery is gone
+        can lazy-import ``isaaclab.sim`` and raise ``ImportError: sys.meta_path is None``, which
+        then masks the exception that actually aborted the process.
+        """
+        if _sys.is_finalizing() or _sys.meta_path is None:
+            return
         self._clear_callbacks()
 
     """
@@ -97,6 +107,15 @@ class SensorBase(ABC):
     def device(self) -> str:
         """Memory device for computation."""
         return self._device
+
+    @property
+    def supports_batch_update(self) -> bool:
+        """Whether eager buffer refreshes can share work through :meth:`update_batch`.
+
+        Defaults to False. Sensors may opt in and implement ``_update_buffers_batch_impl``
+        to share work with sensors that use the same batch implementation.
+        """
+        return False
 
     @property
     @abstractmethod
@@ -154,13 +173,7 @@ class SensorBase(ABC):
                 if sim_ctx is not None:
                     self._debug_vis_handle = sim_ctx.vis_marker_registry.add_debug_vis_callback(self)
         else:
-            # remove the subscriber if it exists
-            sim_ctx = sim_utils.SimulationContext.instance()
-            if sim_ctx is not None:
-                sim_ctx.vis_marker_registry.clear_debug_vis_callback(self)
-            else:
-                self._debug_vis_handle = None
-        # return success
+            self._clear_debug_vis_handle()
         return True
 
     def reset(self, env_ids: Sequence[int] | None = None, env_mask: wp.array | None = None) -> None:
@@ -179,27 +192,51 @@ class SensorBase(ABC):
             inputs=[env_mask, self._is_outdated, self._timestamp, self._timestamp_last_update],
             device=self._device,
         )
+        self._data_dirty = True
 
     def update(self, dt: float, force_recompute: bool = False):
         # Skip update if sensor is not initialized
         if not self._is_initialized:
             return
+        self._data_dirty = True
         # Update the timestamp for the sensors
         wp.launch(
             update_timestamp_kernel,
             dim=self._num_envs,
-            inputs=[
-                self._is_outdated,
-                self._timestamp,
-                self._timestamp_last_update,
-                dt,
-                self.cfg.update_period,
-            ],
+            inputs=[self._is_outdated, self._timestamp, self._timestamp_last_update, dt, self.cfg.update_period],
             device=self._device,
         )
         # Update the buffers
         if force_recompute or self._is_visualizing:
-            self._update_outdated_buffers()
+            self._update_outdated_buffers(force_recompute=force_recompute)
+
+    @staticmethod
+    def update_batch(sensors: Sequence[SensorBase], dt: float) -> None:
+        """Advance batch-capable sensors and eagerly refresh their data in compatible groups.
+
+        All sensors must report :attr:`supports_batch_update` as True. Calls each sensor's
+        :meth:`update` once in input order with ``force_recompute=False``, then processes
+        pending buffers through their shared ``_update_buffers_batch_impl`` static methods.
+        Use this method instead of calling :meth:`update` separately for the same time step.
+
+        Uninitialized sensors and sensors already refreshed during the update loop are excluded
+        from batch processing. Each batch is marked updated only after its implementation
+        returns successfully.
+
+        Args:
+            sensors: Batch-capable sensors to update, each appearing once. An empty sequence
+                performs no work.
+            dt: Time elapsed since the previous sensor update [s].
+
+        Raises:
+            ValueError: If any sensor does not support batch updates. No sensors are advanced
+                in this case.
+        """
+        if any(not sensor.supports_batch_update for sensor in sensors):
+            raise ValueError("Batch updates require sensors with supports_batch_update=True.")
+        for sensor in sensors:
+            sensor.update(dt, force_recompute=False)
+        SensorBase._process_batch(sensors)
 
     """
     Implementation specific.
@@ -216,15 +253,15 @@ class SensorBase(ABC):
         self._device = sim.device
         self._backend = sim.backend
         self._sim_physics_dt = sim.get_physics_dt()
-        # Count number of environments
-        env_prim_path_expr = self.cfg.prim_path.rsplit("/", 1)[0]
-        self._parent_prims = sim_utils.find_matching_prims(env_prim_path_expr)
-        self._num_envs = len(self._parent_prims)
+        # Native clones need not have corresponding USD prims.
+        clone_plan = sim.get_clone_plan()
+        if clone_plan is not None:
+            self._num_envs = len(clone_plan.topology.world_prototype_layout)
+        else:
+            env_prim_path_expr = "/".join(sim_utils.split_path_expr(self.cfg.prim_path)[:-1])
+            self._num_envs = len(sim_utils.find_matching_prims(env_prim_path_expr))
         # Create warp env mask arrays for "all envs" cases and resets.
-        # Note: We use wp.to_torch() to create zero-copy torch tensor views of warp arrays.
-        # This allows warp arrays to be passed to warp kernels while the corresponding torch
-        # views support fancy indexing (e.g. tensor[env_ids] = True) without any memory copies.
-        # Both the warp array and torch view share the same underlying device memory.
+        # Torch views share these Warp arrays' storage; scalar indexed writes use index_fill_ to avoid a sync.
         self._ALL_ENV_MASK = wp.ones((self._num_envs), dtype=wp.bool, device=self._device)
         self._reset_mask = wp.zeros((self._num_envs), dtype=wp.bool, device=self._device)
         self._reset_mask_torch = wp.to_torch(self._reset_mask)
@@ -232,6 +269,7 @@ class SensorBase(ABC):
         self._is_outdated = wp.ones(self._num_envs, dtype=wp.bool, device=self._device)
         self._timestamp = wp.zeros(self._num_envs, dtype=wp.float32, device=self._device)
         self._timestamp_last_update = wp.zeros_like(self._timestamp)
+        self._data_dirty = True
 
         # Initialize debug visualization handle
         if self._debug_vis_handle is None:
@@ -249,6 +287,21 @@ class SensorBase(ABC):
             env_mask: The mask of the environments that are ready to capture.
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _update_buffers_batch_impl(sensors: Sequence[SensorBase]) -> None:
+        """Fill buffers for initialized sensors that share this batch implementation.
+
+        Each sensor's ``_is_outdated`` mask selects its due environments and may be empty.
+        Implementations must fill the requested buffers before returning and leave timestamp
+        and generation bookkeeping to the caller. The default implementation
+        calls each sensor's ``_update_buffers_impl`` individually.
+
+        Args:
+            sensors: Sensors whose buffers need checking, all using this static method.
+        """
+        for sensor in sensors:
+            sensor._update_buffers_impl(sensor._is_outdated)
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         """Set debug visualization into visualization objects.
@@ -294,7 +347,9 @@ class SensorBase(ABC):
             PhysicsEvent.STOP,
             order=10,
         )
-        # Optional: prim deletion (only supported by PhysX backend)
+        # Optional: prim deletion (only supported by PhysX backend; the substring
+        # check would also match ``OvPhysxManager``, which does not expose
+        # ``IsaacEvents``, so use an exact class-name match).
         self._prim_deletion_handle = None
         if physics_mgr_cls.__name__ == "PhysxManager":
             from isaaclab_physx.physics import IsaacEvents  # noqa: PLC0415
@@ -320,11 +375,7 @@ class SensorBase(ABC):
     def _invalidate_initialize_callback(self, event):
         """Invalidates the scene elements."""
         self._is_initialized = False
-        sim_ctx = sim_utils.SimulationContext.instance()
-        if sim_ctx is not None:
-            sim_ctx.vis_marker_registry.clear_debug_vis_callback(self)
-        else:
-            self._debug_vis_handle = None
+        self._clear_debug_vis_handle()
 
     def _on_prim_deletion(self, event) -> None:
         """Invalidates and deletes the callbacks when the prim is deleted.
@@ -336,13 +387,7 @@ class SensorBase(ABC):
             This function is called when the prim is deleted.
         """
         prim_path = event.payload["prim_path"]
-        if prim_path == "/":
-            self._clear_callbacks()
-            return
-        result = re.match(
-            pattern="^" + "/".join(self.cfg.prim_path.split("/")[: prim_path.count("/") + 1]) + "$", string=prim_path
-        )
-        if result:
+        if prim_path == "/" or sim_utils.matches_path_expr_prefix(self.cfg.prim_path, prim_path):
             self._clear_callbacks()
 
     def _clear_callbacks(self) -> None:
@@ -357,6 +402,10 @@ class SensorBase(ABC):
             self._prim_deletion_handle.deregister()
             self._prim_deletion_handle = None
         # Clear debug visualization
+        self._clear_debug_vis_handle()
+
+    def _clear_debug_vis_handle(self) -> None:
+        """Removes the debug visualization subscriber, if any."""
         sim_ctx = sim_utils.SimulationContext.instance()
         if sim_ctx is not None:
             sim_ctx.vis_marker_registry.clear_debug_vis_callback(self)
@@ -367,9 +416,15 @@ class SensorBase(ABC):
     Helper functions.
     """
 
-    def _update_outdated_buffers(self):
+    def _update_outdated_buffers(self, force_recompute: bool = False) -> None:
         """Fills the sensor data for the outdated sensors."""
+        if not force_recompute and not self._data_dirty:
+            return
         self._update_buffers_impl(self._is_outdated)
+        self._mark_buffers_updated()
+
+    def _mark_buffers_updated(self) -> None:
+        """Commit capture timestamps after the sensor's output buffers have been filled."""
         # update timestamps and clear outdated flags
         wp.launch(
             update_outdated_envs_kernel,
@@ -377,84 +432,83 @@ class SensorBase(ABC):
             inputs=[self._is_outdated, self._timestamp, self._timestamp_last_update],
             device=self._device,
         )
+        self._data_dirty = False
+
+    @staticmethod
+    def _process_batch(sensors: Sequence[SensorBase]) -> None:
+        """Refresh pending buffers for batch-capable sensors whose timing has already advanced."""
+        # A later sensor's update may already have refreshed an earlier sensor's data.
+        groups: dict[Callable[[Sequence[SensorBase]], None], list[SensorBase]] = {}
+        for sensor in sensors:
+            if not sensor.is_initialized or not sensor._data_dirty:
+                continue
+            batch_impl = type(sensor)._update_buffers_batch_impl
+            groups.setdefault(batch_impl, []).append(sensor)
+
+        for batch_impl, group in groups.items():
+            batch_impl(group)
+            for sensor in group:
+                sensor._mark_buffers_updated()
 
     def _resolve_indices_and_mask(
         self, env_ids: Sequence[int] | None = None, env_mask: wp.array | None = None
     ) -> wp.array:
         """Resolve environment indices to a warp array and mask."""
-        if env_ids is None and env_mask is None:
+        if (env_ids is None or env_ids == slice(None)) and env_mask is None:
             return self._ALL_ENV_MASK
         elif env_mask is not None:
             return env_mask
         else:
             self._reset_mask.zero_()
-            self._reset_mask_torch[env_ids] = True
+            index_fill_(self._reset_mask_torch, env_ids, True)
             return self._reset_mask
 
-    def _resolve_and_spawn(self, sensor_name: str, **spawn_kwargs) -> None:
-        """Resolve physics-body prim paths and spawn the sensor prim if needed.
+    def _resolve_rigid_body_ancestor_expr(
+        self,
+    ) -> tuple[str, tuple[float, float, float] | None, tuple[float, float, float, float] | None]:
+        """Resolve the rigid-body ancestor view expression and the sensor-to-body offset.
 
-        Behavior matrix (``spawn`` refers to ``cfg.spawn``):
+        The sensor's :attr:`SensorBaseCfg.prim_path` may point to any frame
+        inside the asset. To create a physics view, this helper walks ancestors
+        from that prim until it finds one with ``UsdPhysics.RigidBodyAPI``,
+        builds the corresponding destination-side expression, and computes the
+        fixed transform from that body to the configured sensor frame.
 
-        +----------------+------------------+--------------------------------------------+
-        | ``spawn``      | ``prim_path``    | Action                                     |
-        +================+==================+============================================+
-        | not ``None``   | physics body     | Append ``/<sensor_name>``, spawn child.    |
-        +----------------+------------------+--------------------------------------------+
-        | not ``None``   | non-physics prim | Use existing prim, skip spawn.             |
-        |                | (already exists) |                                            |
-        +----------------+------------------+--------------------------------------------+
-        | not ``None``   | does not exist   | Spawn prim at ``prim_path``.               |
-        +----------------+------------------+--------------------------------------------+
-        | ``None``       | physics body     | Raise ``ValueError``.                      |
-        +----------------+------------------+--------------------------------------------+
-        | ``None``       | non-physics prim | Use as-is (no spawn).                      |
-        +----------------+------------------+--------------------------------------------+
+        The returned expression may still contain regex-style wildcards (e.g.
+        ``.*``); callers are responsible for converting to glob form for their
+        physics view (e.g. via :func:`~isaaclab.sim.utils.path_expr_to_glob`).
 
-        Args:
-            sensor_name: Short identifier (e.g. ``"raycaster"``, ``"camera"``).
-            **spawn_kwargs: Extra keyword arguments forwarded to ``cfg.spawn.func``
-                (e.g. ``translation``, ``orientation``).
+        Returns:
+            A tuple of:
 
-        Raises:
-            ValueError: If ``spawn`` is ``None`` and ``prim_path`` is a physics body.
-            RuntimeError: If the prim does not exist after the spawn attempt.
+            * ``rigid_parent_expr``: destination-side view expression that
+              matches the rigid-body ancestor across envs.
+            * ``fixed_pos_b``: sensor-relative-to-body translation [m] (xyz),
+              or ``None`` when the sensor is mounted directly at the body
+              origin.
+            * ``fixed_quat_b``: sensor-relative-to-body rotation as a
+              quaternion ``(x, y, z, w)``, or ``None`` when the sensor is
+              mounted directly at the body origin.
         """
+        prim, target_expr = sim_utils.resolve_matching_prims_from_source(self.cfg.prim_path)[0]
         from pxr import UsdPhysics  # noqa: PLC0415
 
-        spawn = getattr(self.cfg, "spawn", None)
-        has_spawn = spawn is not None
+        ancestor_prim = get_first_matching_ancestor_prim(
+            prim.GetPath(), predicate=lambda _prim: _prim.HasAPI(UsdPhysics.RigidBodyAPI)
+        )
+        if ancestor_prim is None:
+            raise RuntimeError(f"Failed to find a rigid body ancestor prim at path expression: {self.cfg.prim_path}")
 
-        # Determine the path to probe for physics-body redirect
-        spawn_path = (getattr(spawn, "spawn_path", None) or self.cfg.prim_path) if has_spawn else None
-        probe_path = spawn_path if spawn_path is not None else self.cfg.prim_path
+        if ancestor_prim == prim:
+            return target_expr, None, None
 
-        prim = sim_utils.find_first_matching_prim(probe_path)
-        if prim is not None and prim.IsValid():
-            is_physics = prim.HasAPI(UsdPhysics.ArticulationRootAPI) or prim.HasAPI(UsdPhysics.RigidBodyAPI)
-            if is_physics:
-                if not has_spawn:
-                    raise ValueError(
-                        f"Sensor prim_path '{self.cfg.prim_path}' resolves to a physics body but"
-                        f" no spawner is configured (spawn=None). Either set spawn or point"
-                        f" prim_path at a non-physics child (e.g. '{self.cfg.prim_path}/{sensor_name}')."
-                    )
-                logger.info(
-                    f"Sensor prim_path '{self.cfg.prim_path}' points at a physics body."
-                    f" Redirecting to '{self.cfg.prim_path}/{sensor_name}'."
-                )
-                self.cfg.prim_path = f"{self.cfg.prim_path}/{sensor_name}"
-                if getattr(spawn, "spawn_path", None) is not None:
-                    spawn.spawn_path = f"{spawn.spawn_path}/{sensor_name}"
-
-        if not has_spawn:
-            return
-
-        spawn_target = getattr(spawn, "spawn_path", None) or self.cfg.prim_path
-        prim = sim_utils.find_first_matching_prim(spawn_target)
-        if prim is None or not prim.IsValid():
-            spawn.func(spawn_target, spawn, **spawn_kwargs)
-
-        check_path = getattr(spawn, "spawn_path", None) or self.cfg.prim_path
-        if len(sim_utils.find_matching_prims(check_path)) == 0:
-            raise RuntimeError(f"Could not find prim with path {check_path!r}.")
+        relative_path = prim.GetPath().MakeRelativePath(ancestor_prim.GetPath()).pathString
+        suffix = "/" + relative_path
+        if not target_expr.endswith(suffix):
+            raise RuntimeError(
+                f"Failed to build rigid body ancestor expression: target expression {target_expr!r} does not end "
+                f"with relative path {relative_path!r}."
+            )
+        rigid_parent_expr = target_expr[: -len(suffix)]
+        fixed_pos_b, fixed_quat_b = resolve_prim_pose(prim, ancestor_prim)
+        return rigid_parent_expr, fixed_pos_b, fixed_quat_b

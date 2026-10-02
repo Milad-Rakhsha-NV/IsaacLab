@@ -26,15 +26,16 @@ except OSError:
         _cudart = ctypes.CDLL("libcudart.so")
     except OSError:
         _cudart = None
-from newton import Axis, CollisionPipeline, Contacts, Control, Model, ModelBuilder, State, eval_fk
+from newton import Axis, CollisionPipeline, Contacts, Control, Model, ModelBuilder, ModelFlags, State, eval_fk
 from newton._src.usd.schemas import SchemaResolverNewton, SchemaResolverPhysx
 from newton.sensors import SensorContact as NewtonContactSensor
 from newton.sensors import SensorFrameTransform
 from newton.sensors import SensorIMU as NewtonSensorIMU
-from newton.solvers import SolverBase, SolverNotifyFlags
+from newton.solvers import SolverBase
 
 from isaaclab.physics import CallbackHandle, PhysicsEvent, PhysicsManager
-from isaaclab.sim.utils.newton_model_utils import replace_newton_shape_colors
+from isaaclab.scene_data import SceneDataBackend, SceneDataFormat
+from isaaclab.sim.utils.newton_model_utils import replace_newton_builder_shape_colors
 from isaaclab.sim.utils.stage import get_current_stage
 from isaaclab.utils import checked_apply
 from isaaclab.utils.string import resolve_matching_names
@@ -123,6 +124,32 @@ def _scatter_world_mask_from_ids(
     world_mask[env_ids[i]] = wp.int32(1)
 
 
+class NewtonSceneDataBackend(SceneDataBackend):
+    """Publish the manager-owned rigid-body state to release-3 scene-data consumers."""
+
+    def __init__(self):
+        self._transforms = SceneDataFormat.Transform()
+        self.transforms_timestamp = 0
+        self.geometry_timestamp = 0
+
+    @property
+    def transforms(self) -> SceneDataFormat.Transform:
+        state = NewtonManager.get_state_0()
+        if self._transforms.transforms is not state.body_q:
+            self._transforms.transforms = state.body_q
+            self.transforms_timestamp += 1
+        return self._transforms
+
+    @property
+    def transform_count(self) -> int:
+        return NewtonManager.get_model().body_count
+
+    @property
+    def transform_paths(self) -> list[str]:
+        labels = NewtonManager.get_model().body_label
+        return list(labels) if labels is not None else []
+
+
 class NewtonManager(PhysicsManager):
     """Abstract Newton physics manager for Isaac Lab.
 
@@ -193,6 +220,10 @@ class NewtonManager(PhysicsManager):
     _clone_physics_only = False
     _transforms_dirty: bool = False
 
+    # Release-3 scene-data bridge. DVI retains ownership of the native model
+    # and state; this publishes those same buffers without a backend allocation.
+    _scene_data_backend: NewtonSceneDataBackend | None = None
+
     # cubric GPU transform hierarchy (replaces CPU update_world_xforms)
     _cubric = None
     _cubric_adapter: int | None = None
@@ -225,6 +256,14 @@ class NewtonManager(PhysicsManager):
             sim_context: Parent simulation context.
         """
         super().initialize(sim_context)
+
+        NewtonManager._scene_data_backend = NewtonSceneDataBackend()
+
+        # Isaac Lab 3.0 routes clone-plan physics construction through this context.
+        # Without it, only the authored env_0 USD scene reaches Newton.
+        from isaaclab_newton.cloner import NewtonReplicateContext  # noqa: PLC0415
+
+        cls.clone_context_type = NewtonReplicateContext
 
         # Newton-specific setup: get gravity from SimulationCfg (not physics manager cfg)
         sim = PhysicsManager._sim
@@ -271,6 +310,11 @@ class NewtonManager(PhysicsManager):
     def pre_render(cls) -> None:
         """Flush deferred Fabric writes before cameras/visualizers read the scene."""
         cls.sync_transforms_to_usd()
+
+    @classmethod
+    def get_scene_data_backend(cls) -> SceneDataBackend | None:
+        """Return the manager-owned Newton state publication bridge."""
+        return NewtonManager._scene_data_backend
 
     @classmethod
     def sync_transforms_to_usd(cls) -> None:
@@ -499,6 +543,7 @@ class NewtonManager(PhysicsManager):
         NewtonManager._newton_stage_path = None
         NewtonManager._usdrt_stage = None
         NewtonManager._transforms_dirty = False
+        NewtonManager._scene_data_backend = None
         NewtonManager._up_axis = "Z"
         NewtonManager._model_changes = set()
         NewtonManager._cl_pending_sites = {}
@@ -699,7 +744,7 @@ class NewtonManager(PhysicsManager):
         cls._cl_pending_sites.clear()
 
     @classmethod
-    def add_model_change(cls, change: SolverNotifyFlags) -> None:
+    def add_model_change(cls, change: ModelFlags) -> None:
         """Register a model change to notify the solver."""
         cls._model_changes.add(change)
 
@@ -808,14 +853,15 @@ class NewtonManager(PhysicsManager):
         _cfg = PhysicsManager._cfg
         _solver_cfg = getattr(_cfg, "solver_cfg", None)
         _skip_joint_validation = getattr(_solver_cfg, "solver_type", "") in ("kamino", "dvi")
+        # Isaac Lab 3.0 applies USD material colors to the builder before
+        # finalization; the old model-level helper was removed upstream.
+        replace_newton_builder_shape_colors(cls._builder, get_current_stage())
         with Timer(name="newton_finalize_builder", msg="Finalize builder took:"):
             NewtonManager._model = cls._builder.finalize(
                 device=device, skip_validation_joints=_skip_joint_validation
             )
             cls._model.set_gravity(cls._gravity_vector)
             cls._model.num_envs = cls._num_envs
-
-            replace_newton_shape_colors(cls._model)
 
         if cls._pending_extended_contact_attributes:
             cls._model.request_contact_attributes(*cls._pending_extended_contact_attributes)
