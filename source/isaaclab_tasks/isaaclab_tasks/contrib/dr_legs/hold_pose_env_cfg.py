@@ -8,11 +8,12 @@
 The robot must keep its pelvis upright at a target height.
 """
 
-import os
-
 from isaaclab_newton.physics import (
     DVISolverCfg,
-    KaminoSolverCfg,
+    KaminoCollisionDetectorCfg,
+    KaminoConstraintsCfg,
+    KaminoPADMMCfg,
+    KaminoPADMMSolverCfg,
     NewtonCfg,
     NewtonCollisionPipelineCfg,
     NewtonShapeCfg,
@@ -122,7 +123,7 @@ def _dvi_newton_cfg(actuator_integration: str = "semi_implicit") -> NewtonCfg:
 
 
 def _dvi_apgd_newton_cfg() -> NewtonCfg:
-    """DVI NewtonCfg but with APGD contacts (3 iters, tol 1e-4)."""
+    """DVI NewtonCfg but with APGD contacts (20 iters, tol 1e-4)."""
     cfg = _dvi_newton_cfg("semi_implicit")
     cfg.solver_cfg.contact_solver_type = "sparse_apgd"
     cfg.solver_cfg.contact_max_iterations = 20
@@ -137,61 +138,31 @@ def _dvi_pspg_newton_cfg() -> NewtonCfg:
 
 
 def _kamino_newton_cfg() -> NewtonCfg:
-    """Kamino solver preset for DR Legs (closed-loop, implicit PD).
-
-    Ported verbatim from the aserifi/drlegs branch as a benchmark baseline for the
-    DVI solver. The env (rewards/observations/commands) is unchanged; only the
-    physics backend differs.
-    """
+    """Retain the DR Legs P-ADMM baseline using the Newton 1.6 configuration API."""
     return NewtonCfg(
-        solver_cfg=KaminoSolverCfg(
+        solver_cfg=KaminoPADMMSolverCfg(
             integrator="moreau",
             sparse_jacobian=True,
             sparse_dynamics=False,
             use_collision_detector=False,
-            collision_detector_pipeline="unified",
-            collision_detector_max_contacts_per_pair=8,
-            # NOTE: aserifi set ``use_fk_solver=False``, but on this branch the
-            # env's reset path passes joint angles (``joint_q``/``joint_u``) to
-            # ``SolverKamino.reset``, which routes through ``_reset_with_fk_solve``
-            # and REQUIRES the FK solver to reconstruct consistent body poses for
-            # the closed-loop mechanism. Enable it so resets-from-joint-angles work.
+            collision_detector=KaminoCollisionDetectorCfg(pipeline="unified", max_contacts_per_pair=8),
             use_fk_solver=True,
-            constraints_alpha=0.1,
-            padmm_max_iterations=100,
-            padmm_primal_tolerance=1.0e-5,
-            padmm_dual_tolerance=1.0e-5,
-            padmm_compl_tolerance=1.0e-5,
-            padmm_rho_0=0.02,
-            padmm_eta=1.0e-5,
-            padmm_use_acceleration=True,
-            padmm_warmstart_mode="containers",
-            padmm_contact_warmstart_method="geom_pair_net_force",
-            padmm_use_graph_conditionals=False,
-            # NOTE: aserifi also set ``max_contacts_per_world=50`` here, but that
-            # field does not exist on this branch's ``KaminoSolverCfg`` (version
-            # skew between branches). The equivalent per-world contact cap on this
-            # branch is driven by ``model.rigid_contact_max`` (Kamino computes
-            # ``world_max_contacts = rigid_contact_max // world_count``). Without
-            # an explicit cap, Newton's heuristic ``_estimate_rigid_contact_max``
-            # over-estimates ~27k contacts/world for this mesh-heavy closed-loop
-            # biped, which makes the dense Delassus dimension (~3*nc) overflow the
-            # int32 LDL allocation (``total_mat_size`` ~ 27e9+). We therefore set a
-            # sane explicit cap below (64 contacts/world is very generous for a
-            # biped's foot/ground contacts).
+            constraints=KaminoConstraintsCfg(alpha=0.1),
+            dynamics_solver_cfg=KaminoPADMMCfg(
+                max_iterations=100,
+                primal_tolerance=1.0e-5,
+                dual_tolerance=1.0e-5,
+                compl_tolerance=1.0e-5,
+                rho_0=0.02,
+                eta=1.0e-5,
+                use_acceleration=True,
+                warmstart_mode="containers",
+                contact_warmstart_method="geom_pair_net_force",
+                use_graph_conditionals=False,
+            ),
+            max_contacts_per_world=64,
         ),
-        # PER-WORLD contact budget (the Kamino manager scales this by the actual
-        # world count). 64 contacts/world is very generous for a biped's
-        # foot/ground contacts and keeps the dense Delassus dimension small
-        # (maxdim ~ 192 joint-cts + 12 limits + 3*64 = 396) so the int32 LDL
-        # allocation (~ maxdim^2 * worlds) stays well below 2^31 at any env count.
-        collision_cfg=NewtonCollisionPipelineCfg(rigid_contact_max=64),
         num_substeps=4,
-        # CUDA graph instantiation fails at large env counts (4096) on this branch
-        # with "invalid argument" from wp_cuda_graph_create_exec -- the captured
-        # Kamino/FK-solver step contains ops that don't replay at this grid size.
-        # Run eager (no graph). Costs some FPS but is required for the benchmark
-        # to run at scale; note this when comparing FPS against DVI.
         use_cuda_graph=False,
     )
 

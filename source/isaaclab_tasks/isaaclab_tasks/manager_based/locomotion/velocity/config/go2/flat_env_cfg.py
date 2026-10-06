@@ -59,7 +59,7 @@ def _dvi_apgd_newton_cfg() -> NewtonCfg:
     """
     cfg = _dvi_newton_cfg("semi_implicit")
     cfg.solver_cfg.contact_solver_type = "sparse_apgd"
-    cfg.solver_cfg.contact_max_iterations = 3
+    cfg.solver_cfg.contact_max_iterations = 20
     cfg.solver_cfg.contact_tolerance = 1e-4
     return cfg
 

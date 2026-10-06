@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import warp as wp
-from newton import Axis, ModelBuilder
+from newton import Axis, Mesh, ModelBuilder, ShapeFlags
 
 from pxr import Sdf, Usd, UsdGeom
 
@@ -36,11 +36,57 @@ from isaaclab_newton.cloner.newton_clone_utils import (
     build_source_builders,
     replicate_builder_mapping,
 )
-from isaaclab_newton.physics import NewtonCfg, NewtonManager
+from isaaclab_newton.physics import DVISolverCfg, NewtonCfg, NewtonManager
 from isaaclab_newton.sim.spawners.mpm.mpm import _SIMULATION_POINTS_SUFFIX
 
 if TYPE_CHECKING:
     from isaaclab.sim import SimulationContext
+
+
+def _configure_collision_shapes(builder: ModelBuilder, cfg: NewtonCfg) -> None:
+    """Apply configured robot collision geometry and filters before replication."""
+    collidable = [index for index, flags in enumerate(builder.shape_flags) if flags & ShapeFlags.COLLIDE_SHAPES]
+    if cfg.self_collision_shape_contraction > 0.0:
+        for index in collidable:
+            mesh = builder.shape_source[index]
+            if not isinstance(mesh, Mesh):
+                continue
+            vertices = np.asarray(mesh.vertices, dtype=np.float64)
+            center = vertices.mean(axis=0)
+            offsets = vertices - center
+            lengths = np.linalg.norm(offsets, axis=1, keepdims=True)
+            scale = np.maximum(lengths - cfg.self_collision_shape_contraction, 0.0) / np.maximum(lengths, 1e-12)
+            builder.shape_source[index] = mesh.copy(vertices=center + offsets * scale, recompute_inertia=False)
+
+    if cfg.disable_robot_self_collisions:
+        for position, shape in enumerate(collidable):
+            for other in collidable[position + 1 :]:
+                builder.add_shape_collision_filter_pair(shape, other)
+        return
+
+    hops = cfg.jointed_self_collision_filter_hops
+    if hops <= 0:
+        return
+    neighbors: dict[int, set[int]] = {}
+    for parent, child in zip(builder.joint_parent, builder.joint_child, strict=True):
+        if parent >= 0 and child >= 0 and parent != child:
+            neighbors.setdefault(parent, set()).add(child)
+            neighbors.setdefault(child, set()).add(parent)
+    shapes_by_body: dict[int, list[int]] = {}
+    for shape in collidable:
+        shapes_by_body.setdefault(builder.shape_body[shape], []).append(shape)
+    for body in neighbors:
+        visited = {body}
+        frontier = {body}
+        for _ in range(hops):
+            frontier = {neighbor for current in frontier for neighbor in neighbors[current]} - visited
+            visited.update(frontier)
+        for other_body in visited:
+            if body >= other_body:
+                continue
+            for shape in shapes_by_body.get(body, ()):
+                for other in shapes_by_body.get(other_body, ()):
+                    builder.add_shape_collision_filter_pair(shape, other)
 
 
 def copy_newton_clone_source(source_path: str, xform: wp.transform | None = None) -> ModelBuilder:
@@ -172,10 +218,16 @@ def _replicate_newton(
         stage_info = builder.add_usd(stage, root_path=sim.cfg.physics_prim_path, schema_resolvers=schema_resolvers)
 
     import_results: dict[str, dict[str, Any]] = {}
+    dvi_geometry = simulation and isinstance(cfg.solver_cfg, DVISolverCfg)
     options = dict(ignore_paths=ignore_paths, load_visual_shapes=load_visual_shapes)
-    options.update(skip_mesh_approximation=not simulation, import_results_out=import_results)
+    options.update(skip_mesh_approximation=not simulation or dvi_geometry, import_results_out=import_results)
+    options["collapse_fixed_joints"] = cfg.collapse_fixed_joints if simulation else False
     source_builders = build_source_builders(stage, source_paths, create_builder, schema_resolvers, **options)
     if simulation:
+        for source_builder in source_builders.values():
+            if dvi_geometry:
+                source_builder.approximate_meshes("convex_hull", keep_visual_shapes=load_visual_shapes)
+            _configure_collision_shapes(source_builder, cfg)
         entries = [add_deformable_from_usd(source_builders[path], stage, root_path=path) for path in deformable_paths]
     else:
         # Import visual meshes once into their owning prototypes, before the common native replication.

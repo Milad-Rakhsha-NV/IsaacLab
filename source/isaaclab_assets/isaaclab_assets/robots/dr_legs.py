@@ -19,12 +19,21 @@ The following configuration is available:
 
 import os
 
+from newton.utils import download_asset
+
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 
 # TODO: switch ``usd_path`` to ``ISAACLAB_NUCLEUS_DIR`` once the DR Legs USD is hosted on Nucleus.
 _DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "dr_legs")
+_USD_PATH = os.path.join(_DATA_DIR, "dr_legs.usda")
+if not os.path.isfile(_USD_PATH):
+    # The paper checkout used an ignored local USD and an author-specific Geometry symlink.
+    # Resolve the same asset revision portably, including its relative geometry references.
+    _USD_PATH = str(
+        download_asset("disneyresearch", ref="8e8df07d2e4829442d3d3d3aeecee1857f9951d7") / "dr_legs/usd/dr_legs.usda"
+    )
 
 DR_LEGS_JOINT_ORDER: list[str] = [
     "j1_l_i",
@@ -87,7 +96,7 @@ DR_LEGS_PASSIVE_JOINTS: list[str] = [j for j in DR_LEGS_JOINT_ORDER if j not in 
 
 
 _DR_LEGS_SPAWN = sim_utils.UsdFileCfg(
-    usd_path=os.path.join(_DATA_DIR, "dr_legs.usda"),
+    usd_path=_USD_PATH,
     activate_contact_sensors=True,
     rigid_props=sim_utils.RigidBodyPropertiesCfg(
         disable_gravity=False,

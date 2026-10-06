@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import ctypes
+import inspect
 import logging
 from abc import abstractmethod
 from collections.abc import Callable
@@ -37,7 +38,7 @@ from isaaclab.physics import CallbackHandle, PhysicsEvent, PhysicsManager
 from isaaclab.scene_data import SceneDataBackend, SceneDataFormat
 from isaaclab.sim.utils.newton_model_utils import replace_newton_builder_shape_colors
 from isaaclab.sim.utils.stage import get_current_stage
-from isaaclab.utils import checked_apply
+from isaaclab.utils import checked_apply, to_dict
 from isaaclab.utils.string import resolve_matching_names
 from isaaclab.utils.timer import Timer
 
@@ -223,6 +224,7 @@ class NewtonManager(PhysicsManager):
     # Release-3 scene-data bridge. DVI retains ownership of the native model
     # and state; this publishes those same buffers without a backend allocation.
     _scene_data_backend: NewtonSceneDataBackend | None = None
+    transforms_may_change_on_graph_replay: bool = False
 
     # cubric GPU transform hierarchy (replaces CPU update_world_xforms)
     _cubric = None
@@ -231,6 +233,10 @@ class NewtonManager(PhysicsManager):
 
     # Model changes (callbacks use unified system from PhysicsManager)
     _model_changes: set[int] = set()
+
+    # Native explicit actuators share the same model/control buffers as DVI.
+    _adapter = None
+    _post_actuator_callbacks: list[Callable[[], None]] = []
 
     # Views list for assets to register their views
     _views: list = []
@@ -298,13 +304,12 @@ class NewtonManager(PhysicsManager):
     def forward(cls) -> None:
         """Update articulation kinematics without stepping physics.
 
-        Runs Newton's generic forward kinematics (``eval_fk``) over **all**
-        articulations to compute body poses from joint coordinates. This is
-        the full (unmasked) FK path used during initial setup. For incremental
-        per-environment updates after resets, see :meth:`invalidate_fk` which
-        accumulates masks consumed by :meth:`step`.
+        Consume only pending articulation writes. Unmodified maximal-coordinate
+        bodies must retain their solver poses and velocities when observations
+        or rendering request an update.
         """
-        eval_fk(cls._model, cls._state_0.joint_q, cls._state_0.joint_qd, cls._state_0, None)
+        eval_fk(cls._model, cls._state_0.joint_q, cls._state_0.joint_qd, cls._state_0, cls._fk_reset_mask)
+        cls._fk_reset_mask.zero_()
 
     @classmethod
     def pre_render(cls) -> None:
@@ -461,6 +466,13 @@ class NewtonManager(PhysicsManager):
         NewtonManager._world_reset_mask.zero_()
         NewtonManager._fk_reset_mask.zero_()
 
+        # Keep actuator state advancement outside the physics graph. This also
+        # supports actuator implementations that cannot be CUDA captured.
+        if cls._adapter is not None:
+            cls._adapter.step(cls._state_0, cls._control, cls._solver_dt * cls._num_substeps)
+        for callback in cls._post_actuator_callbacks:
+            callback()
+
         # Step simulation (graphed or not; _graph is None when capture is disabled or failed)
         if cfg is not None and cfg.use_cuda_graph and cls._graph is not None and "cuda" in device:  # type: ignore[union-attr]
             wp.capture_launch(cls._graph)
@@ -551,6 +563,29 @@ class NewtonManager(PhysicsManager):
         NewtonManager._pending_extended_state_attributes = set()
         NewtonManager._pending_extended_contact_attributes = set()
         NewtonManager._views = []
+        NewtonManager._adapter = None
+        NewtonManager._post_actuator_callbacks = []
+
+    @classmethod
+    def activate_newton_actuator_path(cls) -> None:
+        """Bind imported native explicit actuators to the simulation control."""
+        if cls._adapter is not None or not cls._model.actuators:
+            return
+        from isaaclab.actuators.newton import NewtonActuatorAdapter  # noqa: PLC0415
+
+        NewtonManager._adapter = NewtonActuatorAdapter(
+            actuators=list(cls._model.actuators),
+            num_envs=cls._num_envs,
+            num_joints=cls._model.joint_dof_count // cls._num_envs,
+            dof_offset=0,
+            device=PhysicsManager._device,
+        )
+        cls._adapter.finalize(cls._control)
+
+    @classmethod
+    def register_post_actuator_callback(cls, callback: Callable[[], None]) -> None:
+        """Register telemetry and command routing after native actuator updates."""
+        cls._post_actuator_callbacks.append(callback)
 
     @classmethod
     def set_builder(cls, builder: ModelBuilder) -> None:
@@ -857,9 +892,7 @@ class NewtonManager(PhysicsManager):
         # finalization; the old model-level helper was removed upstream.
         replace_newton_builder_shape_colors(cls._builder, get_current_stage())
         with Timer(name="newton_finalize_builder", msg="Finalize builder took:"):
-            NewtonManager._model = cls._builder.finalize(
-                device=device, skip_validation_joints=_skip_joint_validation
-            )
+            NewtonManager._model = cls._builder.finalize(device=device, skip_validation_joints=_skip_joint_validation)
             cls._model.set_gravity(cls._gravity_vector)
             cls._model.num_envs = cls._num_envs
 
@@ -941,8 +974,7 @@ class NewtonManager(PhysicsManager):
 
         if not env_paths:
             # No env Xforms — flat loading
-            builder.add_usd(stage, schema_resolvers=schema_resolvers,
-                            collapse_fixed_joints=collapse_fixed_joints)
+            builder.add_usd(stage, schema_resolvers=schema_resolvers, collapse_fixed_joints=collapse_fixed_joints)
         else:
             # Load everything except the env subtrees (ground plane, lights, etc.)
             ignore_paths = [path for _, path in env_paths]
@@ -1020,6 +1052,16 @@ class NewtonManager(PhysicsManager):
             NewtonManager._contacts = cls._collision_pipeline.contacts()
 
     # ----- Solver construction (subclass contract) ------------------------
+
+    @staticmethod
+    def _filter_solver_kwargs(solver_cls: type, solver_cfg: NewtonSolverCfg) -> dict:
+        """Forward only configuration fields accepted by the native constructor.
+
+        Configuration metadata belongs to manager dispatch. The model is passed
+        positionally by each solver manager.
+        """
+        valid = set(inspect.signature(solver_cls.__init__).parameters) - {"self", "model"}
+        return {key: value for key, value in to_dict(solver_cfg).items() if key in valid}
 
     @classmethod
     @abstractmethod
@@ -1396,8 +1438,8 @@ class NewtonManager(PhysicsManager):
     ) -> tuple[str | list[str] | None, str | list[str] | None, str | list[str] | None, str | list[str] | None]:
         """Add a contact sensor for reporting contacts between bodies/shapes.
 
-        Converts Isaac Lab pattern conventions (``.*`` regex, full USD paths) to
-        fnmatch globs and delegates to :class:`newton.sensors.SensorContact`.
+        Resolves Isaac Lab regular expressions against model labels and passes
+        explicit selections to :class:`newton.sensors.SensorContact`.
 
         Args:
             body_names_expr: Expression for body names to sense.
@@ -1420,14 +1462,6 @@ class NewtonManager(PhysicsManager):
         def _hashable_key(x):
             return tuple(x) if isinstance(x, list) else x
 
-        def _to_fnmatch(expr: str | list[str] | None) -> str | list[str] | None:
-            """Convert Isaac Lab regex expressions (``.*``) to fnmatch glob (``*``)."""
-            if expr is None:
-                return None
-            if isinstance(expr, str):
-                return expr.replace(".*", "*")
-            return [p.replace(".*", "*") for p in expr]
-
         def _normalize_for_labels(expr: str | list[str] | None, labels: list[str]) -> str | list[str] | None:
             """Strip leading path components from *expr* when labels are bare names.
 
@@ -1445,6 +1479,13 @@ class NewtonManager(PhysicsManager):
             normalized = [p.rsplit("/", 1)[-1] for p in items]
             return normalized[0] if isinstance(expr, str) else normalized
 
+        def _resolve_sensor_indices(expr: str | list[str] | None, labels: list[str]) -> list[int] | None:
+            """Resolve Lab regular expressions before passing selections to Newton."""
+            if expr is None:
+                return None
+            normalized = _normalize_for_labels(expr, labels)
+            return resolve_matching_names(normalized, labels)[0]
+
         sensor_key = (
             _hashable_key(body_names_expr),
             _hashable_key(shape_names_expr),
@@ -1458,10 +1499,10 @@ class NewtonManager(PhysicsManager):
         with Timer(name="newton_contact_sensor", msg="Contact sensor construction took:"):
             sensor = NewtonContactSensor(
                 cls._model,
-                sensing_obj_bodies=_normalize_for_labels(_to_fnmatch(body_names_expr), body_labels),
-                sensing_obj_shapes=_normalize_for_labels(_to_fnmatch(shape_names_expr), shape_labels),
-                counterpart_bodies=_normalize_for_labels(_to_fnmatch(contact_partners_body_expr), body_labels),
-                counterpart_shapes=_normalize_for_labels(_to_fnmatch(contact_partners_shape_expr), shape_labels),
+                sensing_bodies=_resolve_sensor_indices(body_names_expr, body_labels),
+                sensing_shapes=_resolve_sensor_indices(shape_names_expr, shape_labels),
+                counterpart_bodies=_resolve_sensor_indices(contact_partners_body_expr, body_labels),
+                counterpart_shapes=_resolve_sensor_indices(contact_partners_shape_expr, shape_labels),
                 measure_total=True,
                 verbose=verbose,
             )

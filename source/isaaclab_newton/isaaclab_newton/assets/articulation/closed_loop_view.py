@@ -156,6 +156,20 @@ class ClosedLoopView:
         return self._joint_coords_per_world - self._root_coord_count
 
     @property
+    def joint_coord_counts(self) -> list[int]:
+        """Coordinate widths of the selected joints, excluding an explicit free root."""
+        starts = self.model.joint_q_start.numpy()[: self._joints_per_world + 1]
+        counts = [int(end - start) for start, end in zip(starts[:-1], starts[1:], strict=True)]
+        return counts[1:] if self._is_floating_base else counts
+
+    @property
+    def joint_dof_counts(self) -> list[int]:
+        """Velocity widths of the selected joints, excluding an explicit free root."""
+        starts = self.model.joint_qd_start.numpy()[: self._joints_per_world + 1]
+        counts = [int(end - start) for start, end in zip(starts[:-1], starts[1:], strict=True)]
+        return counts[1:] if self._is_floating_base else counts
+
+    @property
     def link_count(self) -> int:
         return self._bodies_per_world
 

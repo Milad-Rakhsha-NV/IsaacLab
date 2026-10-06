@@ -29,8 +29,9 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import UniformNoiseCfg as Unoise
 
-import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.utils import PresetCfg, preset
+
+from . import mdp
 
 ##
 # Pre-defined configs
@@ -48,6 +49,7 @@ class RoughPhysicsCfg(PresetCfg):
     """Shared physics preset for all rough-terrain locomotion envs."""
 
     default = PhysxCfg(gpu_max_rigid_patch_count=10 * 2**15)
+    isaacsim_physx = default
     newton_mjwarp = NewtonCfg(
         solver_cfg=MJWarpSolverCfg(
             njmax=200,
@@ -89,7 +91,7 @@ class RoughPhysicsCfg(PresetCfg):
         debug_mode=False,
         use_cuda_graph=True,
         collapse_fixed_joints=True,
-        default_shape_cfg=NewtonShapeCfg(margin=0.01, gap=0.005),
+        default_shape_cfg=NewtonShapeCfg(margin=0.0, gap=0.005),
     )
     physx = default
 
@@ -104,8 +106,12 @@ class VelocityEnvContactSensorCfg(PresetCfg):
     default = PhysXContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     newton_mjwarp = NewtonContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     newton_dvi = NewtonContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
-    newton_dvi_implicit = NewtonContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
-    newton_dvi_semi_implicit = NewtonContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
+    newton_dvi_implicit = NewtonContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True
+    )
+    newton_dvi_semi_implicit = NewtonContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True
+    )
     newton_dvi_apgd = NewtonContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     newton_dvi_pspg = NewtonContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     physx = default

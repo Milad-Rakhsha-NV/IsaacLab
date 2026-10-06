@@ -43,6 +43,7 @@ class H1FlatEnvCfg(H1RoughEnvCfg):
         newton_mjwarp.solver_cfg.njmax = 65
         newton_mjwarp.solver_cfg.nconmax = 15
         self.sim.physics.default = newton_mjwarp
+        self.sim.physics.newton_dvi.solver_cfg.joint_limit_recovery_speed = 1.0
         # scene
         self.scene.terrain.terrain_type = "plane"
         self.scene.terrain.terrain_generator = None

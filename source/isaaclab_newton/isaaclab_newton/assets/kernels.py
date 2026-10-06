@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import torch
 import warp as wp
 
 vec13f = wp.types.vector(length=13, dtype=wp.float32)
@@ -1462,3 +1463,23 @@ def restore_closed_loop_bodies_from_state_root_mask(
     flat = env * bodies_per_world + b
     body_q[flat] = wp.transform_multiply(delta, ref_body_q[env, b])
     body_qd[flat] = wp.spatial_vectorf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+def com_positions(coms: float | torch.Tensor | wp.array) -> float | torch.Tensor | wp.array:
+    """Return center of mass positions, dropping the orientation when poses are given.
+
+    Newton models a body's center of mass as a position, while the asset API also accepts poses
+    (position and quaternion (x, y, z, w)) like the other backends. The orientation is ignored.
+
+    Args:
+        coms: Center of mass positions [m] with a trailing dimension of 3 (or dtype ``wp.vec3f``), or poses with a
+            trailing dimension of 7 (or dtype ``wp.transformf``).
+
+    Returns:
+        The center of mass positions [m]; inputs that are already positions are returned unchanged.
+    """
+    if isinstance(coms, wp.array) and coms.dtype == wp.transformf:
+        coms = wp.to_torch(coms)
+    if isinstance(coms, torch.Tensor) and coms.shape[-1] == 7:
+        return coms[..., :3].contiguous()
+    return coms

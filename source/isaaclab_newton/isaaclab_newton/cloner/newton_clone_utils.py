@@ -95,6 +95,7 @@ def build_source_builders(
     ignore_paths: Sequence[str] | None = None,
     load_visual_shapes: bool = True,
     skip_mesh_approximation: bool = False,
+    collapse_fixed_joints: bool = False,
     import_results_out: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, ModelBuilder]:
     """Build one Newton builder for each clone source prim path.
@@ -113,6 +114,7 @@ def build_source_builders(
             USD parse time and memory that only pays off when the shapes are rendered
             or ray cast.
         skip_mesh_approximation: Whether to skip collision mesh approximation during import.
+        collapse_fixed_joints: Whether to merge fixed-joint bodies during import.
         import_results_out: Optional caller-owned output mapping populated in place with each
             source's USD import result.
     """
@@ -126,6 +128,7 @@ def build_source_builders(
             load_visual_shapes=load_visual_shapes,
             hide_collision_shapes=True,
             skip_mesh_approximation=skip_mesh_approximation,
+            collapse_fixed_joints=collapse_fixed_joints,
             schema_resolvers=schema_resolvers,
             ignore_paths=[
                 *(ignore_paths or ()),
