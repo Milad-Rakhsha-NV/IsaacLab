@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 
 import warp as wp
-from newton import Contacts, Control, Model, State, eval_fk, eval_ik
+from newton import Contacts, Control, Model, State, eval_ik
 from newton.solvers import (
     ActuatorIntegration,
     FrictionProjection,
@@ -77,10 +77,7 @@ def _make_numerical_config(
     """Build a NumericalSolverConfig from string parameters."""
     solver_type = _SOLVER_TYPE_MAP.get(solver_type_str)
     if solver_type is None:
-        raise ValueError(
-            f"Unknown solver type '{solver_type_str}'. "
-            f"Available: {list(_SOLVER_TYPE_MAP.keys())}"
-        )
+        raise ValueError(f"Unknown solver type '{solver_type_str}'. Available: {list(_SOLVER_TYPE_MAP.keys())}")
     return NumericalSolverConfig(
         solver_type=solver_type,
         max_iterations=max_iterations,
@@ -152,16 +149,14 @@ class NewtonDVIManager(NewtonManager):
         fp = _FRICTION_PROJECTION_MAP.get(fp_str)
         if fp is None:
             raise ValueError(
-                f"Unknown contact_friction_projection '{fp_str}'. "
-                f"Available: {list(_FRICTION_PROJECTION_MAP.keys())}"
+                f"Unknown contact_friction_projection '{fp_str}'. Available: {list(_FRICTION_PROJECTION_MAP.keys())}"
             )
 
         residual_mode_str = solver_cfg.contact_residual_mode.lower()
         residual_mode = _RESIDUAL_MODE_MAP.get(residual_mode_str)
         if residual_mode is None:
             raise ValueError(
-                f"Unknown contact_residual_mode '{residual_mode_str}'. "
-                f"Available: {list(_RESIDUAL_MODE_MAP.keys())}"
+                f"Unknown contact_residual_mode '{residual_mode_str}'. Available: {list(_RESIDUAL_MODE_MAP.keys())}"
             )
 
         contact_config = _make_numerical_config(
@@ -200,7 +195,6 @@ class NewtonDVIManager(NewtonManager):
 
         # Apply per-joint armature overrides if configured
         if solver_cfg.armature_override and model.joint_armature is not None:
-            import numpy as np
             arm = model.joint_armature.numpy()
             qd_start = model.joint_qd_start.numpy()
             dof_dim = model.joint_dof_dim.numpy()
@@ -237,6 +231,7 @@ class NewtonDVIManager(NewtonManager):
             enable_actuation=solver_cfg.enable_actuation,
             coupling_iterations=solver_cfg.coupling_iterations,
             cache_factorization=solver_cfg.cache_factorization,
+            use_armature_rows=solver_cfg.use_armature_rows,
             post_stabilize_joints=solver_cfg.post_stabilize_joints,
             actuator_integration=ai_mode,
             enable_timers=False,
@@ -266,8 +261,9 @@ class NewtonDVIManager(NewtonManager):
         ``initialize_solver`` has built the solver and contacts but before
         it captures the graph.
         """
-        from isaaclab_newton.physics.newton_manager import NewtonManager
         from isaaclab.physics import PhysicsManager
+
+        from isaaclab_newton.physics.newton_manager import NewtonManager
 
         cfg = PhysicsManager._cfg
         if cfg is None:
@@ -275,6 +271,7 @@ class NewtonDVIManager(NewtonManager):
 
         # --- Run base logic EXCEPT the graph capture ---
         from isaaclab.utils.timer import Timer
+
         with Timer(name="newton_initialize_solver", msg="Initialize solver took:"):
             NewtonManager._num_substeps = cfg.num_substeps
             NewtonManager._solver_dt = cls.get_physics_dt() / cls._num_substeps
@@ -282,9 +279,7 @@ class NewtonDVIManager(NewtonManager):
 
             cls._build_solver(cls._model, cfg.solver_cfg)
             if NewtonManager._solver is None:
-                raise RuntimeError(
-                    f"{cls.__name__}._build_solver did not assign NewtonManager._solver."
-                )
+                raise RuntimeError(f"{cls.__name__}._build_solver did not assign NewtonManager._solver.")
             cls._initialize_contacts()
 
         if cls._usdrt_stage is not None:
@@ -298,7 +293,7 @@ class NewtonDVIManager(NewtonManager):
         # so subsequent calls during capture short-circuit.
         solver = NewtonManager._solver
         state_0 = cls._state_0
-        if state_0 is not None and hasattr(solver, 'finalize_for_capture'):
+        if state_0 is not None and hasattr(solver, "finalize_for_capture"):
             solver.finalize_for_capture(state_0)
             logger.info("DVI: pre-ran finalize_for_capture (joint + contact solvers)")
 
@@ -355,7 +350,9 @@ class NewtonDVIManager(NewtonManager):
         # so we do NOT call cls._collision_pipeline.collide() here.
 
         cfg = PhysicsManager._cfg
-        need_copy_on_last_substep = (cfg is not None and getattr(cfg, "use_cuda_graph", False)) and cls._num_substeps % 2 == 1
+        need_copy_on_last_substep = (
+            cfg is not None and getattr(cfg, "use_cuda_graph", False)
+        ) and cls._num_substeps % 2 == 1
 
         for i in range(cls._num_substeps):
             cls._step_solver(cls._state_0, cls._state_1, cls._control, cls._solver_dt)
@@ -384,8 +381,6 @@ class NewtonDVIManager(NewtonManager):
             cls._write_contact_forces_gpu(eval_contacts)
             for sensor in cls._newton_contact_sensors.values():
                 sensor.update(cls._state_0, eval_contacts)
-
-
 
     # ------------------------------------------------------------------
     # GPU contact force update

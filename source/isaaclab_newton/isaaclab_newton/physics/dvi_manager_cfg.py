@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING
 
 from isaaclab.utils import configclass
@@ -117,6 +116,20 @@ class DVISolverCfg(NewtonSolverCfg):
     """Number of block Gauss-Seidel sweeps coupling joint limits, bilateral
     joints, and contacts per physics step."""
 
+    use_armature_rows: bool = False
+    """**Experimental:** represent revolute armature with rotor impulse rows.
+
+    Defaults to False, retaining Newton DVI's legacy body-inertia approximation.
+    Set before solver construction; requires ``joint_solver_type="sparse_ldl"``.
+    Armature must be finite and nonnegative [kg m^2], with zero armature on
+    enabled non-revolute joints. Zero-armature rows do not lock the hinge.
+
+    This option may change without the normal deprecation period. Contact and
+    joint-limit coupling remains iterative, so the coupling count still affects
+    accuracy. Implicit drive integration retains its separate approximation.
+    Enabling this flag does not change the model's armature or actuator settings.
+    """
+
     cache_factorization: bool = True
     """Reuse the joint direct-solver factorization across coupling sweeps."""
 
@@ -145,7 +158,6 @@ class DVISolverCfg(NewtonSolverCfg):
 
     contact_recovery_speed: float = 1.0
     """Max Baumgarte recovery speed for contacts (m/s)."""
-
 
     contact_tolerance: float | None = None
     """Early-exit convergence tolerance for the contact numerical solver.
@@ -298,5 +310,3 @@ class DVISolverCfg(NewtonSolverCfg):
       only clamps tangential magnitude. Gives exact normal forces and
       correct Coulomb sliding velocity.
     """
-
-
