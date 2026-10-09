@@ -201,9 +201,10 @@ class ArticulationData(BaseArticulationData):
             ]
         )
         self._body_state_dirty = True
-        SimulationManager.invalidate_fk(
-            env_mask=env_mask, env_ids=env_ids, articulation_ids=self._root_view.articulation_ids
-        )
+        articulation_ids = self._root_view.articulation_ids
+        if articulation_ids.shape[1] == 0:
+            articulation_ids = None  # Closed-loop assets have no tree articulation to evaluate.
+        SimulationManager.invalidate_fk(env_mask=env_mask, env_ids=env_ids, articulation_ids=articulation_ids)
 
     def _reset_velocity(
         self, from_com: bool = True, *, env_ids: wp.array | None = None, env_mask: wp.array | None = None
@@ -239,9 +240,10 @@ class ArticulationData(BaseArticulationData):
             ]
         )
         self._body_state_dirty = True
-        SimulationManager.invalidate_fk(
-            env_mask=env_mask, env_ids=env_ids, articulation_ids=self._root_view.articulation_ids
-        )
+        articulation_ids = self._root_view.articulation_ids
+        if articulation_ids.shape[1] == 0:
+            articulation_ids = None
+        SimulationManager.invalidate_fk(env_mask=env_mask, env_ids=env_ids, articulation_ids=articulation_ids)
 
     def _reset_body_com_pose_b_dependents(self) -> None:
         """Reset cached properties derived from body-frame center-of-mass offsets."""

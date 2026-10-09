@@ -189,9 +189,8 @@ class ClosedLoopView:
 
         Sizing buffers from ``articulation_ids`` (e.g.
         ``ArticulationData._create_jacobian_buffers``) yields zero rows, while
-        :meth:`Articulation._get_root_view_articulation_ids` treats the empty
-        array as "no articulations" so reset scoping falls back to ``env_ids`` /
-        ``env_mask``.
+        the articulation data reset helpers treat the empty array as "no
+        articulations" so reset scoping falls back to ``env_ids`` / ``env_mask``.
         """
         return wp.zeros((self._world_count, 0), dtype=wp.int32, device=self.device)
 

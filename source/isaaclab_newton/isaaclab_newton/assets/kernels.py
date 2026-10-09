@@ -3,8 +3,12 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from typing import Any
+
 import torch
 import warp as wp
+
+from isaaclab.utils.warp.index_kernel import IndexKernelDispatcher
 
 vec13f = wp.types.vector(length=13, dtype=wp.float32)
 
@@ -507,7 +511,7 @@ Root-level write kernels (1D — used by RigidObject + Articulation).
 @wp.kernel
 def set_root_link_pose_to_sim_index(
     data: wp.array(dtype=wp.transformf),
-    env_ids: wp.array(dtype=wp.int32),
+    env_ids: wp.array(dtype=Any),
     root_link_pose_w: wp.array(dtype=wp.transformf),
 ):
     """Write root link pose data to simulation buffers.
@@ -547,7 +551,7 @@ def set_root_link_pose_to_sim_mask(
 def set_root_com_pose_to_sim_index(
     data: wp.array(dtype=wp.transformf),
     body_com_pos_b: wp.array2d(dtype=wp.vec3f),
-    env_ids: wp.array(dtype=wp.int32),
+    env_ids: wp.array(dtype=Any),
     root_com_pose_w: wp.array(dtype=wp.transformf),
     root_link_pose_w: wp.array(dtype=wp.transformf),
 ):
@@ -605,7 +609,7 @@ def set_root_com_pose_to_sim_mask(
 @wp.kernel
 def set_root_com_velocity_to_sim_index(
     data: wp.array(dtype=wp.spatial_vectorf),
-    env_ids: wp.array(dtype=wp.int32),
+    env_ids: wp.array(dtype=Any),
     num_bodies: wp.int32,
     root_com_velocity_w: wp.array(dtype=wp.spatial_vectorf),
     body_acc_w: wp.array2d(dtype=wp.spatial_vectorf),
@@ -664,7 +668,7 @@ def set_root_link_velocity_to_sim_index(
     data: wp.array(dtype=wp.spatial_vectorf),
     body_com_pos_b: wp.array2d(dtype=wp.vec3f),
     link_pose_w: wp.array(dtype=wp.transformf),
-    env_ids: wp.array(dtype=wp.int32),
+    env_ids: wp.array(dtype=Any),
     num_bodies: wp.int32,
     root_link_velocity_w: wp.array(dtype=wp.spatial_vectorf),
     root_com_velocity_w: wp.array(dtype=wp.spatial_vectorf),
@@ -742,6 +746,34 @@ def set_root_link_velocity_to_sim_mask(
         # Make the acceleration zero to prevent reporting old values
         for j in range(num_bodies):
             body_acc_w[i, j] = wp.spatial_vectorf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+_SET_ROOT_LINK_POSE_TO_SIM_INDEX_DISPATCHER = IndexKernelDispatcher(set_root_link_pose_to_sim_index, ("env_ids",))
+_SET_ROOT_COM_POSE_TO_SIM_INDEX_DISPATCHER = IndexKernelDispatcher(set_root_com_pose_to_sim_index, ("env_ids",))
+_SET_ROOT_COM_VELOCITY_TO_SIM_INDEX_DISPATCHER = IndexKernelDispatcher(set_root_com_velocity_to_sim_index, ("env_ids",))
+_SET_ROOT_LINK_VELOCITY_TO_SIM_INDEX_DISPATCHER = IndexKernelDispatcher(
+    set_root_link_velocity_to_sim_index, ("env_ids",)
+)
+
+
+def set_root_link_pose_to_sim_index_kernel(env_ids: wp.array | torch.Tensor) -> wp.Kernel:
+    """Select the root-link pose writer matching the environment selector dtype."""
+    return _SET_ROOT_LINK_POSE_TO_SIM_INDEX_DISPATCHER.select(env_ids)
+
+
+def set_root_com_pose_to_sim_index_kernel(env_ids: wp.array | torch.Tensor) -> wp.Kernel:
+    """Select the root-COM pose writer matching the environment selector dtype."""
+    return _SET_ROOT_COM_POSE_TO_SIM_INDEX_DISPATCHER.select(env_ids)
+
+
+def set_root_com_velocity_to_sim_index_kernel(env_ids: wp.array | torch.Tensor) -> wp.Kernel:
+    """Select the root-COM velocity writer matching the environment selector dtype."""
+    return _SET_ROOT_COM_VELOCITY_TO_SIM_INDEX_DISPATCHER.select(env_ids)
+
+
+def set_root_link_velocity_to_sim_index_kernel(env_ids: wp.array | torch.Tensor) -> wp.Kernel:
+    """Select the root-link velocity writer matching the environment selector dtype."""
+    return _SET_ROOT_LINK_VELOCITY_TO_SIM_INDEX_DISPATCHER.select(env_ids)
 
 
 """

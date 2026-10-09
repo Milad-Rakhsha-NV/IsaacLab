@@ -9,7 +9,7 @@ Asset and marker configurations, joint/body name lists, backend physics
 presets, and the sim mixin. No task tunables.
 """
 
-from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonCollisionPipelineCfg
 from isaaclab_ov.physics import OvPhysxCfg
 from isaaclab_physx.physics import PhysxCfg
 from isaaclab_physx.sim.schemas import PhysxRigidBodyCfg
@@ -82,6 +82,45 @@ class PhysicsCfg(PresetCfg):
             update_data_interval=2,
         ),
         num_substeps=2,
+    )
+    # Experimental DVI preset: preserve the task's assets, drives, and control rate.
+    newton_dvi = NewtonCfg(
+        collision_cfg=NewtonCollisionPipelineCfg(),
+        solver_cfg=DVISolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_alpha=0.0,
+            joint_iterative_refinement_steps=1,
+            contact_solver_type="sparse_jacobi",
+            contact_max_iterations=20,
+            # Dense hand/cube contacts need more conservative Jacobi relaxation.
+            contact_omega=0.15,
+            contact_alpha=0.0,
+            contact_recovery_speed=1.0,
+            contact_friction_projection="tangential",
+            coupling_iterations=2,
+            post_stabilize_joints=True,
+            cache_factorization=True,
+            angular_damping=0.0,
+        ),
+        num_substeps=2,
+        collapse_fixed_joints=True,
+        use_cuda_graph=True,
+    )
+    # Experimental APGD alternative. RES4 measures the cone optimality condition;
+    # normal-only complementarity can select a suboptimal APGD cone iterate.
+    newton_dvi_apgd = NewtonCfg(
+        collision_cfg=NewtonCollisionPipelineCfg(),
+        solver_cfg=replace(
+            newton_dvi.solver_cfg,
+            post_stabilize_joints=True,
+            contact_friction_projection="cone",
+            contact_solver_type="sparse_apgd",
+            contact_recovery_speed=5.0,
+            contact_residual_mode="res4",
+        ),
+        num_substeps=2,
+        collapse_fixed_joints=True,
+        use_cuda_graph=True,
     )
     ovphysx = OvPhysxCfg()
     physx = PhysxAutoCfg(isaacsim_physx=isaacsim_physx, ovphysx=ovphysx)

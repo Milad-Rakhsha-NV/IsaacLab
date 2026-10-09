@@ -13,7 +13,7 @@ import inspect
 import logging
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import warp as wp
 
@@ -41,6 +41,7 @@ from isaaclab.sim.utils.stage import get_current_stage
 from isaaclab.utils import checked_apply, to_dict
 from isaaclab.utils.string import resolve_matching_names
 from isaaclab.utils.timer import Timer
+from isaaclab.utils.warp.index_kernel import IndexKernelDispatcher
 
 from .newton_manager_cfg import NewtonCfg, NewtonShapeCfg, NewtonSolverCfg
 
@@ -90,7 +91,7 @@ def _or_reset_masks_from_mask(
 
 @wp.kernel(enable_backward=False)
 def _scatter_reset_masks_from_ids(
-    env_ids: wp.array(dtype=int),
+    env_ids: wp.array(dtype=Any),
     articulation_ids: wp.array2d(dtype=int),
     world_mask: wp.array(dtype=wp.int32),
     fk_mask: wp.array(dtype=wp.bool),
@@ -116,13 +117,17 @@ def _or_world_mask_from_env_mask(
 
 @wp.kernel(enable_backward=False)
 def _scatter_world_mask_from_ids(
-    env_ids: wp.array(dtype=int),
+    env_ids: wp.array(dtype=Any),
     world_mask: wp.array(dtype=wp.int32),
 ):
     """Scatter-set world_mask from sparse env_ids. Used when articulation_ids
     is unavailable (e.g. closed-loop assets whose root view does not expose them)."""
     i = wp.tid()
     world_mask[env_ids[i]] = wp.int32(1)
+
+
+_SCATTER_RESET_MASKS_DISPATCHER = IndexKernelDispatcher(_scatter_reset_masks_from_ids, ("env_ids",))
+_SCATTER_WORLD_MASK_DISPATCHER = IndexKernelDispatcher(_scatter_world_mask_from_ids, ("env_ids",))
 
 
 class NewtonSceneDataBackend(SceneDataBackend):
@@ -209,6 +214,7 @@ class NewtonManager(PhysicsManager):
     # Per-world reset masks (allocated in start_simulation, consumed in step)
     _world_reset_mask: wp.array | None = None  # (num_envs,) wp.int32 — for SolverKamino.reset(world_mask=...)
     _fk_reset_mask: wp.array | None = None  # (articulation_count,) wp.bool — for eval_fk(mask=...)
+    _reset_solver_callback: Callable[[wp.array | None], None] | None = None
 
     # CUDA graphing
     _graph = None
@@ -308,6 +314,9 @@ class NewtonManager(PhysicsManager):
         bodies must retain their solver poses and velocities when observations
         or rendering request an update.
         """
+        if cls._reset_solver_callback is not None:
+            cls._reset_solver_callback(cls._world_reset_mask)
+            cls._world_reset_mask.zero_()
         eval_fk(cls._model, cls._state_0.joint_q, cls._state_0.joint_qd, cls._state_0, cls._fk_reset_mask)
         cls._fk_reset_mask.zero_()
 
@@ -462,6 +471,9 @@ class NewtonManager(PhysicsManager):
         if cls._needs_collision_pipeline:
             eval_fk(cls._model, cls._state_0.joint_q, cls._state_0.joint_qd, cls._state_0, cls._fk_reset_mask)
 
+        if cls._reset_solver_callback is not None:
+            cls._reset_solver_callback(cls._world_reset_mask)
+
         # Zero both masks after consumption
         NewtonManager._world_reset_mask.zero_()
         NewtonManager._fk_reset_mask.zero_()
@@ -550,6 +562,7 @@ class NewtonManager(PhysicsManager):
         # Per-world reset masks
         NewtonManager._world_reset_mask = None
         NewtonManager._fk_reset_mask = None
+        NewtonManager._reset_solver_callback = None
         NewtonManager._graph = None
         NewtonManager._graph_capture_pending = False
         NewtonManager._newton_stage_path = None
@@ -818,7 +831,7 @@ class NewtonManager(PhysicsManager):
             )
         elif articulation_ids is not None and env_ids is not None:
             wp.launch(
-                _scatter_reset_masks_from_ids,
+                _SCATTER_RESET_MASKS_DISPATCHER.select(env_ids),
                 dim=(env_ids.shape[0], articulation_ids.shape[1]),
                 inputs=[env_ids, articulation_ids],
                 outputs=[NewtonManager._world_reset_mask, NewtonManager._fk_reset_mask],
@@ -841,7 +854,7 @@ class NewtonManager(PhysicsManager):
             NewtonManager._fk_reset_mask.fill_(True)
         elif env_ids is not None:
             wp.launch(
-                _scatter_world_mask_from_ids,
+                _SCATTER_WORLD_MASK_DISPATCHER.select(env_ids),
                 dim=env_ids.shape,
                 inputs=[env_ids],
                 outputs=[NewtonManager._world_reset_mask],

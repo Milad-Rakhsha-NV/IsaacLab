@@ -134,7 +134,7 @@ def test_scatter_reset_masks_from_ids_accepts_index_dtype(index_dtype: type) -> 
 
     env_ids = _selector([2, 0], index_dtype)
     articulation_ids = wp.array(np.asarray([[0, 1], [2, 3], [4, 5]], dtype=np.int32), dtype=int, device="cpu")
-    world_mask = wp.zeros(3, dtype=wp.bool, device="cpu")
+    world_mask = wp.zeros(3, dtype=wp.int32, device="cpu")
     fk_mask = wp.zeros(6, dtype=wp.bool, device="cpu")
 
     wp.launch(

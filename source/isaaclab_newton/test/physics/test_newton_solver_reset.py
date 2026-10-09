@@ -100,7 +100,7 @@ def test_env_reset_clears_selected_mjwarp_solver_internals(device):
             env_ids=env_ids,
         )
 
-        state = SimulationManager.backend.state_0
+        state = SimulationManager.get_state_0()
         joint_q_before = wp.to_torch(state.joint_q).clone()
         joint_qd_before = wp.to_torch(state.joint_qd).clone()
         warm_start[0].fill_(13.0)
@@ -126,10 +126,7 @@ def test_env_reset_clears_selected_mjwarp_solver_internals(device):
         warm_start[1].fill_(29.0)
         wp.synchronize_device(device)
 
-        with (
-            patch.object(SimulationManager, "_simulate_full", classmethod(lambda cls: None)),
-            patch.object(SimulationManager, "_simulate_physics_only", classmethod(lambda cls: None)),
-        ):
+        with patch.object(SimulationManager, "_simulate", classmethod(lambda cls: None)):
             sim.step(render=False)
         wp.synchronize_device(device)
 
@@ -137,3 +134,27 @@ def test_env_reset_clears_selected_mjwarp_solver_internals(device):
         torch.testing.assert_close(wp.to_torch(state.joint_qd), joint_qd_before)
         assert torch.count_nonzero(warm_start[0]).item() == 0
         torch.testing.assert_close(warm_start[1], torch.full_like(warm_start[1], 29.0))
+
+        # Mask values must be read on replay, not frozen at capture time.
+        mask = wp.zeros(2, dtype=wp.bool, device=device)
+        positions = articulation.data.default_joint_pos.torch.clone() + 0.25
+        velocities = torch.full_like(positions, 0.5)
+
+        def reset_selected():
+            articulation.write_joint_state_to_sim_mask(position=positions, velocity=velocities, env_mask=mask)
+            SimulationManager.forward()
+
+        reset_selected()  # Compile the mask path before capture.
+        with wp.ScopedCapture(device=device) as capture:
+            reset_selected()
+        for selected in (0, 1):
+            mask.assign(np.arange(2) == selected)
+            warm_start[0].fill_(31.0)
+            warm_start[1].fill_(37.0)
+            wp.capture_launch(capture.graph)
+            wp.synchronize_device(device)
+            assert torch.count_nonzero(warm_start[selected]).item() == 0
+            peer = 1 - selected
+            torch.testing.assert_close(warm_start[peer], torch.full_like(warm_start[peer], (31.0, 37.0)[peer]))
+            torch.testing.assert_close(articulation.data.joint_pos.torch[selected], positions[selected])
+            torch.testing.assert_close(articulation.data.joint_vel.torch[selected], velocities[selected])

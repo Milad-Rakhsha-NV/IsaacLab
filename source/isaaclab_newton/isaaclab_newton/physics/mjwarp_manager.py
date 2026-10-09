@@ -33,6 +33,7 @@ class NewtonMJWarpManager(NewtonManager):
     """
 
     _builder_attribute_solvers = (SolverMuJoCo,)
+    _reset_world_mask: wp.array | None = None
 
     @classmethod
     def _create_solver(cls, model: Model, solver_cfg: MJWarpSolverCfg) -> SolverMuJoCo:
@@ -56,6 +57,9 @@ class NewtonMJWarpManager(NewtonManager):
         NewtonManager._use_single_state = True
         NewtonManager._needs_collision_pipeline = not solver_cfg.use_mujoco_contacts
         NewtonManager._supports_rigid_body_force_input = True
+        cls._reset_world_mask = wp.zeros(model.world_count + 1, dtype=wp.bool, device=model.device)
+        # Asset data calls NewtonManager.forward() directly, so retain the solver-specific hook.
+        NewtonManager._reset_solver_callback = cls._reset_solver_internals
 
         cfg = PhysicsManager._cfg
         # Cross-config validation that needs both halves.
@@ -122,17 +126,22 @@ class NewtonMJWarpManager(NewtonManager):
         step.
 
         Args:
-            world_mask: Per-world bool mask of shape ``(world_count + 1,)``.
-                Entries before the last select local worlds; the final entry
-                selects global entities in world -1. ``None`` is a no-op.
+            world_mask: Manager-owned integer mask of shape ``(world_count,)``.
+                Global entities are not reset by environment writes. ``None`` is a no-op.
         """
         if world_mask is None:
             return
         if cls._solver.use_mujoco_cpu and not world_mask.numpy().any():
             return
+        wp.utils.array_cast(in_array=world_mask, out_array=cls._reset_world_mask[: cls.get_model().world_count])
         # flags=0 skips the joint-state reset to model defaults: IsaacLab owns
         # joint_q/joint_qd and has already written the authored reset pose.
-        cls._solver.reset(cls.get_state_0(), world_mask=world_mask, flags=0)
+        cls._solver.reset(cls.get_state_0(), world_mask=cls._reset_world_mask, flags=0)
+
+    @classmethod
+    def _solver_specific_clear(cls) -> None:
+        """Release the mask when the simulation is closed or rebuilt."""
+        cls._reset_world_mask = None
 
     @classmethod
     def _log_solver_debug(cls) -> None:

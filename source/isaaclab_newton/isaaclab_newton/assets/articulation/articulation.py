@@ -471,7 +471,7 @@ class Articulation(BaseArticulation):
         self.assert_shape_and_dtype(root_pose, (env_ids.shape[0],), wp.transformf, "root_pose")
         # Warp kernels can ingest torch tensors directly, so we don't need to convert to warp arrays here.
         wp.launch(
-            shared_kernels.set_root_link_pose_to_sim_index,
+            shared_kernels.set_root_link_pose_to_sim_index_kernel(env_ids),
             dim=env_ids.shape[0],
             inputs=[
                 root_pose,
@@ -482,25 +482,11 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Need to invalidate the buffer to trigger the update with the new state.
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_link_state_w is not None:
-            self.data._root_link_state_w.timestamp = -1.0
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._get_root_view_articulation_ids())
-        # Closed-loop robots: FK cannot reconstruct the loop bodies, so restore the full
-        # assembled body block (rigidly placed at the new root pose) AFTER invalidate_fk.
+        # Fixed roots store their anchor in the model, rather than free-joint coordinates.
+        if self.is_fixed_base:
+            SimulationManager.add_model_change(ModelFlags.JOINT_PROPERTIES)
+        self.data._reset_pose(env_ids=env_ids)
         self._restore_closed_loop_bodies_index(root_pose, env_ids)
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
 
     def write_root_link_pose_to_sim_mask(
         self,
@@ -542,24 +528,11 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Need to invalidate the buffer to trigger the update with the new state.
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_link_state_w is not None:
-            self.data._root_link_state_w.timestamp = -1.0
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._get_root_view_articulation_ids())
-        # Closed-loop robots: restore the full assembled body block AFTER invalidate_fk.
+        # Fixed roots store their anchor in the model, rather than free-joint coordinates.
+        if self.is_fixed_base:
+            SimulationManager.add_model_change(ModelFlags.JOINT_PROPERTIES)
+        self.data._reset_pose(env_mask=env_mask)
         self._restore_closed_loop_bodies_mask(root_pose, env_mask)
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
 
     def write_root_com_pose_to_sim_index(
         self,
@@ -594,7 +567,7 @@ class Articulation(BaseArticulation):
         # Note: we are doing a single launch for faster performance. Prior versions would call
         # write_root_link_pose_to_sim after this.
         wp.launch(
-            shared_kernels.set_root_com_pose_to_sim_index,
+            shared_kernels.set_root_com_pose_to_sim_index_kernel(env_ids),
             dim=env_ids.shape[0],
             inputs=[
                 root_pose,
@@ -607,24 +580,10 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Need to invalidate the buffer to trigger the update with the new state.
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_com_state_w is not None:
-            self.data._root_com_state_w.timestamp = -1.0
-        if self.data._root_link_state_w is not None:
-            self.data._root_link_state_w.timestamp = -1.0
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._get_root_view_articulation_ids())
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
+        # Fixed roots store their anchor in the model, rather than free-joint coordinates.
+        if self.is_fixed_base:
+            SimulationManager.add_model_change(ModelFlags.JOINT_PROPERTIES)
+        self.data._reset_pose(env_ids=env_ids, from_link=False)
 
     def write_root_com_pose_to_sim_mask(
         self,
@@ -668,24 +627,10 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Need to invalidate the buffer to trigger the update with the new state.
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_com_state_w is not None:
-            self.data._root_com_state_w.timestamp = -1.0
-        if self.data._root_link_state_w is not None:
-            self.data._root_link_state_w.timestamp = -1.0
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        self.data._fk_timestamp = -1.0  # Forces a kinematic update to get the latest body link poses.
-        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._get_root_view_articulation_ids())
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
+        # Fixed roots store their anchor in the model, rather than free-joint coordinates.
+        if self.is_fixed_base:
+            SimulationManager.add_model_change(ModelFlags.JOINT_PROPERTIES)
+        self.data._reset_pose(env_mask=env_mask, from_link=False)
 
     def write_root_velocity_to_sim_index(
         self,
@@ -758,17 +703,22 @@ class Articulation(BaseArticulation):
             Both the index and mask methods have dedicated optimized implementations. Performance is similar for both.
             However, to allow graphed pipelines, the mask method must be used.
 
+        For fixed-base articulations, this method is a no-op.
+
         Args:
             root_velocity: Root center of mass velocities in simulation world frame.
                 Shape is (len(env_ids), 6) or (len(env_ids),) with dtype wp.spatial_vectorf.
             env_ids: Environment indices. If None, then all indices are used.
         """
+        # A fixed root has no velocity degrees of freedom.
+        if self.is_fixed_base:
+            return
         # resolve all indices
         env_ids = self._resolve_env_ids(env_ids)
         self.assert_shape_and_dtype(root_velocity, (env_ids.shape[0],), wp.spatial_vectorf, "root_velocity")
         # Warp kernels can ingest torch tensors directly, so we don't need to convert to warp arrays here.
         wp.launch(
-            shared_kernels.set_root_com_velocity_to_sim_index,
+            shared_kernels.set_root_com_velocity_to_sim_index_kernel(env_ids),
             dim=env_ids.shape[0],
             inputs=[
                 root_velocity,
@@ -781,11 +731,7 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        if self.data._root_com_state_w is not None:
-            self.data._root_com_state_w.timestamp = -1.0
+        self.data._reset_velocity(env_ids=env_ids)
 
     def write_root_com_velocity_to_sim_mask(
         self,
@@ -806,11 +752,16 @@ class Articulation(BaseArticulation):
             Both the index and mask methods have dedicated optimized implementations. Performance is similar for both.
             However, to allow graphed pipelines, the mask method must be used.
 
+        For fixed-base articulations, this method is a no-op.
+
         Args:
             root_velocity: Root center of mass velocities in simulation world frame.
                 Shape is (num_instances, 6) or (num_instances,) with dtype wp.spatial_vectorf.
             env_mask: Environment mask. If None, then all the instances are updated. Shape is (num_instances,).
         """
+        # A fixed root has no velocity degrees of freedom.
+        if self.is_fixed_base:
+            return
         env_mask = self._resolve_mask(env_mask, self._ALL_ENV_MASK)
         self.assert_shape_and_dtype_mask(root_velocity, (env_mask,), wp.spatial_vectorf, "root_velocity")
         wp.launch(
@@ -827,11 +778,7 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        if self.data._root_com_state_w is not None:
-            self.data._root_com_state_w.timestamp = -1.0
+        self.data._reset_velocity(env_mask=env_mask)
 
     def write_root_link_velocity_to_sim_index(
         self,
@@ -852,18 +799,23 @@ class Articulation(BaseArticulation):
             Both the index and mask methods have dedicated optimized implementations. Performance is similar for both.
             However, to allow graphed pipelines, the mask method must be used.
 
+        For fixed-base articulations, this method is a no-op.
+
         Args:
             root_velocity: Root frame velocities in simulation world frame.
                 Shape is (len(env_ids), 6) or (len(env_ids),) with dtype wp.spatial_vectorf.
             env_ids: Environment indices. If None, then all indices are used.
         """
+        # A fixed root has no velocity degrees of freedom.
+        if self.is_fixed_base:
+            return
         # resolve all indices
         env_ids = self._resolve_env_ids(env_ids)
         self.assert_shape_and_dtype(root_velocity, (env_ids.shape[0],), wp.spatial_vectorf, "root_velocity")
         # Warp kernels can ingest torch tensors directly, so we don't need to convert to warp arrays here.
         # Note: we are doing a single launch for faster performance. Prior versions would do multiple launches.
         wp.launch(
-            shared_kernels.set_root_link_velocity_to_sim_index,
+            shared_kernels.set_root_link_velocity_to_sim_index_kernel(env_ids),
             dim=env_ids.shape[0],
             inputs=[
                 root_velocity,
@@ -879,13 +831,7 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_link_state_w is not None:
-            self.data._root_link_state_w.timestamp = -1.0
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        if self.data._root_com_state_w is not None:
-            self.data._root_com_state_w.timestamp = -1.0
+        self.data._reset_velocity(env_ids=env_ids, from_com=False)
 
     def write_root_link_velocity_to_sim_mask(
         self,
@@ -906,11 +852,16 @@ class Articulation(BaseArticulation):
             Both the index and mask methods have dedicated optimized implementations. Performance is similar for both.
             However, to allow graphed pipelines, the mask method must be used.
 
+        For fixed-base articulations, this method is a no-op.
+
         Args:
             root_velocity: Root frame velocities in simulation world frame.
                 Shape is (num_instances, 6) or (num_instances,) with dtype wp.spatial_vectorf.
             env_mask: Environment mask. If None, then all the instances are updated. Shape is (num_instances,).
         """
+        # A fixed root has no velocity degrees of freedom.
+        if self.is_fixed_base:
+            return
         env_mask = self._resolve_mask(env_mask, self._ALL_ENV_MASK)
         self.assert_shape_and_dtype_mask(root_velocity, (env_mask,), wp.spatial_vectorf, "root_velocity")
         wp.launch(
@@ -930,13 +881,7 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._root_link_state_w is not None:
-            self.data._root_link_state_w.timestamp = -1.0
-        if self.data._root_state_w is not None:
-            self.data._root_state_w.timestamp = -1.0
-        if self.data._root_com_state_w is not None:
-            self.data._root_com_state_w.timestamp = -1.0
+        self.data._reset_velocity(env_mask=env_mask, from_com=False)
 
     def write_joint_state_to_sim_index(
         self,
@@ -982,23 +927,9 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Invalidate FK timestamp so body poses are recomputed on next access.
-        self.data._fk_timestamp = -1.0
-        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._get_root_view_articulation_ids())
-        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self.data._reset_pose(env_ids=env_ids)
+        self.data._reset_velocity(env_ids=env_ids)
         self._reapply_closed_loop_bodies_index(env_ids)
-        if self.data._body_link_vel_w is not None:
-            self.data._body_link_vel_w.timestamp = -1.0
-        if self.data._body_com_pose_b is not None:
-            self.data._body_com_pose_b.timestamp = -1.0
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
 
     def write_joint_state_to_sim_mask(
         self,
@@ -1044,23 +975,9 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Invalidate FK timestamp so body poses are recomputed on next access.
-        self.data._fk_timestamp = -1.0
-        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._get_root_view_articulation_ids())
-        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self.data._reset_pose(env_mask=env_mask)
+        self.data._reset_velocity(env_mask=env_mask)
         self._reapply_closed_loop_bodies_mask(env_mask)
-        if self.data._body_link_vel_w is not None:
-            self.data._body_link_vel_w.timestamp = -1.0
-        if self.data._body_com_pose_b is not None:
-            self.data._body_com_pose_b.timestamp = -1.0
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
 
     def write_joint_position_to_sim_index(
         self,
@@ -1104,25 +1021,9 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Invalidate FK timestamp so body poses are recomputed on next access.
-        self.data._fk_timestamp = -1.0
-        SimulationManager.invalidate_fk(env_ids=env_ids, articulation_ids=self._get_root_view_articulation_ids())
-        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self.data._reset_pose(env_ids=env_ids)
+        self.data._reset_velocity(env_ids=env_ids)
         self._reapply_closed_loop_bodies_index(env_ids)
-        # Need to invalidate the buffer to trigger the update with the new root pose.
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._body_link_vel_w is not None:
-            self.data._body_link_vel_w.timestamp = -1.0
-        if self.data._body_com_pose_b is not None:
-            self.data._body_com_pose_b.timestamp = -1.0
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
 
     def write_joint_position_to_sim_mask(
         self,
@@ -1164,25 +1065,9 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
-        # Invalidate FK timestamp so body poses are recomputed on next access.
-        self.data._fk_timestamp = -1.0
-        SimulationManager.invalidate_fk(env_mask=env_mask, articulation_ids=self._get_root_view_articulation_ids())
-        # Closed-loop robots: eval_fk above corrupts loop bodies; re-restore them.
+        self.data._reset_pose(env_mask=env_mask)
+        self.data._reset_velocity(env_mask=env_mask)
         self._reapply_closed_loop_bodies_mask(env_mask)
-        # Need to invalidate the buffer to trigger the update with the new root pose.
-        # Only invalidate if the buffer has been accessed (not None).
-        if self.data._body_link_vel_w is not None:
-            self.data._body_link_vel_w.timestamp = -1.0
-        if self.data._body_com_pose_b is not None:
-            self.data._body_com_pose_b.timestamp = -1.0
-        if self.data._body_com_pose_w is not None:
-            self.data._body_com_pose_w.timestamp = -1.0
-        if self.data._body_state_w is not None:
-            self.data._body_state_w.timestamp = -1.0
-        if self.data._body_link_state_w is not None:
-            self.data._body_link_state_w.timestamp = -1.0
-        if self.data._body_com_state_w is not None:
-            self.data._body_com_state_w.timestamp = -1.0
 
     def write_joint_velocity_to_sim_index(
         self,
@@ -1225,6 +1110,7 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
+        self.data._reset_velocity(env_ids=env_ids)
 
     def write_joint_velocity_to_sim_mask(
         self,
@@ -1265,6 +1151,7 @@ class Articulation(BaseArticulation):
             ],
             device=self.device,
         )
+        self.data._reset_velocity(env_mask=env_mask)
 
     """
     Operations - Simulation Parameters Writers.
@@ -3395,17 +3282,6 @@ class Articulation(BaseArticulation):
         self._log_articulation_info()
         # Let the articulation data know that it is fully instantiated and ready to use.
         self.data.is_primed = True
-
-    def _get_root_view_articulation_ids(self) -> wp.array | None:
-        """Return the root view's ``articulation_ids``, or ``None`` for closed-loop assets.
-
-        :class:`ClosedLoopView` exposes an empty ``(world_count, 0)`` array, so returning
-        ``None`` makes the reset machinery scope by ``env_ids`` / ``env_mask`` instead.
-        """
-        art_ids = getattr(self._root_view, "articulation_ids", None)
-        if art_ids is None or art_ids.ndim < 2 or art_ids.shape[1] == 0:
-            return None
-        return art_ids
 
     def _is_closed_loop_reset_target(self) -> bool:
         """True when this asset needs full-body closed-loop reset support.

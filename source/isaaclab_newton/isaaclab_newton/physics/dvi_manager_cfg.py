@@ -116,20 +116,6 @@ class DVISolverCfg(NewtonSolverCfg):
     """Number of block Gauss-Seidel sweeps coupling joint limits, bilateral
     joints, and contacts per physics step."""
 
-    use_armature_rows: bool = False
-    """**Experimental:** represent revolute armature with rotor impulse rows.
-
-    Defaults to False, retaining Newton DVI's legacy body-inertia approximation.
-    Set before solver construction; requires ``joint_solver_type="sparse_ldl"``.
-    Armature must be finite and nonnegative [kg m^2], with zero armature on
-    enabled non-revolute joints. Zero-armature rows do not lock the hinge.
-
-    This option may change without the normal deprecation period. Contact and
-    joint-limit coupling remains iterative, so the coupling count still affects
-    accuracy. Implicit drive integration retains its separate approximation.
-    Enabling this flag does not change the model's armature or actuator settings.
-    """
-
     cache_factorization: bool = True
     """Reuse the joint direct-solver factorization across coupling sweeps."""
 
@@ -162,9 +148,9 @@ class DVISolverCfg(NewtonSolverCfg):
     contact_tolerance: float | None = None
     """Early-exit convergence tolerance for the contact numerical solver.
 
-    For iterative solvers (APGD/ASPG/Jacobi/GS) the solve latches converged and
-    stops early once the projected-gradient KKT residual ``||gamma - P_K(gamma - g)||``
-    (rho=1) drops below this value. Looser (larger) => exits sooner (faster, but
+    The solve latches converged when the diagnostic selected by
+    :attr:`contact_residual_mode` drops below this value. The diagnostics have
+    different meanings and scales. Looser (larger) => exits sooner (faster, but
     risks returning an under-solved impulse that can drift/blow up under
     recovery+momentum). Tighter (smaller) => more iterations, better contacts.
     ``None`` keeps the Newton solver default (1e-8). Only affects APGD/iterative
@@ -178,7 +164,11 @@ class DVISolverCfg(NewtonSolverCfg):
     """Residual used for iterative contact-solver convergence.
 
     One of ``"complementarity"``, ``"res4"``, ``"iterate_change"``, or
-    ``"primal_infeasibility"``.
+    ``"primal_infeasibility"``. APGD also uses this diagnostic to select its best
+    iterate, even when early exit is disabled. For APGD with ``"cone"`` friction
+    projection, use ``"res4"`` to measure cone optimality. Normal-only
+    ``"complementarity"`` is not a cone KKT residual and can select an incorrect
+    cone solution even with a large iteration budget.
     """
 
     contact_aspg_seed_alpha_max: bool = False

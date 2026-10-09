@@ -12,7 +12,8 @@ import torch
 import warp as wp
 from isaaclab_newton.assets.articulation.articulation import Articulation
 from isaaclab_newton.assets.articulation.articulation_data import ArticulationData
-from isaaclab_newton.physics import NewtonManager
+from isaaclab_newton.physics import DVISolverCfg, NewtonCfg, NewtonManager
+from isaaclab_newton.physics.dvi_manager import NewtonDVIManager
 from newton.selection import ArticulationView
 
 from isaaclab.physics import PhysicsManager
@@ -23,12 +24,14 @@ pytestmark = pytest.mark.unit
 @pytest.fixture(params=["cpu", "cuda:0"])
 def bound_articulation(request, monkeypatch):
     """Bind an asset to three real worlds; USD import is outside this writer test."""
-    device = request.param
+    device, fixed = request.param if isinstance(request.param, tuple) else (request.param, False)
     if device.startswith("cuda") and not wp.is_cuda_available():
         pytest.skip("CUDA is unavailable")
     source = newton.ModelBuilder()
     root, tip = [source.add_link(mass=1.0, inertia=wp.mat33(np.eye(3))) for _ in range(2)]
-    source.add_articulation([source.add_joint_free(root), source.add_joint_revolute(root, tip)], label="Robot")
+    root_joint = source.add_joint_fixed(-1, root) if fixed else source.add_joint_free(root)
+    hinge = source.add_joint_revolute(root, tip, axis=(0.0, 0.0, 1.0))
+    source.add_articulation([root_joint, hinge], label="Robot")
     builder = newton.ModelBuilder()
     for _ in range(3):
         builder.add_world(source)
@@ -42,6 +45,7 @@ def bound_articulation(request, monkeypatch):
         "_world_reset_mask": wp.zeros(3, dtype=wp.int32, device=device),
         "_fk_reset_mask": wp.zeros(model.articulation_count, dtype=wp.bool, device=device),
         "_model_changes": set(),
+        "_solver": None,
     }.items():
         monkeypatch.setattr(NewtonManager, name, value)
     monkeypatch.setattr(PhysicsManager, "_device", device)
@@ -58,6 +62,173 @@ def bound_articulation(request, monkeypatch):
     asset._ALL_BODY_INDICES = wp.array([0, 1], dtype=wp.int32, device=device)
     asset._ALL_BODY_MASK = wp.ones(2, dtype=wp.bool, device=device)
     yield asset, model, state
+
+
+@pytest.mark.parametrize(
+    "bound_articulation, selection",
+    [
+        (("cpu", False), "index32"),
+        (("cpu", True), "index64"),
+        (("cuda:0", False), "mask"),
+        (("cuda:0", True), "warp64"),
+    ],
+    indirect=["bound_articulation"],
+)
+def test_root_pose_writes_refresh_derived_state(bound_articulation, selection):
+    """Refresh link/COM caches on both root types without projecting unselected worlds."""
+    asset, model, state = bound_articulation
+    coms = torch.zeros((3, 2, 3), device=asset.device)
+    coms[:, 0, 0] = 0.2
+    asset.set_coms_index(coms=coms)
+    # Keep a peer off the FK manifold to detect a global instead of selected reset.
+    poses = state.body_q.numpy()
+    poses[4:, 2] += 0.03
+    state.body_q.assign(poses)
+    for location in ("link", "com"):
+        _ = asset.data.root_com_pose_w.torch.clone()
+        _ = asset.data.heading_w.torch.clone()
+        quat = [0.0, 0.0, np.sqrt(0.5), np.sqrt(0.5)] if location == "link" else [0.0, 0.0, 0.0, 1.0]
+        pose = torch.tensor([[1.0, 2.0, 3.0, *quat]], dtype=torch.float32, device=asset.device)
+        if selection == "mask":
+            writer = getattr(asset, f"write_root_{location}_pose_to_sim_mask")
+            writer(
+                root_pose=pose.repeat(3, 1), env_mask=wp.array([False, True, False], dtype=wp.bool, device=asset.device)
+            )
+        else:
+            ids = (
+                wp.array([1], dtype=wp.int64, device=asset.device)
+                if selection == "warp64"
+                else torch.tensor(
+                    [1], dtype=torch.int32 if selection == "index32" else torch.int64, device=asset.device
+                )
+            )
+            getattr(asset, f"write_root_{location}_pose_to_sim_index")(root_pose=pose, env_ids=ids)
+        NewtonManager.forward()
+        expected_link = [1.0, 2.0, 3.0, *quat] if location == "link" else [0.8, 2.0, 3.0, *quat]
+        expected_com = [1.0, 2.2, 3.0, *quat] if location == "link" else [1.0, 2.0, 3.0, *quat]
+        np.testing.assert_allclose(state.body_q.numpy()[2], expected_link, atol=1e-6)
+        np.testing.assert_allclose(asset.data.root_com_pose_w.warp.numpy()[1], expected_com, atol=1e-6)
+        np.testing.assert_allclose(
+            asset.data.heading_w.warp.numpy()[1], np.pi / 2 if location == "link" else 0.0, atol=1e-6
+        )
+        np.testing.assert_array_equal(state.body_q.numpy()[4:], poses[4:])
+
+
+@pytest.mark.parametrize("selection", ["index", "mask"])
+def test_velocity_only_writes_reach_native_body_state(bound_articulation, selection):
+    """Apply root and joint velocity writes without requiring a simultaneous pose reset."""
+    asset, _, state = bound_articulation
+    coms = torch.zeros((3, 2, 3), device=asset.device)
+    coms[:, 0, 0] = 0.2
+    asset.set_coms_index(coms=coms)
+    # Prime cached link velocities before each write at the same simulation time.
+    mask = wp.array([False, True, False], dtype=wp.bool, device=asset.device)
+    for location, velocity, expected in (
+        ("com", [1.0, 2.0, 3.0, 0.0, 0.0, 2.0], [1.0, 2.0, 3.0, 0.0, 0.0, 2.0]),
+        ("link", [4.0, 5.0, 6.0, 0.0, 0.0, 3.0], [4.0, 5.6, 6.0, 0.0, 0.0, 3.0]),
+    ):
+        _ = asset.data.root_link_vel_w.torch.clone()
+        data = torch.tensor([velocity], device=asset.device)
+        if selection == "index":
+            getattr(asset, f"write_root_{location}_velocity_to_sim_index")(root_velocity=data, env_ids=[1])
+        else:
+            getattr(asset, f"write_root_{location}_velocity_to_sim_mask")(
+                root_velocity=data.repeat(3, 1), env_mask=mask
+            )
+        NewtonManager.forward()
+        np.testing.assert_allclose(state.body_qd.numpy()[2], expected, atol=1e-6)
+        expected_link = np.array(expected)
+        expected_link[1] -= 0.2 * expected[5]
+        np.testing.assert_allclose(asset.data.root_link_vel_w.warp.numpy()[1], expected_link, atol=1e-6)
+    if selection == "index":
+        asset.write_joint_velocity_to_sim_index(velocity=torch.tensor([[0.5]], device=asset.device), env_ids=[1])
+    else:
+        asset.write_joint_velocity_to_sim_mask(velocity=torch.full((3, 1), 0.5, device=asset.device), env_mask=mask)
+    NewtonManager.forward()
+    np.testing.assert_allclose(state.body_qd.numpy()[3, 5], 3.5, atol=1e-6)
+    np.testing.assert_array_equal(state.body_qd.numpy()[[0, 1, 4, 5]], 0.0)
+
+
+@pytest.mark.parametrize("bound_articulation", [("cpu", True)], indirect=True)
+def test_fixed_root_has_no_velocity_dofs(bound_articulation):
+    """Keep a fixed root stationary while allowing its hinge to move after a velocity write."""
+    asset, _, state = bound_articulation
+    for location in ("com", "link"):
+        for selection in ("index", "mask"):
+            kwargs = (
+                {"env_ids": [1]}
+                if selection == "index"
+                else {"env_mask": wp.array([False, True, False], dtype=wp.bool, device=asset.device)}
+            )
+            count = 1 if selection == "index" else 3
+            getattr(asset, f"write_root_{location}_velocity_to_sim_{selection}")(
+                root_velocity=torch.ones((count, 6), device=asset.device), **kwargs
+            )
+            np.testing.assert_array_equal(asset.data.root_com_vel_w.warp.numpy(), 0.0)
+    asset.write_joint_velocity_to_sim_index(velocity=torch.tensor([[0.5]], device=asset.device), env_ids=[1])
+    NewtonManager.forward()
+    np.testing.assert_allclose(state.body_qd.numpy()[3, 5], 0.5)
+    np.testing.assert_allclose(asset.data.body_com_vel_w.warp.numpy()[1, 1, 5], 0.5)
+    np.testing.assert_array_equal(state.body_qd.numpy()[[0, 1, 2, 4, 5]], 0.0)
+
+
+@pytest.mark.parametrize("bound_articulation", ["cpu"], indirect=True)
+@pytest.mark.parametrize("substeps", [1, 2, 3])
+def test_eager_dvi_steps_publish_current_asset_state(bound_articulation, monkeypatch, substeps):
+    """Keep asset bindings current after each eager physics step, including odd substep counts."""
+    asset, model, _ = bound_articulation
+    cfg = NewtonCfg(solver_cfg=DVISolverCfg(), num_substeps=substeps, use_cuda_graph=False)
+    for name, value in {
+        "_state_1": model.state(),
+        "_collision_pipeline": None,
+        "_contacts": None,
+        "_collision_cfg": None,
+        "_needs_collision_pipeline": False,
+        "_use_single_state": False,
+        "_num_substeps": substeps,
+        "_solver_dt": 0.01,
+        "_graph": None,
+        "_usdrt_stage": None,
+        "_newton_frame_transform_sensors": [],
+        "_newton_imu_sensors": [],
+        "_report_contacts": False,
+    }.items():
+        monkeypatch.setattr(NewtonManager, name, value)
+    monkeypatch.setattr(PhysicsManager, "_cfg", cfg)
+    monkeypatch.setattr(PhysicsManager, "_sim", None)
+    NewtonDVIManager.initialize_solver()
+    before = asset.data.root_link_pose_w.warp.numpy().copy()
+    for _ in range(3):
+        NewtonDVIManager._simulate_physics_only()
+        state = NewtonManager.get_state_0()
+        np.testing.assert_allclose(asset.data.root_link_pose_w.warp.numpy(), state.body_q.numpy()[::2], atol=1e-6)
+        np.testing.assert_allclose(asset.data.root_com_vel_w.warp.numpy(), state.body_qd.numpy()[::2], atol=1e-6)
+    assert np.all(asset.data.root_link_pose_w.warp.numpy()[:, 2] < before[:, 2])
+
+
+@pytest.mark.parametrize("bound_articulation", ["cuda:0"], indirect=True)
+def test_velocity_reset_mask_changes_on_graph_replay(bound_articulation):
+    """Replay velocity resets with a changing world mask without rewriting peer states."""
+    asset, _, state = bound_articulation
+    mask = wp.zeros(3, dtype=wp.bool, device=asset.device)
+    velocity = wp.zeros(3, dtype=wp.spatial_vector, device=asset.device)
+    asset.write_root_com_velocity_to_sim_mask(root_velocity=velocity, env_mask=mask)
+    NewtonManager.forward()
+    with wp.ScopedCapture(device=asset.device) as capture:
+        asset.write_root_com_velocity_to_sim_mask(root_velocity=velocity, env_mask=mask)
+        NewtonManager.forward()
+    for world, speed in ((1, 0.7), (2, -0.4)):
+        selected = np.zeros(3, dtype=bool)
+        selected[world] = True
+        mask.assign(selected)
+        values = np.zeros((3, 6), dtype=np.float32)
+        values[:, 0] = speed
+        velocity.assign(values)
+        before = state.body_qd.numpy()
+        wp.capture_launch(capture.graph)
+        expected = before.copy()
+        expected[2 * world : 2 * world + 2, 0] = speed
+        np.testing.assert_allclose(state.body_qd.numpy(), expected, atol=1e-6)
 
 
 @pytest.mark.parametrize("selection", ["index", "mask"])

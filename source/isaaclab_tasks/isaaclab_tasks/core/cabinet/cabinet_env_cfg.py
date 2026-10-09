@@ -7,7 +7,7 @@
 
 from dataclasses import MISSING
 
-from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonCollisionPipelineCfg
 from isaaclab_ov.physics import OvPhysxCfg
 from isaaclab_physx.physics import PhysxCfg
 
@@ -130,6 +130,33 @@ class CabinetSimCfg(PresetCfg):
             debug_mode=False,
         ),
     )
+    # Experimental: use the validated Allegro Jacobi settings at the cabinet task's control rate.
+    newton_dvi: SimulationCfg = replace(
+        newton_mjwarp,
+        physics=NewtonCfg(
+            collision_cfg=NewtonCollisionPipelineCfg(),
+            solver_cfg=DVISolverCfg(
+                joint_solver_type="sparse_ldl",
+                joint_alpha=0.0,
+                joint_iterative_refinement_steps=1,
+                contact_solver_type="sparse_jacobi",
+                contact_max_iterations=20,
+                contact_omega=0.15,
+                contact_alpha=0.0,
+                contact_recovery_speed=5.0,
+                contact_friction_projection="cone",
+                contact_residual_mode="res4",
+                coupling_iterations=2,
+                post_stabilize_joints=True,
+                cache_factorization=True,
+                angular_damping=0.0,
+            ),
+            num_substeps=2,
+            # The frame transformer requires the fixed panda_link0 source body.
+            collapse_fixed_joints=False,
+            use_cuda_graph=True,
+        ),
+    )
     default: SimulationCfg = newton_mjwarp
 
 
@@ -145,6 +172,7 @@ class CabinetDecimationCfg(PresetCfg):
     ovphysx: int = isaacsim_physx
     physx: int = isaacsim_physx
     newton_mjwarp: int = 10
+    newton_dvi: int = 10
     default: int = newton_mjwarp
 
 

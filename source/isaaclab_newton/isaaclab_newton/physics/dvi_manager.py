@@ -118,15 +118,6 @@ class NewtonDVIManager(NewtonManager):
     def _build_solver(cls, model: Model, solver_cfg: DVISolverCfg) -> None:
         """Construct :class:`SolverDVI` and set base-class slots."""
 
-        # Propagate rigid_contact_max from collision_cfg to model BEFORE
-        # building the solver.  SolverDVI reads model.rigid_contact_max
-        # to allocate its internal lambda buffer, but _initialize_contacts
-        # (which normally sets this) runs AFTER _build_solver.
-        collision_cfg = cls._collision_cfg
-        if collision_cfg is not None and getattr(collision_cfg, "rigid_contact_max", None):
-            model.rigid_contact_max = collision_cfg.rigid_contact_max
-            logger.info(f"DVI: set model.rigid_contact_max = {model.rigid_contact_max}")
-
         # NOTE: joint solver is typically sparse_ldl (a direct factorization),
         # for which max_iterations is unused; it is intentionally not passed here.
         joint_config = _make_numerical_config(
@@ -231,7 +222,6 @@ class NewtonDVIManager(NewtonManager):
             enable_actuation=solver_cfg.enable_actuation,
             coupling_iterations=solver_cfg.coupling_iterations,
             cache_factorization=solver_cfg.cache_factorization,
-            use_armature_rows=solver_cfg.use_armature_rows,
             post_stabilize_joints=solver_cfg.post_stabilize_joints,
             actuator_integration=ai_mode,
             enable_timers=False,
@@ -261,8 +251,6 @@ class NewtonDVIManager(NewtonManager):
         ``initialize_solver`` has built the solver and contacts but before
         it captures the graph.
         """
-        from isaaclab.physics import PhysicsManager
-
         from isaaclab_newton.physics.newton_manager import NewtonManager
 
         cfg = PhysicsManager._cfg
@@ -277,10 +265,14 @@ class NewtonDVIManager(NewtonManager):
             NewtonManager._solver_dt = cls.get_physics_dt() / cls._num_substeps
             NewtonManager._collision_cfg = cfg.collision_cfg
 
+            # SolverDVI sizes its constraint buffers from model.rigid_contact_max.
+            # Resolve automatic as well as explicit collision capacity first;
+            # otherwise large batches silently retain its 1000-contact fallback.
+            NewtonManager._needs_collision_pipeline = True
+            cls._initialize_contacts()
             cls._build_solver(cls._model, cfg.solver_cfg)
             if NewtonManager._solver is None:
                 raise RuntimeError(f"{cls.__name__}._build_solver did not assign NewtonManager._solver.")
-            cls._initialize_contacts()
 
         if cls._usdrt_stage is not None:
             cls._setup_cubric_bindings()
@@ -343,16 +335,14 @@ class NewtonDVIManager(NewtonManager):
 
         Key differences from the base:
           - Collision detection happens inside _step_solver (per substep), not once before
-          - CUDA graphs are not used (variable contact counts)
           - eval_ik is called after each substep via _step_solver
         """
         # Note: collision is handled inside _step_solver per substep,
         # so we do NOT call cls._collision_pipeline.collide() here.
 
-        cfg = PhysicsManager._cfg
-        need_copy_on_last_substep = (
-            cfg is not None and getattr(cfg, "use_cuda_graph", False)
-        ) and cls._num_substeps % 2 == 1
+        # Asset views borrow state_0 arrays in eager execution as well as graph replay.
+        # An odd number of swaps must not leave those views bound to the previous state.
+        need_copy_on_last_substep = cls._num_substeps % 2 == 1
 
         for i in range(cls._num_substeps):
             cls._step_solver(cls._state_0, cls._state_1, cls._control, cls._solver_dt)
