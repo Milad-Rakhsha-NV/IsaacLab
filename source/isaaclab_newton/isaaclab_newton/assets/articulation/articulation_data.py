@@ -1860,6 +1860,8 @@ class ArticulationData(BaseArticulationData):
 
     def _create_jacobian_buffers(self) -> None:
         """Allocate native scratch shared by Jacobian and mass-matrix queries."""
+        if self._jacobian_body_user_to_backend is None:
+            self._jacobian_body_user_to_backend = self._make_jacobian_body_user_to_backend()
         if self._jacobian_buf_flat is not None:
             return
         model = self._root_view.model

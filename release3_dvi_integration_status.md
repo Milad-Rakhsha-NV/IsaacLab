@@ -1,4 +1,469 @@
+<!-- jacobi-performance-audit-20261012 -->
+## Jacobi slowdown investigated; Dr Legs held — October 12, 2026
+
+User requested holding Dr Legs and investigating the Jacobi throughput drop.
+No training/controller is running and no production solver changes or commits
+were made. Five robots were timed serially on two frozen scenes each at 4,096
+worlds, alternating current legacy and armature-enabled CUDA graphs. Full
+evidence: `isaaclab-dvi/logs/dvi_performance_audit/2026-10-12/REPORT.html`.
+
+| Robot | Historical Jacobi FPS | Armature Jacobi FPS | Matched walking-scene physics slowdown |
+| --- | ---: | ---: | ---: |
+| Ant | 346,558 | 293,726 | 1.55x |
+| H1 | 120,875 | 69,518 | 2.59x |
+| G1 | 66,104 | 33,367 | 2.02x |
+| Go2 | 136,838 | 78,810 | 1.35x |
+| ANYmal C | 121,023 | 70,431 | 1.33x |
+
+Most added cost is response preparation and its use inside unilateral products,
+not a new factorization. G1 is 13.658 versus 27.576 ms per captured physics step;
+response preparation alone is 7.413 ms, application 0.2845 ms each, and diagonal
+1.0246 ms. H1 additionally performs two bilateral solves instead of one because
+armature mode forces the final correction despite post_stabilize_joints=false.
+The sparse LDL backend and cached factors remain in use. Padded dense basis
+work and fixed inactive limit slots are concrete optimization targets.
+
+Training timing supports a rollout cost: G1 collection rises 1.403 to 2.842 s
+per update, while PPO learning rises 0.084 to 0.104 s. Historical throughput is
+not a fully matched current-version control; Ant policy inputs changed 36 to
+60. Refinement diagnostic timings are archived but no setting was adopted;
+G1/Go2/H1's one refinement predates the historical runs. Humanoid has no new
+matched run. Physics-step timings exclude collision/PPO and are not training
+FPS. Dr Legs remains held pending user direction; no solver fix is claimed.
+
+## APGD/PSPG campaign started — October 11, 2026 (Pacific)
+
+User authorized a ten-hour monitored serial campaign: Ant, ANYmal C, H1,
+Go2, G1, and Allegro cube reorientation with APGD first, then PSPG; then
+Dr Legs with Jacobi, APGD, and PSPG. The Franka/manipulation queue stays
+stopped. No commits or pushes. The campaign starts from the current
+post-pull armature implementation, whose unchanged physics fingerprint
+passed 67 CPU/CUDA tests. Existing full training budgets and physical/PPO
+settings are retained; solver-specific recipe tolerances are recorded.
+Monitor window ends at 7:19 p.m. Pacific, October 11. This is a monitoring
+window, not a claim that all training will fit within ten hours.
+
+Campaign: `isaaclab-dvi/logs/dvi_solver_matrix/2026-10-11/`. See `plan.json`,
+`source_manifest.json`, `status.json`, and `events.jsonl`. Each completed
+run receives videos, population evaluation and a reward/FPS plot update.
+Existing locomotion plot titles/style and unrelated solver arrays are
+preserved; new all-solver panels retain the earlier Allegro/Dr Legs
+comparison figures as separate artifacts.
+
+<!-- solver-matrix-20261011-results:start -->
+
+Completed runs (one seed; these are measured results, not statistical parity):
+
+| Run | Updates | Final-50 reward | Median training FPS | Population early terminations | Review |
+| --- | ---: | ---: | ---: | ---: | --- |
+| ant_apgd | 1000 | 87.55 | 174,777 | 8 | completed_reward_and_behavior_comparison_with_rare_falls |
+| anymal_c_apgd | 500 | 23.66 | 44,286 | 6 | completed_reward_and_behavior_comparison_with_rare_falls |
+| h1_apgd | 1000 | 32.77 | 44,030 | 0 | reviewed_single_seed_comparison |
+| go2_apgd | 500 | 33.50 | 51,092 | 24 | reviewed_single_seed_comparison |
+| g1_apgd | 1500 | 31.83 | 17,132 | 0 | reviewed_single_seed_comparison |
+| allegro_apgd | 5000 | 24.75 | 13,483 | n/a | manual_review_pending |
+| ant_pspg | 1000 | 86.64 | 67,757 | 5 | manual_review_pending |
+| anymal_c_pspg | 500 | 24.12 | 14,130 | 24 | manual_review_pending |
+| h1_pspg | 1000 | 32.17 | 16,940 | 0 | manual_review_pending |
+| go2_pspg | 500 | 32.06 | 18,006 | 0 | manual_review_pending |
+
+Videos, full evaluation metrics, source hashes, and review caveats are linked in
+`isaaclab-dvi/logs/dvi_solver_matrix/2026-10-11/index.html`. The current queue
+and live update count are recorded in `status.json` and
+`monitor_observations.jsonl`; the table includes completed artifacts only.
+
+<!-- solver-matrix-20261011-results:end -->
+
+Known Dr Legs compatibility issue: its model contains closed loops, while
+the current compact armature response explicitly requires a tree. This
+must be investigated before those three training runs; disabling armature
+would not validate the requested modified implementation.
+
+## Training paused at user request — October 11, 2026 (Pacific)
+
+Franka Reach baseline training and the automatic remaining-task queue were
+stopped while the armature results are reviewed. The stop observation was
+643/1000 updates; checkpoint `model_600.pt` and all earlier checkpoints are
+preserved. No Franka Reach candidate full training was launched. Completed
+Allegro and Cabinet artifacts remain unchanged. See the campaign file
+`user_stop_20261011.json` for the verified stopped process IDs. No commits.
+
+## Jacobi manipulation validation in progress — October 10, 2026 (Pacific)
+
+Both `milad/develop` branches were fast-forwarded without creating commits:
+Newton `800aa746bd0ef7a7de4834e20fbbebf4ef0f95d2`, IsaacLab
+`d59886a7ed16469500b0da6b0784a74e702c2686`. Local armature changes were backed
+up and reapplied, preserving the incoming manipulation/reset/contact fixes.
+
+The campaign is recorded in
+`isaaclab-dvi/logs/dvi_manipulation_validation/2026-10-10/investigation.md`.
+Allegro cube reorientation is first, Franka cabinet second, followed by other
+applicable manipulation tasks. Shadow Hand is excluded. APGD/PSPG environment
+runs are deferred. Each selected environment needs matched reward evidence,
+physical-state checks, plots and playback videos before acceptance.
+
+- Post-merge existing mechanics suite: **47 CPU/CUDA tests passed**.
+- Allegro baseline and corrected candidate completed all **5000 updates** at
+  4096 worlds, seed 42. Final-50 training reward is **57.5273 baseline versus
+  54.7671 candidate** (candidate 4.8% lower); median training throughput is
+  **28,804 versus 34,049 steps/s** (candidate 18.2% higher). Both final videos,
+  the full reward/FPS plot, and 4096-world evaluations are available in the
+  campaign directory. Evaluation episode return is **69.1081 versus 64.7150**
+  (candidate 6.4% lower); reported success metric is 0.72993 versus 0.73321.
+  Those historical success values average persistent logs over time; they
+  are not episode-weighted rates. Future evaluations record corrected rates.
+  Early endings are 385/12422 versus 373/12439. All 8000 candidate internal
+  substeps are finite before sanitization; peak speeds are 2.823 m/s and
+  63.606 rad/s, passing the recorded cube-spin regression screen.
+  One seed does not establish statistical reward equivalence. Allegro authors
+  zero armature, so this establishes compatibility evidence, not nonzero
+  inertia in isolation. See `allegro_review.json` for scope and limitations.
+- The original omega=0.15 candidate is **rejected and archived** because final
+  playback exposed rare free-cube spin outliers (peak 465 rad/s). Independent
+  replay of the captured onset reproduced the Jacobi instability. The current
+  candidate was retrained from scratch with omega=0.10 at the same 20-contact-
+  iteration budget; the baseline retains 0.15. Physical and PPO settings are
+  unchanged. Earlier policy-transfer returns of 83.29 are diagnostic results,
+  not the corrected retrained policy's reward.
+- The initial diagnostic playback recaptured an existing CUDA graph and failed.
+  Its code and logs are archived. Diagnostics now attach before the original
+  capture; the completed videos and evaluations use that repaired harness.
+- **Franka cabinet is complete and reviewed.** Both runs finished 400 updates
+  at 4,096 worlds and seed 42. Final-50 reward is **79.4728 baseline versus
+  102.5287 candidate**; median throughput is **8,384 versus 15,852.5 FPS**
+  (1.891x, including the smaller contact allocation). Final population return
+  is **81.0380 versus 102.6454**; episode success is **100% versus 99.9756%**
+  over 8,192 episodes each. Each population evaluation checks 20,000 finite
+  internal substeps. Candidate contact capacity never saturates during all
+  400 training updates or either final evaluation. Both videos and the full
+  reward/FPS plot are reviewed. See `franka_cabinet_review.json` for the
+  numerical differences and single-seed limitations.
+- Earlier Cabinet previews and policy-transfer diagnostics remain preserved.
+  The same baseline checkpoint returned 78.55 on baseline physics and 49.04
+  on candidate physics; this transfer score did not predict the subsequently
+  retrained candidate's higher reward. See `cabinet_policy200_transfer_cpu/`.
+- The remaining ten Jacobi task pairs are now queued serially, starting with
+  Franka reaching. Each pair retains its original training budget, both
+  variants, final videos and population evaluations. Execution completion
+  still requires result and video review. See `remaining_status.json` and
+  `remaining_campaign.log`. Shadow Hand and APGD/PSPG remain excluded.
+- Cabinet performance: capacity-wide contact work is costly. An isolated
+  allocation-only change from 6,307,840 to 524,288 slots reduces control latency
+  from 471.15 to 249.20 ms (**1.89x faster**). At 4096 worlds, baseline and
+  candidate each pass 512 random controls across reset; baseline checkpoint50
+  also passes 1000 playback controls. Peak demand across these checks is
+  116,601 contacts, with no saturation and all 40,480 checked physics substeps
+  finite. These intermediate checks do not complete reward validation.
+- Forthcoming Cabinet runs use a continuous contact-capacity guard: record
+  demand before every internal solve and reject saturation after each PPO
+  update. Both two-update PPO guard checks and the actual candidate launcher's
+  fresh three-update smoke passed. The main baseline retained its automatic
+  allocation; its completed candidate used 128 slots per environment in a shared buffer.
+  This difference is disclosed: throughput improvement includes allocation
+  optimization. Both variants of the other three Cabinet tasks use the same
+  guarded allocation and require their own full-population preflight. Physics,
+  timestep, iterations and PPO budgets are unchanged. Evidence is in
+  `cabinet_capacity_checks/summary.json` and `cabinet_performance_diagnosis.json`.
+- Prismatic and gripper extensions: **67 CPU/CUDA tests passed**, plus the
+  asset-inertia and articulation-dynamics regressions. This source-fingerprint
+  gate passed before candidate training. The implementation extends the same
+  scalar inertia rows and compact response, retaining authored drive gains
+  and armature.
+- Independent regressions exposed and corrected moving-axis slider geometry,
+  spurious damping during common rotation, and missing limit moment arms.
+  The actuation-disable setting now also disables its numerical drive tangent.
+  Fail-before/pass-after logs are retained; no failed formulation is layered in.
+- Reach/lift Jacobi presets resolve for eight selected task configurations.
+  Configuration resolution is not a trained-task result. The experimental
+  path now enforces one prismatic mimic relation per tree for Franka fingers,
+  including contact/limit reactions; unsupported angular mimic pairs are
+  rejected. Coordinates come from native poses to respect external FK resets.
+  The actual Franka lift CPU preflight completed 100 zero-action steps with
+  finite state and maximum finger-equality error 8.48e-8 m. Full learning
+  validation remains pending.
+- UR10's fully locked D6 root is treated as a fixed joint; movable D6 remains
+  outside this experimental path. The real UR10 CPU preflight passes.
+- Restored lazy Jacobian row-map initialization for OSC queries, with existing
+  Panda/ANYmal dynamics and permutation-aware query assertions passing.
+- Fixed a frictionless cone-projection defect that admitted negative scalar
+  limit impulses. Two analytical regressions fail before and pass after.
+  Franka reach requires a smaller Jacobi step for both joint-position and
+  OSC control: their shared DVI preset uses omega=0.05 for both legacy and
+  armature runs, with all physical parameters unchanged. Each passes a seeded
+  8-world/512-step random-action CPU check before substep sanitization.
+  These are preflights, not trained-task reward acceptance.
+- Playback checks include every physics substep before state sanitization
+  and resets. All 12 selected candidate tasks completed an initial random-action
+  check. Direct cabinet remained finite but reached 3,300 m/s immediately after
+  reset; it is not accepted on finite-state checks alone. A CLI-only Jacobi
+  omega=0.05 trial reduced the same sequence's peak to 8.98 m/s. The campaign
+  uses 0.05 for candidate cabinet workflows while retaining the original 0.15
+  upstream baseline; this numerical-settings difference is recorded explicitly.
+  All four candidate cabinet workflows pass the initial 0.05 exploration check
+  (peak speeds 5.17–9.13 m/s). Every full cabinet run additionally requires a
+  512-control check at 4096 GPU worlds in training configuration. The main
+  cabinet baseline passed that check; its candidate also passed a separate
+  guarded-capacity GPU check. The launch-time preflight and other workflows'
+  checks remain required. Full cabinet reward comparisons and videos are pending.
+- All 12 initial candidate exploration settings and their upstream controls
+  completed 512 Gaussian-action controls at eight CPU worlds. Measurements
+  are tabulated in `preflight_summary.md` and CSV in the campaign directory.
+  These screens do not establish trained reward equivalence. The initial
+  Allegro omega=0.15 screens are superseded by the corrected main Allegro
+  omega=0.10 GPU checks. Direct Allegro's newly selected 0.10 setting still
+  requires its own training-scale check. The ten task pairs after main
+  Allegro and main cabinet have not completed full training. No APGD/PSPG
+  environment runs are included in this phase.
+- An exact fetched-upstream Newton source copy is retained for subsequent
+  no-experiment controls. The initial Allegro legacy run loaded its source
+  before slider edits and uses the unchanged legacy numerical path.
+
+The completed locomotion results below refer to the archived pre-pull C1 v3
+source, not the currently developing manipulation extension. No commits or
+pushes have been made.
+
+## Previous validated locomotion result — October 10, 2026 (Pacific)
+
+The corrected relative-inertia implementation passes independent mechanics
+checks and the original Jacobi training budgets for Ant, ANYmal C, H1, Go2 and
+G1. All five completed 64-world videos and 4,096-world evaluations on the final
+optimized source. The new regression cases fail on original HEAD; twenty focused
+CPU/CUDA tests pass on the final implementation. Fresh GPU MuJoCo Warp torque,
+relative-damping and moving-chain comparisons also pass the stated tolerances.
+
+| Robot | Final-50 reward | Reference reward | Median training FPS | Speed at 4,096 worlds | Premature ends |
+|---|---:|---:|---:|---:|---:|
+| Ant | 89.48 | 74.93 / 76.64* | 293,726 | 5.386 m/s | 0 |
+| ANYmal C | 24.00 | 25.22 | 70,431 | 0.497 m/s | 0 |
+| H1 | 30.08 | 26.43 | 69,518 | 0.505 m/s | 21 |
+| Go2 | 32.98 | 33.21 | 78,810 | 0.516 m/s | 0 |
+| G1 | 32.36 | 27.89 | 33,367 | 0.495 m/s | 2 |
+
+References are the original paper Jacobi results, except Ant (*matched current
+legacy DVI / MJWarp controls; historical Ant reward units differ). Ant uses its
+native world-forward objective; the others command 0.5 m/s body-forward speed.
+Evaluations last 20 seconds for Ant and 24 seconds for the others. Every native
+state check remains finite, including checks immediately before automatic reset.
+All 64-world videos have zero premature endings. At 4,096 worlds, H1/G1 have rare
+base-contact falls; upright fractions are 99.9915% and 99.9993%. Ends count events,
+not unique robots. Repeat event audits found 20 H1 and 3 G1 startup falls, with
+joint-anchor errors below 0.90 mm and hinge-axis errors below 0.07 degrees at
+termination. These observations establish intact joints at those events, not
+perfect balance in every initial condition.
+
+Training uses seed 42, original PPO budgets and actuator gains. Ant retains
+armature 0.05 and damping 0.1; Go2 explicitly uses armature 0.02 (its MJWarp preset).
+G1 resumed after an external process interruption: 1,351 retained updates plus
+149 resumed updates, with optimizer/policy restored and environment/RNG reset.
+The logger warm-up dip remains in its curve. Source snapshots identify each
+training run; final Ant/G1 and all population checks use `C1_compact_source_v3`.
+
+The implementation represents ideal armature kinetic energy in joint-relative
+rotation, applies the relative semi-implicit PD tangent, and includes the
+incremental bilateral reaction in the common unilateral impulse response.
+It uses the existing sparse joint factors and a compact `T W T^T` response.
+There is no new dense mass/joint factorization or bounded-motor impulse law.
+The opt-in settings used here are `use_armature_rows=true` and `precond_reg=0.0`;
+raw joint regularization remains 1e-6. The legacy default is preserved.
+Supported scope is enabled revolute/fixed/free small trees, with sparse
+Jacobi/APGD/PSPG; large heterogeneous trees and exact stiff/saturated MJWarp
+actuator semantics are not established by these tests.
+
+Frozen Ant physics cost is 3.382 ms versus legacy 2.220 ms (1.52x), including the
+captured solver/integration step but excluding collision and PPO. Final Ant
+training is 293,726 FPS versus the initial full-response candidate's 227,862 FPS.
+The G1 product optimization reduced its frozen step from 40.45 to 26.70 ms.
+Historical plot FPS from other solvers is not a matched current timing comparison.
+
+Only Jacobi reward/FPS data in the five existing paper PNGs were replaced;
+titles, style, image dimensions and every unrelated solver array were verified
+unchanged. The submission manuscript `main.tex` was not changed. APGD and PSPG
+have analytical physics coverage; their full training awaits the requested
+Jacobi review checkpoint.
+
+Evidence and videos: `isaaclab-dvi/logs/dvi_armature_correctness/2026-10-09/`.
+- `completion_audit.json`: source/checkpoint hashes, budgets, tests and artifacts.
+- `jacobi_armature_validation.png`: comparison with original/reference curves.
+- `final_rotor_mjwarp.json` and `final_passive_reference/`: final-source reference checks.
+- `investigation.md`: failed candidates, fixes, interruptions and event audits.
+- `Newton-DVI-tech-report/dvi_relative_armature_validation.pdf`: three-page equations/results note.
+
+Rejected cached-mass source was archived and reverted before this candidate;
+unsuccessful performance prototypes remain only as evidence, not active variants.
+No commits or pushes were made. Entries below retain the investigation history.
+
 # Release-3 Newton DVI integration and locomotion validation
+
+### C1 Ant validation completed — 2026-10-09 (Pacific)
+
+C0 was archived and reverted before this candidate. C1 retains the relative
+armature energy, uses the existing sparse joint factors to assemble the
+bilateral-consistent response once per step, and solves contacts and limits
+with that response. It includes the relative PD tangent; bounded motor impulse
+rows are not used. Exact formulation and artifact paths are in
+`isaaclab-dvi/logs/dvi_armature_correctness/2026-10-09/C1_formulation.md`.
+
+- 52 CPU/CUDA tests passed (46 existing, 6 new including graph initialization).
+  The four new physics tests have 14 failing subcases on original HEAD.
+- Full Ant Jacobi training: 4096 worlds, seed 42, 1000 PPO updates, contact
+  iterations 10, one substep; armature 0.05 and damping 0.1 retained.
+  Joint precond_reg=0 replaces the biased 1e-4 regularizer; joint_reg=1e-6 remains.
+- Final-50 reward **89.0999**, median training **227,861.5 FPS**.
+  Matched legacy and GPU MJWarp rewards were **74.93** and **76.6416**.
+- Final-checkpoint evaluation, 64 worlds / 20 seconds: mean world-X speed
+  **5.4124 m/s**, upright fraction **1.0**, **0** premature terminations,
+  max first-world joint-anchor error **0.002286 m**, finite native state.
+  Matched legacy and MJWarp speeds were **4.4078** and **4.3853 m/s**.
+- Readable 10-second video with camera following world X/Y (physical poses and
+  camera height unchanged): `ant_C1_follow.mp4` in the investigation directory.
+  The initial stationary clip loses the robot and is retained only as an audit.
+- Ant's paper PNG now has only its Jacobi data/FPS replaced; title, colors,
+  layout and all unrelated curve arrays are preserved. Historical APGD/PSPG
+  use a different reward scale and are not current matched comparisons.
+- Performance remains under investigation: full-response prototype 5.397 ms
+  versus legacy 2.209 ms on the same frozen 4096-world scene. A compact
+  representation of the same response is being tested before the other robots.
+
+Training source: `C1_source_fixed/` with hashes. First startup failed before
+training because graph preparation read unassembled endpoint buffers; topology
+now comes from the model and two new preparation regressions pass. The successful
+run is `logs/rsl_rl/armature_correctness_C1/2026-10-10_05-20-37_ant_jacobi`.
+
+## Armature correctness investigation — 2026-10-09 (Pacific)
+
+The current goal is physics validation first, then Ant and the other established
+DVI tasks. No new full training has started in this investigation.
+
+Candidate C0 (cached mass, unchanged staged constraints) is rejected as a complete
+solver implementation, **not** as evidence that relative armature energy is wrong.
+Source archive: `/home/horde/Documents/DVI/rollback_archives/armature_correctness_start_20261010`.
+Evidence/scripts: `isaaclab-dvi/logs/dvi_armature_correctness/2026-10-09/`.
+
+- Pure torque, armature 0.05: the analytical speed is 0.15625 rad/s.
+  Precision clarification from the final-source audit: GPU MJWarp differs from
+  that value by 2.98e-8; current DVI differs from MJWarp by 1.49e-7 rad/s.
+  The earlier wording incorrectly assigned the reference-only error to both.
+- Moving two-hinge passive chain, 0.5 s: angle error against MJWarp falls from
+  4.84e-5 at dt=1/120 to 1.10e-5 at dt=1/960 (armature 0.05).
+- Actual Ant: pulled-back augmented mass matches independent reduced mass plus
+  diagonal armature to 2.98e-7 relative error. The production joint regularizer
+  causes 4.16% force-response error; precond_reg=0 gives 0.006%, two existing
+  refinement steps give 0.003%. These are diagnostic configurations, not new
+  training settings.
+- Isolated two-link frictionless impact with 1 m/s closing speed: even 1000
+  contact iterations leave 0.732 m/s closing after the final joint solve with
+  armature 0.05 (one sweep), versus 0 for the exact rigid DVI solution. Two
+  sweeps leave 0.535 m/s. The preceding joint impulse is propagated correctly;
+  the contact operator omits the additional bilateral response to its impulse.
+- The retained independent-body implicit PD tangent is not relative joint
+  damping. Ant-like kd=0.1 gives a small isolated error; kd=5 makes it substantial.
+  Clipping and stiffness integration also differ from MJWarp in some cases, so
+  those are not attributed to physical armature or silently treated as matched.
+
+C0 source changes have been archived and reverted before candidate C1. The
+historical documents/results remain. C1 will use relative auxiliary inertia rows,
+the existing sparse factorization, and the bilateral-consistent unilateral
+response. No bounded motor impulse formulation is being restored. Its physics,
+finite-iteration behavior and cost must pass before training.
+
+
+## Cached mass only, on the restored solver — October 10, 2026 (UTC)
+
+Following the rollback below, the requested physical mass augmentation is
+available through the new opt-in field:
+
+```text
+env.sim.physics.solver_cfg.use_cached_armature_mass=true
+```
+
+It defaults to false. Ordinary presets and task/PPO/actuator parameters are
+unchanged. Keep `use_armature_rows=false` (the two models are mutually exclusive).
+Use the standard train/evaluate entrypoints; archived experimental launcher
+monkeypatches must not be reused with this implementation.
+
+Newton now adds only Sections 1–2 of `dvi_cached_armature_equations.tex`:
+body-frame `H_b = M_b + G_b.T A G_b`, its cached inverse and matching gyroscopic
+bias. It retains separate constraint-family sweeps, the sparse joint backend,
+force-based actuation and existing implicit-gain treatment. No condensed joint
+response, mixed family/motor solve, bounded motor impulse rows, or dense joint
+backend is restored. It is the same physical mass model as the earlier cached
+trial, with different constraint/actuator algorithms. The historical note's
+later implementation sections do not describe this new path.
+
+Validation completed:
+
+- 59 focused Newton CPU/CUDA tests passed, including independent matrix checks,
+  zero-armature equivalence, all three contact solvers, limits, cache refresh and
+  CUDA graph replay. The 47 pre-existing focused checks also pass.
+- Ant startup/rollout/PPO smoke passed: 64 environments, three iterations, 6,144
+  transitions, seed 42, Jacobi-10, one coupling sweep with joint post-stabilization,
+  one substep, semi-implicit actuation. Authored armature `0.05`, damping `0.1`
+  and angular damping `0.01` remain. Saved configuration confirms the new flag.
+- Run: `logs/rsl_rl/dvi_mass_only_smoke/2026-10-10_04-36-35_ant_jacobi10`.
+- Frozen 4,096-Ant benchmark: **2.210 ms restored baseline vs 5.079 ms cached
+  mass only (2.30×)**, 15,065 contacts. These are captured physics-step timings
+  including integration, excluding collision/PPO/host monitoring; not training
+  FPS. Physical mass is cached once, while cross-body products and the denser
+  sparse joint system add per-step work. Both use the flat sparse backend.
+
+Evidence, source snapshots and hashes: `logs/dvi_mass_only/2026-10-10/`
+(`validation.json`, `focused_tests.log`, `ant_smoke.log`, `benchmark.py`, timing
+and profiler JSON). This is not a trained walking result or a resolved speed
+regression. No full training, paper-plot update, commit or push was performed.
+
+### Existing-result review and smoke video — October 10, 2026 (UTC)
+
+The user chose to share existing results and smoke playback only. No additional
+training or M-based joint approximation was attempted; solver source is unchanged.
+Smoke rewards after its three PPO updates are `-2.94`, `-4.03`, `-4.89`.
+Ten-second playback of `model_2.pt` across 64 environments measured `0.0303 m/s`
+mean world-forward speed over the last five seconds, 100% upright samples and
+no episode endings. This nearly untrained policy mainly stands/moves slowly;
+it provides no evidence of restored high reward or fast trained locomotion.
+
+Video (one visible Ant, 1280×720, 30 FPS):
+`logs/dvi_mass_only/2026-10-10/review/ant_smoke_3_updates.mp4`.
+Playback metrics and paired frozen-scene profiling are in the same directory.
+The changed joint structure stores 28 rather than 10 off-diagonal blocks per
+Ant, and uses eight rather than six elimination levels. Profiled joint
+factorization costs `0.283 → 0.762 ms`; triangular solves `0.678 → 1.130 ms`.
+Captured physics replay remains `2.209 → 5.078 ms`. The profile and captured
+replay use different launch modes and are not additive measurements.
+See the Newton status file for the read-only H/M matrix comparison and its
+limitations; no approximation was substituted into dynamics.
+
+## Workspace rollback — October 10, 2026 (UTC)
+
+The user's requested rollback is complete. Active Newton source/tests match
+`d6098901ac6197ee1737707f3a0fd8a3165f4695`; the Isaac Lab DVI manager/configuration
+match `c0c3f214369076c5d293abada286825cfb0e8b86`. The condensed contact/limit solve,
+bounded motor rows and dense cached-mass backend were uncommitted experiments
+after those revisions. Their source, configuration hooks, tests and unreleased
+fragments have been archived and removed from the active implementation.
+
+Restored behavior is separate constraint-family solves, force-based actuation
+and the existing sparse joint solver. The committed optional revolute armature
+rows remain available. The ordinary Ant preset disables them and uses the
+legacy body-inertia approximation. Ant retains its original joint damping
+`0.1`, authored armature `0.05`, body angular damping `0.01` and semi-implicit
+actuation. The previous `0.005` armature was only a run override. Quaternion
+normalization and body angular damping also predate the reverted experiments.
+
+Validation: 47 focused Newton regression tests passed. The standard release
+validation launcher also completed an Ant smoke run with 64 environments,
+three PPO updates, seed 42, Jacobi-10 contacts and one substep. The saved runtime
+configuration confirms sparse joints, no experimental coupling/motor fields,
+`use_armature_rows=false`, and the original Ant parameters. This smoke test is
+not evidence of trained walking performance; no full training was launched.
+
+Rollback archive, including original files, patches, hashes and validation:
+`/home/horde/Documents/DVI/rollback_archives/dvi_decoupled_20261010T041258Z`.
+Smoke checkpoint/configuration:
+`logs/rsl_rl/dvi_rollback_smoke/2026-10-10_04-15-12_ant_jacobi10`.
+Earlier experiment launchers and records under `logs/` are historical and need
+their archived solver source to reproduce those runs. Existing paper figures
+remain their previously recorded experimental data; they were not relabeled
+as rollback results. No manuscript/PNG changes, commit or push were made.
 
 <!-- current-campaign-note -->
 Current status (October 7): the release-3 integration and seven-environment
@@ -775,3 +1240,416 @@ updated too. APGD, P-SPG-FB and MJWarp curve arrays were retained exactly. The
 figure uses the new run's own measured FPS, replacing the previous exclusion
 label; it does not substitute the separate 35-update timing benchmark. No further
 commits or pushes were made during this run.
+
+## October 8 matrix regression and armature investigation
+
+At Newton `d6098901` / Lab `c0c3f214`, the requested Ant/ANYmal C/H1/Go2/G1
+Jacobi → APGD → PSPG matrix completed Ant and ANYmal C Jacobi. H1 Jacobi failed
+with non-finite observations after 12 updates; remaining cases have not started.
+The campaign record is `logs/dvi_armature_matrix/2026-10-07/status.json`, phase
+`diagnosing_regression`.
+
+The matched 1000-update Ant legacy control keeps the imported armature 0.05 and
+changes only its treatment and output names. Final-50 reward is 74.93 versus
+22.42 for rotor rows, and 64-world evaluation speed is 4.408 versus 0.355 m/s.
+Both remain upright; smaller joint-anchor errors do not imply recovered gait.
+
+Further investigation found:
+
+- The eight existing isolated armature CPU/CUDA tests still pass. The ideal
+  reflected-inertia row is not disproved by the training failure.
+- Limits, joints/armature and contacts do not reach a coupled solution at the
+  current staged budgets. Frozen Ant systems reproduced in float64 reveal an
+  additional contact error floor caused by restarting every 10-iteration inner
+  solve from zero. Within-timestep reuse and a condensed joint/armature response
+  improve convergence; neither has been accepted as a production training fix.
+- A 32-update H1 diagnostic reproduces a native physics NaN at environment step
+  103. Legacy and rotor-plus-final-joint-correction controls finish all 768
+  environment steps finite. The latter changes one solver setting in an isolated
+  diagnostic, not the campaign recipe, and is not a trained walking result.
+- A separate analytic two-body probe shows that existing implicit PD omits the
+  parent/child cross terms of relative joint damping. Chrono and Kamino source
+  comparisons motivate a coupled armature/contact solve and a consistent joint
+  dynamics row for implicit drives.
+
+[Detailed report and engine/literature references](logs/dvi_armature_matrix/2026-10-07/armature_research/REPORT.md),
+[new diagnostic convergence plot](logs/dvi_armature_matrix/2026-10-07/armature_research/ant_coupling_diagnostic.png),
+and [matched Ant report](logs/dvi_armature_matrix/2026-10-07/ant_diagnostics/REPORT.md)
+retain raw data, config comparisons and reproducible scripts under ignored logs.
+The full matrix awaits solver validation. The existing Ant/ANYmal C paper PNG
+updates are experimental measurements; this investigation changed no additional
+paper figures, manuscript text, production source or campaign parameters.
+No commits or pushes were made.
+
+Requested Ant playback is available for the
+[rotor-row policy](logs/dvi_armature_matrix/2026-10-07/armature_research/videos/ant_jacobi_rotor.mp4)
+and [matched legacy policy](logs/dvi_armature_matrix/2026-10-07/armature_research/videos/ant_jacobi_legacy.mp4).
+Both are 20-second 1080p/30-fps recordings with a following camera, original
+physics settings and preserved physical world positions; all 600 frames decoded.
+
+Follow-up clarification: joint impulses already reach the contact RHS correctly.
+What is absent is their incremental response inside the contact mass operator.
+Many outer sweeps are not the intended solution; one or two remain the target.
+The report now distinguishes this from force forwarding and treats cold starts
+as a secondary convergence diagnostic. A new isolated native actuator-row
+prototype matches the intended `SEMI_IMPLICIT` two-body response while retaining
+old-state PD torque; keeping that torque is valid when the row represents only
+the incremental inertia and replaces, rather than duplicates, body augmentation.
+This is a diagnostic construction, not a production solver change or RL result.
+
+The requested seven-page formulation note is available as
+[PDF](../Newton-DVI-tech-report/dvi_coupled_armature_proposal.pdf) and
+[LaTeX source](../Newton-DVI-tech-report/dvi_coupled_armature_proposal.tex).
+It defines the shared contact/limit/motor operator, mode-specific actuator rows
+and finite-effort treatment, with source references and algebra checks.
+Production implementation and further training await review of this formulation.
+
+### October 8: approved formulation implemented and tested experimentally
+
+Added opt-in `DVISolverCfg.use_coupled_constraints` and `use_drive_rows`, forwarded
+to Newton DVI. Both default to false. Coupled contacts and limits share the
+contact iteration budget and include incremental bilateral/rotor reactions.
+Drive rows preserve the selected actuator convention and place bounded motor
+impulses in the shared solve. The staged outer-sweep and final-stabilization
+settings are unused in the coupled mode; asset parameters and PPO settings were
+not adjusted. The existing campaign launcher still needs the new flags before
+it can run this formulation.
+
+Completed isolated trials, using seed 42 and 4096 environments:
+
+| Trial | Budget | Outcome |
+| --- | --- | --- |
+| H1, Jacobi-10, coupling only | 32 updates / 768 steps | Finite; max angular component 46.35 rad/s |
+| H1, Jacobi-10, coupled drives | 32 updates / 768 steps | Finite; max angular component 35.13 rad/s |
+| Ant, Jacobi-10, coupled drives | 1000 updates / 32,000 steps | Finite; last-50 mean reward 46.73395 |
+
+The previous H1 staged-rotor run failed around step 103. The new H1 runs establish
+short-run stability, not learned walking. Matched Ant playback at 64 worlds for
+20 seconds gives 2.29959 m/s world-forward speed, all worlds upright, and zero
+premature terminations. Previous staged rotor rows gave 0.35520 m/s; the matched
+legacy approximation gave 4.40780 m/s. Thus Ant improves substantially but still
+trails the legacy control after the same training budget.
+
+The [new Ant playback](logs/dvi_armature_matrix/2026-10-07/armature_research/coupled_implementation/ant_playback/ant_coupled.mp4)
+is 1080p/30 fps, with all 600 frames decoded. The checkpoint is
+`logs/rsl_rl/coupled_armature_trials/2026-10-08_17-22-58_ant_drives_jacobi_1000_4096/model_999.pt`.
+Commands, solver source snapshots, test evidence, and metrics are in
+[`coupled_implementation`](logs/dvi_armature_matrix/2026-10-07/armature_research/coupled_implementation/).
+
+Performance is the main prototype limitation: matched captured physics-step
+times are 2.338 ms for staged rotor rows, 6.459 ms for coupled rotor rows, and
+12.100 ms for coupled drive rows (4096 Ant worlds, frozen 15,070-contact scene).
+These are solver-step timings, not PPO training FPS. The monitored training run's
+126,091.5 median FPS includes host state copies and is not a paper benchmark.
+Newton's analytic/dense-reference and CPU/CUDA/graph checks passed; see the
+[Newton status](../newton-dvi/release16_dvi_integration_status.md) for details.
+
+Next work is response reuse and condensed preconditioning/convergence validation
+at the unchanged iteration budgets, followed by the full environment/solver
+campaign. No additional paper figures or manuscript text were changed, and no
+commits or pushes were made.
+
+### October 8: coupled-solver performance optimization
+
+Newton now reuses mixed-Jacobi responses, including the final equality reaction,
+omits an unused velocity scatter when refinement is disabled, fuses small
+independent joint backsolves into one CUDA block per component, and reduces the
+mixed residual within thread blocks. Physics parameters and solver budgets are
+unchanged; configured refinement remains enabled for H1.
+
+On identical frozen 4096-world scenes with Jacobi-10, full coupled-drive physics
+steps decreased from **12.098 to 3.809 ms for Ant** and **48.176 to 12.693 ms for
+H1**. The staged references are **2.320 ms** and **4.159 ms**, respectively.
+The remaining penalties are **1.64x for Ant** and **3.05x for H1**. These timings
+exclude collision, PPO, and monitoring and must not replace training FPS.
+
+Forty Newton regressions passed, including CPU/CUDA, dense references, conditional
+graphs, and the original LDL suite. Frozen-scene velocities/impulses agree within
+float32 tolerances, with the same iteration counts; both 120-step evaluations
+remained finite. The response-count regression fails before the optimization.
+See the [Newton status](../newton-dvi/release16_dvi_integration_status.md) and
+[`performance/summary.json`](logs/dvi_armature_matrix/2026-10-07/armature_research/coupled_implementation/performance/summary.json)
+for evidence and remaining limitations.
+
+The training campaign and paper update are still outstanding. H1's remaining
+physics cost requires further work on the coupled mass response. This pass
+produced no new training curves, changed no paper figures, and made no commits.
+
+### October 8 campaign: Jacobi completed; APGD and PSPG await review
+
+Completed Ant, ANYmal C, H1, Go2, and G1 with the optimized coupled solver,
+4096 environments, seed 42, and the original current-task training budgets.
+`use_armature_rows`, `use_coupled_constraints`, and `use_drive_rows` were enabled.
+The task recipes, gains, armatures, contact budgets, semi-implicit actuator mode,
+regularization, and refinement settings were retained. Go2 retains the explicit
+DC-motor experiment with armature 0.02. Training had startup configuration/source
+audits but no per-step host state monitoring. All 43 solver source hashes match
+the campaign snapshot.
+
+| Task | PPO updates | Last-50 mean reward | Median training FPS | Playback forward speed | Premature ends / 4096 worlds |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Ant | 1000 | 46.4168 | 289,853.5 | 2.2402 m/s | 0 |
+| ANYmal C | 500 | 21.3736 | 61,619.0 | 0.4985 m/s | 1 |
+| H1 | 1000 | -2.6258 | 65,104.5 | 0.2810 m/s | 7 |
+| Go2 | 500 | 32.1602 | 75,457.5 | 0.5112 m/s | 5 |
+| G1 (resumed) | 1500 | 6.7320 | 26,581.5 | 0.4828 m/s | 0 |
+
+Playback ran for 1200 policy steps at both 64 and 4096 environments, checking
+observations and native body poses/velocities after every policy step. All ten
+evaluations remained finite. The table uses the 4096-world checks: 20 seconds
+for Ant and 24 seconds for the other tasks. Ant speed is world-forward; other
+speeds are body-forward with a fixed 0.5 m/s command. Premature ends exclude
+timeouts and count resets, not unique robots. All 64-world checks had zero
+premature ends. H1 therefore avoids the old early numerical failure but still
+tracks the speed command poorly; finiteness does not establish restored learning
+quality or solver convergence. These are one-seed, flat-ground evaluations.
+
+Two interruptions are recorded rather than hidden. ANYmal C's first playback
+completed, but the video-metadata wrapper then read an argument that the evaluator
+had removed from `sys.argv`. The wrapper now captures the output path first;
+playback was repeated successfully without retraining. The original artifacts
+remain under `jacobi_anymal_c/first_playback_metadata_error/`.
+
+G1's worker and controller disappeared around a chat interruption after logged
+iteration 1459; no process exit status was available. Recovered policy, critic,
+and optimizer from `model_1450.pt`, then performed updates 1451 through 1499.
+Simulation and RNG state were initialized again with seed 42. The curve retains
+original samples 0–1450 and resumed samples 1451–1499; the unsaved original tail
+is excluded. Configuration comparison shows only output path/checkpoint changes.
+The last-50 reward includes the restart transient: the 50 samples before recovery
+averaged 11.0753, and the final ten resumed samples averaged 12.1219. G1's curve is
+provisional for an uninterrupted paper benchmark. Recovery used a detached
+controller; it has now exited with all five cases complete.
+
+Updated only the five existing `*_jacobi_mjwarp_apgd_progress.png` panels' Jacobi
+reward data and FPS. Titles, style, dimensions, and other solver curve arrays
+were retained; the latter were checked for exact equality. All five 1080p videos
+decoded all 600 frames. `main.tex` and the PDF/SVG panels remain unchanged.
+
+The Ant panel is not yet a valid cross-solver reward comparison: its historical
+logs use `Isaac-Ant-Direct-v0` from `isaaclab_tasks.direct.ant`, whereas the current
+core task multiplies continuous rewards by `step_dt` and normalizes progress by
+policy-step duration instead of physics-step duration. No numerical rescaling
+was applied to hide that difference. The APGD/PSPG reruns and a matching MJWarp
+reference must use the same current task definition before final paper use.
+
+Evidence: [summary JSON](logs/dvi_coupled_matrix/2026-10-08/summary.json),
+[summary CSV](logs/dvi_coupled_matrix/2026-10-08/summary.csv),
+[commands and state](logs/dvi_coupled_matrix/2026-10-08/status.json), and
+[Ant reward definitions](logs/dvi_coupled_matrix/2026-10-08/ant_reward_comparability.json).
+Each case directory contains playback metrics, state arrays, video, checkpoint
+hash, and artifact checks. Videos:
+[Ant](logs/dvi_coupled_matrix/2026-10-08/jacobi_ant/jacobi_ant.mp4),
+[ANYmal C](logs/dvi_coupled_matrix/2026-10-08/jacobi_anymal_c/jacobi_anymal_c.mp4),
+[H1](logs/dvi_coupled_matrix/2026-10-08/jacobi_h1/jacobi_h1.mp4),
+[Go2](logs/dvi_coupled_matrix/2026-10-08/jacobi_go2/jacobi_go2.mp4), and
+[G1](logs/dvi_coupled_matrix/2026-10-08/jacobi_g1/jacobi_g1.mp4).
+
+The campaign is `jacobi_complete_awaiting_review`. No training or playback worker
+remains. APGD and PSPG were not started, as requested. Performance, H1 tracking,
+G1's uninterrupted benchmark, and historical-reference comparability remain
+open for the review. No commits or pushes were made.
+
+## Ant cached-mass trial complete (2026-10-09)
+
+The user selected **Ant first, then review**. The opt-in cached mass adapter
+completed 1000 PPO updates with 4096 environments, seed 42 and Jacobi-10.
+Resolved task and PPO settings match the preceding coupled run except output
+names. The new backend uses two fixed internal residual corrections against
+the unchanged parent-axis rotor/equality equations; these are recorded in
+`cached_solver_audit.json`, not silently treated as an old configuration value.
+The adapter caches mass elimination once but still factors changing geometric
+constraints each step. It is an experimental implementation of the existing
+model, not a new armature model or a default backend.
+
+| Ant treatment | Final-50 mean reward | Median training FPS | World-forward speed |
+|---|---:|---:|---:|
+| Cached mass trial | 43.5013 | 185,912.5 | 2.0229 m/s |
+| Previous coupled rows | 46.4168 | 289,853.5 | 2.2391 m/s |
+| Legacy body armature control | 74.9338 | 354,975.5 | 4.4078 m/s |
+
+Speed is the final-half mean from matched 20-second, 64-world playback. The
+legacy control retains armature 0.05 through its earlier body-inertia
+approximation. Both 64- and 4096-world cached playbacks had finite states,
+upright fraction 1.0 and zero premature terminations. Independent final-system
+checks in eight worlds per playback have maximum relative energy error
+`4.051e-7` and relative residual `7.998e-6` against dense float64 solves.
+
+Matched captured physics steps on one frozen 4096-world scene with 15,065
+contacts take 7.680 ms for the cached prototype and 3.807 ms for the existing
+coupled solver: **2.017x slower**. Timing includes integration, but not collision
+detection, PPO, or monitoring. Maximum absolute single-step body-velocity
+difference is `1.060e-4`. The fast isolated mass response therefore does not
+establish a useful full-step performance improvement here.
+
+The first full attempt was interrupted after update 327 to fix a global TF32
+setting that affected PPO. It is archived and excluded. The reported run is a
+fresh seed-42 run after scoping library/precision settings to physics and
+verifying their restoration. Startup failures and the independent test's
+failure-before/pass-after evidence are preserved in the trial directory.
+
+Updated Ant's existing Jacobi PNG data/FPS only, preserving title/style,
+dimensions and unrelated solver arrays. `main.tex` and all other robot PNGs
+were checked unchanged. The separate review plot uses matched current-task
+controls; historical solver curves retained in the paper still have the older
+Ant reward definition. The proposal PDF's version 4 includes the new results.
+
+Artifacts: [report](logs/dvi_cached_training/2026-10-09/REPORT.md),
+[reward/FPS comparison](logs/dvi_cached_training/2026-10-09/ant_comparison.png),
+[Ant video](logs/dvi_cached_training/2026-10-09/ant_cached.mp4), and
+[full summary](logs/dvi_cached_training/2026-10-09/summary.json).
+The 1080p video decoded successfully. The cached implementation completed
+training but has not recovered the legacy behavior or improved solver speed.
+All workers have exited at `ant_complete_awaiting_review`; no other robot,
+APGD, or PSPG run was started. No commits or pushes were made.
+
+## Ant mass and Jacobi audit (2026-10-09)
+
+A frozen-state check after the cached Ant trial found a concrete convergence
+issue: mixed Jacobi uses the coupled joint/armature response for its operator,
+but a body-local inverse-mass diagonal for its updates. With the same ten
+iterations, replacing only that diagonal with the coupled one reduces bounded
+motor impulse vector error from **31.86–37.00% to 4.19–5.20%** against a converged
+offline reference across eight captured Ant worlds. Contact residuals also
+improve, but remain substantial. Independent matrix calculations reproduce
+the native solver's impulses to `2.986e-7` maximum absolute error.
+
+This is a preconditioning issue at the fixed budget, not proof of an incorrect
+physical mass or a complete diagnosis of the learning regression. Newton and
+the compiled MuJoCo model both use armature 0.05; intended generalized masses
+agree at rest to `2.389e-7` relative error. No legacy body augmentation remains,
+and the physical-inverse final velocity update agrees with the accumulated
+forces/impulses to `4.768e-7`. A matched current-task MJWarp training control has
+not been run in this audit.
+
+The cached adapter targets the preceding coupled equations but adds dense
+geometric factorization and repeated residual corrections. Retaining the
+existing sparse backend and improving the mixed contact/motor preconditioner
+is the next focused step, with convergence and cost measured before training.
+No production solver code or paper PNG changed, and no training was launched.
+The frozen systems have no active limits; other robots were not sampled.
+
+Evidence and reproduction: [audit report](logs/dvi_mass_audit/2026-10-09/REPORT.md),
+[all diagonal results](logs/dvi_mass_audit/2026-10-09/diagonal_results.json), and
+[mass checks](logs/dvi_mass_audit/2026-10-09/model_audit.json).
+
+## Standalone cached mass: Ant trial complete (2026-10-09)
+
+The requested experiment uses the cached augmented mass as the actual operator
+throughout the step, with zero auxiliary armature rows and zero corrections to
+the previous parent-axis equations. Its fixed body-axis kinetic energy includes
+cross coupling, and its gyroscopic term uses the full angular momentum.
+Jacobi scaling remains unchanged. The runtime audit distinguishes this backend
+from the temporary native solver used during environment startup.
+
+Ant completed 1000 PPO updates, 4096 environments, seed 42, and Jacobi-10.
+Resolved task/PPO YAML differs from the previous coupled run only in output names.
+
+| Treatment | Final-50 reward | Median training FPS | Forward speed, 64 worlds |
+|---|---:|---:|---:|
+| Standalone cached mass | 46.4645 | 253,802.5 | 2.2344 m/s |
+| Previous cached preconditioner | 43.5013 | 185,912.5 | 2.0229 m/s |
+| Previous coupled rows | 46.4168 | 289,853.5 | 2.2391 m/s |
+| Legacy body armature | 74.9338 | 354,975.5 | 4.4078 m/s |
+
+Both 64- and 4096-environment 1200-step playbacks had finite observed native
+states, upright fraction 1.0 and no premature terminations. The larger playback
+averaged 2.2331 m/s. Physics-only frozen-step timing is 4.851 ms for standalone
+mass, 3.807 ms for sparse coupled rows, and 7.677 ms for the previous cached
+preconditioner, including integration and excluding collision/PPO. The new run
+is faster than the previous cached trial, with reward/speed close to the earlier
+coupled-row run; the legacy behavior is not recovered.
+
+Pre-training floating-chain and full-size startup checks passed. The final
+frozen audit measures force-balance velocity error at most `6.905e-5`, but also
+exposes float32 geometric-condensation sensitivity: worst energy-operator error
+0.4536 in strongly constrained directions, with overall Frobenius error below
+0.001. Offline float64 setup with the same cached float32 mass, followed by
+float32 storage, reduces this energy error to `1.338e-4`. No precision change
+was made to the completed training, and it is not presented as a validated fix.
+
+Updated Ant's paper PNG Jacobi data/FPS with original title/style and other
+solver arrays retained. The manuscript and other robot PNGs are unchanged.
+Proposal version 5 includes the standalone formulation and measured results.
+All workers completed at the Ant review boundary. No APGD, PSPG, or other robot
+training was started; no commits or pushes were made.
+
+Artifacts: [report](logs/dvi_standalone_cached_mass/2026-10-09/REPORT.md),
+[reward/FPS plot](logs/dvi_standalone_cached_mass/2026-10-09/ant_comparison.png),
+[Ant video](logs/dvi_standalone_cached_mass/2026-10-09/ant_cached.mp4),
+[summary](logs/dvi_standalone_cached_mass/2026-10-09/summary.json), and
+[precision diagnostic](logs/dvi_standalone_cached_mass/2026-10-09/precision_diagnostic.json).
+
+## Cached mass accuracy and fresh MJWarp Ant control (2026-10-10)
+
+The latest Ant experiment retains the augmented mass in the shared dynamics
+response for all impulses. Contact/limit laws remain independent of armature;
+their body-local Jacobi diagonals, ten iterations, and all task/PPO parameters
+are unchanged. No predictor-only split was introduced.
+
+The condensed response now uses the algebraically equivalent stable sum
+`C = P B P.T + K R K.T`, where `B = H^-1`, `K = B J.T (J B J.T + R)^-1`
+and `P = I - K J`. This reduces float32 cancellation. A float64 prototype was
+rejected for training at 21.992 ms/step. Stable float32 takes 5.614 ms on the
+matched frozen 4096-world Ant scene (previous cached: 4.851 ms; sparse coupled:
+3.806 ms). The new constrained-direction regression fails before the change
+and passes afterward; both cached-mass tests and focused Ruff checks pass.
+The sixteen final playback samples have worst energy-operator error 0.000787.
+Force reporting still has a maximum force-balance velocity discrepancy of
+0.001063; this remaining numerical limitation is recorded in the report.
+
+Both Ant runs completed 1000 PPO updates, 4096 worlds and seed 42, sequentially:
+
+| Solver | Final-50 reward | Median training FPS | 64-world forward speed | Premature terminations |
+|---|---:|---:|---:|---:|
+| Stable cached mass, Jacobi-10 | 42.6198 | 230,542 | 1.9581 m/s | 0 |
+| Fresh MJWarp, current task | 76.6416 | 503,814 | 4.3853 m/s | 2 |
+
+The numerical fix did not recover MJWarp walking performance. The fresh control
+uses the same current task/PPO settings; native physics presets differ, including
+contact behavior and joint-wrench observation availability. It avoids comparing
+rewards against the historical task definition.
+
+Follow-up comparisons use actual GPU MJWarp and identical authored inertias.
+Applied-torque responses match analytic armature mechanics with and without
+armature. For a light damped hinge, DVI-10 gives 0.090895 rad/s versus MJWarp's
+0.162866; DVI-1000 gives 0.162867. A limit stop retains 0.8435 rad/s from an
+incoming 1 rad/s after ten iterations, approaching zero when converged. A
+single-contact stop retains -0.1963 m/s normal velocity after ten iterations,
+approaching the near-rigid MJWarp result when converged. High iteration counts
+are diagnostics, not changes to training parameters. Passive-chain trajectory
+errors decrease with timestep, including nonzero armature.
+
+Frozen Ant Jacobi-10 impulses are independently reproduced within 7.44e-9.
+At unchanged mass, diagonal, relaxation and ten iterations, initializing motor
+impulses from the clipped drive-force estimate reduces their error versus a
+converged reference from 33.13–35.24% to 0.894–2.053%. Contact violations remain
+substantial. This initialization is an offline experiment only; it has not
+been installed or trained. Separate tests identify PD integration and saturation
+semantics that differ from MJWarp even after convergence; the saturated external
+force example is outside Ant's normal command bounds.
+
+Ant's existing PNG received only the completed Jacobi and MJWarp reward/FPS
+updates, preserving title/style and unrelated curves. The manuscript and other
+robot PNGs are unchanged. Both playback videos decode successfully. All 43
+archived solver source files match the training revision. No other robots,
+APGD/PSPG training, commits or pushes were started.
+
+Artifacts: [complete report](logs/dvi_cached_mass_precision/2026-10-10/REPORT.md),
+[current-task reward/FPS plot](logs/dvi_cached_mass_precision/2026-10-10/ant_matched_comparison.png),
+[DVI video](logs/dvi_cached_mass_precision/2026-10-10/ant_cached.mp4), and [MJWarp video](logs/dvi_cached_mass_precision/2026-10-10/ant_mjwarp.mp4).
+
+
+## Ant armature reduction from 0.05 to 0.005 (2026-10-10)
+
+Completed the requested controlled Ant ablation: cached augmented mass with Jacobi, 4,096 environments, seed 42, 1,000 PPO iterations. Only `scene.robot.actuators.body.armature` changes physically; output paths/names are also different. All 43 DVI solver source hashes and numerical solver settings match the preceding precision-stable cached-mass run. The loaded model and both playbacks verify 0.005 on all eight actuated joints per environment. No preconditioner, motor initialization, contact law or solver formulation changes were made.
+
+| Run | Armature | Final-50 reward | Median training FPS | Forward speed (m/s) | Premature terminations |
+|---|---:|---:|---:|---:|---:|
+| DVI Jacobi, reduced armature | 0.005 | 99.241 | 236,476 | 6.362 | 0 |
+| DVI Jacobi, previous armature | 0.05 | 42.620 | 230,542 | 1.958 | 0 |
+| MJWarp reference | 0.05 | 76.642 | 503,814 | 4.385 | 2 |
+
+Reward is the mean of the last 50 updates; FPS is median training throughput; speed and termination counts are from the 20-second, 64-environment playback. The additional 4,096-environment playback gives 6.361 m/s and 0 premature terminations. MJWarp remains the earlier reference at 0.05, not a matched reduced-armature trial.
+
+Archive: `/home/horde/Documents/DVI/isaaclab-dvi/logs/dvi_reduced_armature/2026-10-10/REPORT.md`. This contains commands, resolved parameter differences, checkpoint, data, source hashes, mass checks, comparison plot and validated playback. Updated only Ant's Jacobi curve/FPS in the existing paper PNG, preserving its title/style and the other arrays. APGD/P-SPG-FB retain historical task data; the separate comparison plot is the interpretable current-task comparison. Paper `main.tex` and all other PNGs remain unchanged.

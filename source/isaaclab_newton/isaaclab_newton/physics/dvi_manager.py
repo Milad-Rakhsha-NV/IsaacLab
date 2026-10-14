@@ -222,6 +222,7 @@ class NewtonDVIManager(NewtonManager):
             enable_actuation=solver_cfg.enable_actuation,
             coupling_iterations=solver_cfg.coupling_iterations,
             cache_factorization=solver_cfg.cache_factorization,
+            **({"use_armature_rows": True} if solver_cfg.use_armature_rows else {}),
             post_stabilize_joints=solver_cfg.post_stabilize_joints,
             actuator_integration=ai_mode,
             enable_timers=False,

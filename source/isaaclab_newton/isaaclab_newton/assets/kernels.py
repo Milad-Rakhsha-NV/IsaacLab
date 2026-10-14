@@ -1102,6 +1102,114 @@ def write_body_inertia_to_buffer_index(
         out_data[env_ids[i], body_ids[j], k] = in_data[i, j, k]
 
 
+@wp.func
+def _body_inverse_inertia(mass: float, inertia: wp.array3d(dtype=wp.float32), env: int, body: int):
+    tensor = wp.mat33f()
+    for row in range(3):
+        for col in range(3):
+            tensor[row, col] = inertia[env, body, 3 * row + col]
+    inverse = wp.mat33f()
+    if mass > 0.0:
+        inverse = wp.inverse(tensor)
+    return inverse
+
+
+@wp.kernel
+def write_body_mass_and_inverse_index(
+    data: wp.array2d(dtype=wp.float32),
+    env_ids: wp.array(dtype=Any),
+    body_ids: wp.array(dtype=Any),
+    inertia: wp.array3d(dtype=wp.float32),
+    mass: wp.array2d(dtype=wp.float32),
+    inv_mass: wp.array2d(dtype=wp.float32),
+    inv_inertia: wp.array2d(dtype=wp.mat33f),
+):
+    """Write selected masses and refresh both inverse properties, including static transitions."""
+    i, j = wp.tid()
+    env, body = int(env_ids[i]), int(body_ids[j])
+    value = data[i, j]
+    mass[env, body] = value
+    inverse = float(0.0)
+    if value > 0.0:
+        inverse = 1.0 / value
+    inv_mass[env, body] = inverse
+    inv_inertia[env, body] = _body_inverse_inertia(value, inertia, env, body)
+
+
+@wp.kernel
+def write_body_mass_and_inverse_mask(
+    data: wp.array2d(dtype=wp.float32),
+    env_mask: wp.array(dtype=wp.bool),
+    body_mask: wp.array(dtype=wp.bool),
+    inertia: wp.array3d(dtype=wp.float32),
+    mass: wp.array2d(dtype=wp.float32),
+    inv_mass: wp.array2d(dtype=wp.float32),
+    inv_inertia: wp.array2d(dtype=wp.mat33f),
+):
+    """Refresh primary and inverse mass properties for the selected bodies only."""
+    env, body = wp.tid()
+    if env_mask[env] and body_mask[body]:
+        value = data[env, body]
+        mass[env, body] = value
+        inverse = float(0.0)
+        if value > 0.0:
+            inverse = 1.0 / value
+        inv_mass[env, body] = inverse
+        inv_inertia[env, body] = _body_inverse_inertia(value, inertia, env, body)
+
+
+@wp.kernel
+def write_body_inertia_and_inverse_index(
+    data: wp.array3d(dtype=wp.float32),
+    env_ids: wp.array(dtype=Any),
+    body_ids: wp.array(dtype=Any),
+    mass: wp.array2d(dtype=wp.float32),
+    inertia: wp.array3d(dtype=wp.float32),
+    inv_inertia: wp.array2d(dtype=wp.mat33f),
+):
+    """Write selected inertia tensors and their inverses, preserving static bodies."""
+    i, j = wp.tid()
+    env, body = int(env_ids[i]), int(body_ids[j])
+    for k in range(9):
+        inertia[env, body, k] = data[i, j, k]
+    inv_inertia[env, body] = _body_inverse_inertia(mass[env, body], inertia, env, body)
+
+
+@wp.kernel
+def write_body_inertia_and_inverse_mask(
+    data: wp.array3d(dtype=wp.float32),
+    env_mask: wp.array(dtype=wp.bool),
+    body_mask: wp.array(dtype=wp.bool),
+    mass: wp.array2d(dtype=wp.float32),
+    inertia: wp.array3d(dtype=wp.float32),
+    inv_inertia: wp.array2d(dtype=wp.mat33f),
+):
+    """Refresh selected inertia tensors and inverses without changing mass."""
+    env, body = wp.tid()
+    if env_mask[env] and body_mask[body]:
+        for k in range(9):
+            inertia[env, body, k] = data[env, body, k]
+        inv_inertia[env, body] = _body_inverse_inertia(mass[env, body], inertia, env, body)
+
+
+_WRITE_BODY_MASS_AND_INVERSE_DISPATCHER = IndexKernelDispatcher(
+    write_body_mass_and_inverse_index, ("env_ids", "body_ids")
+)
+_WRITE_BODY_INERTIA_AND_INVERSE_DISPATCHER = IndexKernelDispatcher(
+    write_body_inertia_and_inverse_index, ("env_ids", "body_ids")
+)
+
+
+def write_body_mass_and_inverse_index_kernel(env_ids: wp.array | torch.Tensor, body_ids: wp.array | torch.Tensor):
+    """Select the mass writer matching both selector dtypes."""
+    return _WRITE_BODY_MASS_AND_INVERSE_DISPATCHER.select(env_ids, body_ids)
+
+
+def write_body_inertia_and_inverse_index_kernel(env_ids: wp.array | torch.Tensor, body_ids: wp.array | torch.Tensor):
+    """Select the inertia writer matching both selector dtypes."""
+    return _WRITE_BODY_INERTIA_AND_INVERSE_DISPATCHER.select(env_ids, body_ids)
+
+
 @wp.kernel
 def write_body_inertia_to_buffer_mask(
     in_data: wp.array3d(dtype=wp.float32),

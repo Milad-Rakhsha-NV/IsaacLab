@@ -7,7 +7,7 @@
 
 from dataclasses import MISSING
 
-from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_newton.physics import DVISolverCfg, MJWarpSolverCfg, NewtonCfg, NewtonCollisionPipelineCfg
 from isaaclab_ov.physics import OvPhysxCfg
 from isaaclab_physx.physics import PhysxCfg
 
@@ -55,6 +55,27 @@ class ReachPhysicsCfg(PresetCfg):
         ),
         num_substeps=2,
         debug_mode=False,
+        use_cuda_graph=True,
+    )
+    # Preserve the task's assets, drive gains and control rate for DVI comparisons.
+    newton_dvi = NewtonCfg(
+        solver_cfg=DVISolverCfg(
+            joint_solver_type="sparse_ldl",
+            joint_alpha=0.0,
+            joint_iterative_refinement_steps=1,
+            contact_solver_type="sparse_jacobi",
+            contact_max_iterations=20,
+            contact_omega=0.15,
+            contact_alpha=0.0,
+            contact_recovery_speed=5.0,
+            contact_friction_projection="cone",
+            contact_residual_mode="res4",
+            coupling_iterations=2,
+            post_stabilize_joints=True,
+            angular_damping=0.0,
+        ),
+        collision_cfg=NewtonCollisionPipelineCfg(),
+        num_substeps=2,
         use_cuda_graph=True,
     )
     default: NewtonCfg = newton_mjwarp

@@ -96,6 +96,10 @@ class FrankaReachEnvCfg(ReachEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
+        # Coupled finger contacts require a conservative Jacobi step in both
+        # joint-position and operational-space control, for either mass model.
+        self.sim.physics.newton_dvi.solver_cfg.contact_omega = 0.05
+
         # Use the collision-complete legacy asset in PhysX until the Menagerie asset is corrected.
         self.scene.robot = replace(FRANKA_PANDA_MENAGERIE_CFG, prim_path="{ENV_REGEX_NS}/Robot")
         self.scene.robot.spawn.usd_path = preset(

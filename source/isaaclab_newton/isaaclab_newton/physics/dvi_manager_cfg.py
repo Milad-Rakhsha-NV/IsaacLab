@@ -116,6 +116,32 @@ class DVISolverCfg(NewtonSolverCfg):
     """Number of block Gauss-Seidel sweeps coupling joint limits, bilateral
     joints, and contacts per physics step."""
 
+    use_armature_rows: bool = False
+    """**Experimental:** represent relative scalar-joint armature with inertia rows.
+
+    Defaults to False, retaining the legacy body-inertia approximation. Set
+    before construction; requires sparse LDL joints with ``precond_reg=0``,
+    enabled revolute/prismatic/fixed/free trees (including fully locked D6 roots),
+    and sparse Jacobi/APGD/PSPG contacts without block preconditioning. Keep raw joint regularization small.
+    Contacts and limits share the bilateral-consistent response. The legacy
+    coupling count and optional final-joint flag do not control this mode.
+    Contact numerical settings control the shared solve; separate joint-limit
+    numerical settings are unused, except alpha and recovery speed for the
+    limit stabilization target. Compact buffers are padded to the largest
+    tree and currently target replicated small robots.
+
+    Armature must be finite and nonnegative [kg or kg m^2], with zero armature on
+    joints other than revolute/prismatic. Zero armature and gains leave the joint
+    free. The relative PD tangent is included while preserving authored gains, armature,
+    actuator forces and effort clipping. This mode may change without the
+    normal deprecation period.
+
+    Prismatic drives support ``explicit`` and ``semi_implicit`` integration;
+    their additional ``implicit`` stiffness correction is not supported.
+    At most one authored prismatic mimic relation is supported within each tree;
+    multi-relation and cross-tree couplings are rejected.
+    """
+
     cache_factorization: bool = True
     """Reuse the joint direct-solver factorization across coupling sweeps."""
 
