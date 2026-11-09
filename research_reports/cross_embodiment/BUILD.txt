@@ -1,0 +1,52 @@
+Shared Mechanical Policies for Cross-Embodiment Locomotion
+Research snapshot: 7 October 2026
+
+READ
+  cross_embodiment_report.pdf
+
+EDIT
+  cross_embodiment_report.tex
+  references.bib
+
+BUILD FROM THE INCLUDED LATEX AND FIGURES
+  Run from this folder:
+    latexmk -pdf -interaction=nonstopmode -halt-on-error cross_embodiment_report.tex
+
+  The source, bibliography, generated/ table fragments and figures/ PDFs can also
+  be uploaded together to Overleaf. Set cross_embodiment_report.tex as the main
+  document and use pdfLaTeX. No simulator or checkpoint is required.
+
+REGENERATE FIGURES AND TABLES, THEN BUILD
+  From the IsaacLab repository root:
+    uv run --no-sync python research_reports/cross_embodiment/build_report.py
+
+  From an extracted standalone source package:
+    uv run --no-project --with matplotlib python build_report.py
+
+  Both require a local TeX installation with latexmk, pdfLaTeX, BibTeX, TikZ,
+  tcolorbox, booktabs, tabularx, longtable, microtype and the other standard
+  packages listed in the source preamble. The report PDF is copied out of .build/.
+
+DATA AND PROVENANCE
+  data/ contains copied experiment summaries/protocols and the static field
+  schema. The build script reads these snapshots and performs no training.
+  data/provenance.json identifies original artifact paths and source hashes.
+  Checkpoints, raw demonstrations and videos are not included. Older videos
+  referenced in the report depict earlier PPO policies, not the distilled actor.
+  The transfer extension includes transfer_summary.json and the separate A1
+  standing follow-up. New distilled-policy videos remain in the local experiment
+  directory logs/shared_ant_graph/other_robots_20261007/videos/.
+
+SCOPE
+  Results are completed measurements; proposed interventions and architecture
+  changes are explicitly labeled as future work. No independent-seed sweep is
+  part of the operating plan. The report does not establish universal robot
+  control or claim first-of-kind novelty for the proposed directions.
+
+GO2 LEARNING EXTENSION
+  data/go2_learning_summary.json records the completed Go2 teacher, solo/joint
+  fits, frozen evaluations, budgets and exact commands. Go2 is now a source.
+  data/go2_diagnostics.json records separate frozen action-error diagnostics.
+  The 9.921 m/s teacher uses the declared ideal-effort simulator conversion,
+  without the stock motor torque-speed curve; it is not a hardware prediction.
+  New videos: logs/shared_ant_graph/go2_learning_20261007/videos/.

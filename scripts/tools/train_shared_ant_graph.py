@@ -34,6 +34,13 @@ def main():
     parser.add_argument("--run_dir", type=Path, default=Path("logs/shared_ant_graph/source_seed42"))
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--source-checkpoint", type=Path, help="Source actor initialization for target adaptation.")
+    parser.add_argument(
+        "--source_agents",
+        "--source-agents",
+        nargs="+",
+        choices=("ant_3", "ant_4"),
+        help="Source bodies to instantiate; defaults to the checkpoint's selection or both bodies for a new run.",
+    )
     parser.add_argument("--mode", choices=("source", "adapters", "random-core", "scratch", "finetune"))
     parser.add_argument("--adapter-dim", type=int, default=8)
     parser.add_argument("--latent-ablation", choices=("none", "zero", "shuffle"), default="none")
@@ -62,6 +69,7 @@ def main():
         parser.error("Source training is restricted to three-/four-legged Ants; target data must stay held out.")
     if not args.evaluate and mode != "source" and args.task != "IsaacContrib-Ant-Five-Specialist-Direct":
         parser.error("Target experiments require the five-legged task.")
+    selected_sources = _select_sources(parser, args, metadata, mode)
     if args.source_checkpoint and (args.evaluate or args.checkpoint or mode in ("source", "scratch")):
         parser.error("Use --source-checkpoint only to initialize a new target transfer run.")
     if (
@@ -79,10 +87,15 @@ def main():
             (args.source_checkpoint.parent / "experiment.json").read_text()
         )
         source_agents = source_metadata.get("training_agents", source_metadata.get("source_agents"))
-        if source_metadata.get("target_training") is not False or set(source_agents or []) != {"ant_3", "ant_4"}:
-            parser.error("Source initialization must be a documented three-/four-leg-only run.")
+        if (
+            source_metadata.get("target_training") is not False
+            or not source_agents
+            or not set(source_agents) <= {"ant_3", "ant_4"}
+        ):
+            parser.error("Source initialization must be a documented run using only three-/four-legged sources.")
     set_hydra_args([])
     cfg, agent = resolve_task_config(args.task, "rsl_rl_cfg_entry_point")
+    cfg.robots = {name: cfg.robots[name] for name in selected_sources or cfg.robots}
     cfg.scene.num_envs, cfg.seed = args.num_envs, args.seed
     torch.manual_seed(args.seed)
     train_cfg = to_dict(agent)
@@ -164,6 +177,8 @@ def main():
                     ),
                     "critic_initialization": "resumed" if args.checkpoint else "fresh",
                     "transitions_per_update": env.num_envs * train_cfg["num_steps_per_env"],
+                    "transitions_per_agent_per_update": args.num_envs * train_cfg["num_steps_per_env"],
+                    "training_config": train_cfg,
                     "completed_updates": metadata.get("completed_updates", 0),
                 }
                 (args.run_dir / "experiment.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -210,6 +225,8 @@ def main():
                 "checkpoint": str(args.checkpoint) if args.checkpoint else None,
                 "seed": args.seed,
                 "worlds": args.num_envs,
+                "training_agents": metadata.get("training_agents", metadata.get("source_agents")),
+                "evaluation_agents": env.agents,
                 "metrics": totals,
                 "mode": mode,
                 "latent_ablation": args.latent_ablation,
@@ -220,6 +237,24 @@ def main():
             print(json.dumps(report, indent=2))
         finally:
             raw.close()
+
+
+def _select_sources(
+    parser: argparse.ArgumentParser, args: argparse.Namespace, metadata: dict, mode: str
+) -> list[str] | None:
+    """Resolve the source-body subset without silently changing a resumed training split."""
+    source_task = args.task == "IsaacContrib-Ant-Three-Four-Direct" and mode == "source"
+    if args.source_agents is not None and not source_task:
+        parser.error("Source selection requires source mode and the three-/four-legged task.")
+    if not source_task:
+        return None
+    saved_sources = metadata.get("training_agents", metadata.get("source_agents", ["ant_3", "ant_4"]))
+    selected = args.source_agents if args.source_agents is not None else saved_sources
+    if not selected or len(selected) != len(set(selected)) or not set(selected) <= {"ant_3", "ant_4"}:
+        parser.error("Source selection must contain unique three-/four-legged source bodies.")
+    if args.checkpoint and not args.evaluate and selected != saved_sources:
+        parser.error("Cannot change a checkpoint's source selection when resuming training.")
+    return selected
 
 
 if __name__ == "__main__":

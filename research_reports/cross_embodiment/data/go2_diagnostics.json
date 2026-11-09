@@ -1,0 +1,250 @@
+{
+  "purpose": "Post-matrix frozen action-error diagnostic; no fitting or checkpoint selection.",
+  "simulator_transitions": 307200,
+  "reports": {
+    "audit_go2_only_teacher": {
+      "student": "go2_only",
+      "behavior": "teacher",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "purpose": "Post-matrix diagnostic, no training or checkpoint selection; teacher labels on student states are not guaranteed optimal recovery actions.",
+      "actor_and_normalization_unchanged": true,
+      "bounds_seconds": [
+        0,
+        0.25,
+        1,
+        4,
+        16.1
+      ],
+      "bins": {
+        "0-0.25s": {
+          "state_count": 1920,
+          "raw_rmse": 0.047781271858367697,
+          "clipped_rmse": 0.04749849551458249
+        },
+        "0.25-1s": {
+          "state_count": 5760,
+          "raw_rmse": 0.02613170646189837,
+          "clipped_rmse": 0.025893685740381762
+        },
+        "1-4s": {
+          "state_count": 23040,
+          "raw_rmse": 0.01722266231706974,
+          "clipped_rmse": 0.01681342235769525
+        },
+        "4-16.1s": {
+          "state_count": 46080,
+          "raw_rmse": 0.01745801626189822,
+          "clipped_rmse": 0.01679802775501602
+        }
+      },
+      "raw_rmse": 0.019497349383253572,
+      "clipped_rmse": 0.018994749071356305,
+      "metrics": {
+        "episodes": 64,
+        "return": 144.68446350097656,
+        "length_s": 16.0,
+        "progress_m": 158.69168090820312,
+        "survival": 1.0,
+        "progress_speed_m_s": 9.918230056762695,
+        "all_horizon_progress_speed_m_s": 9.283362007141113,
+        "saturation_fraction": 0.035908203125,
+        "mean_post_reset_root_height_m": 0.2979017591973146
+      },
+      "checkpoints": {
+        "teacher": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "sha256": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0"
+        },
+        "student": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7"
+        }
+      }
+    },
+    "audit_go2_only_student": {
+      "student": "go2_only",
+      "behavior": "student",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "purpose": "Post-matrix diagnostic, no training or checkpoint selection; teacher labels on student states are not guaranteed optimal recovery actions.",
+      "actor_and_normalization_unchanged": true,
+      "bounds_seconds": [
+        0,
+        0.25,
+        1,
+        4,
+        16.1
+      ],
+      "bins": {
+        "0-0.25s": {
+          "state_count": 28721,
+          "raw_rmse": 0.10741871477085174,
+          "clipped_rmse": 0.10652334147789749
+        },
+        "0.25-1s": {
+          "state_count": 46602,
+          "raw_rmse": 0.33762840894248325,
+          "clipped_rmse": 0.33062435228480325
+        },
+        "1-4s": {
+          "state_count": 1060,
+          "raw_rmse": 0.324602446939106,
+          "clipped_rmse": 0.307408779617333
+        },
+        "4-16.1s": {
+          "state_count": 417,
+          "raw_rmse": 0.26818425675246854,
+          "clipped_rmse": 0.24168433000428802
+        }
+      },
+      "raw_rmse": 0.27446408423026897,
+      "clipped_rmse": 0.2686921116449766,
+      "metrics": {
+        "episodes": 1865,
+        "return": -1.3282243803742744,
+        "length_s": 0.6762198828340535,
+        "progress_m": 0.5490992057499233,
+        "survival": 0.0,
+        "progress_speed_m_s": 0.812012807799492,
+        "all_horizon_progress_speed_m_s": 0.8086739346035756,
+        "saturation_fraction": 0.010059678819444445,
+        "mean_post_reset_root_height_m": 0.28284229632467034
+      },
+      "checkpoints": {
+        "teacher": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "sha256": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0"
+        },
+        "student": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7"
+        }
+      }
+    },
+    "audit_shared_ant_go2_teacher": {
+      "student": "shared_ant_go2",
+      "behavior": "teacher",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "purpose": "Post-matrix diagnostic, no training or checkpoint selection; teacher labels on student states are not guaranteed optimal recovery actions.",
+      "actor_and_normalization_unchanged": true,
+      "bounds_seconds": [
+        0,
+        0.25,
+        1,
+        4,
+        16.1
+      ],
+      "bins": {
+        "0-0.25s": {
+          "state_count": 1920,
+          "raw_rmse": 0.08314964374187415,
+          "clipped_rmse": 0.0821406761403838
+        },
+        "0.25-1s": {
+          "state_count": 5760,
+          "raw_rmse": 0.057229115951673085,
+          "clipped_rmse": 0.056475378024360263
+        },
+        "1-4s": {
+          "state_count": 23040,
+          "raw_rmse": 0.03974840387420073,
+          "clipped_rmse": 0.03838163098332126
+        },
+        "4-16.1s": {
+          "state_count": 46080,
+          "raw_rmse": 0.04165895721701558,
+          "clipped_rmse": 0.03949254772384913
+        }
+      },
+      "raw_rmse": 0.04397438314308936,
+      "clipped_rmse": 0.042256704387100746,
+      "metrics": {
+        "episodes": 64,
+        "return": 144.71189880371094,
+        "length_s": 16.0,
+        "progress_m": 158.7384033203125,
+        "survival": 1.0,
+        "progress_speed_m_s": 9.921150207519531,
+        "all_horizon_progress_speed_m_s": 9.284538459777831,
+        "saturation_fraction": 0.036015625,
+        "mean_post_reset_root_height_m": 0.2980221167206764
+      },
+      "checkpoints": {
+        "teacher": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "sha256": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0"
+        },
+        "student": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca"
+        }
+      }
+    },
+    "audit_shared_ant_go2_student": {
+      "student": "shared_ant_go2",
+      "behavior": "student",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "purpose": "Post-matrix diagnostic, no training or checkpoint selection; teacher labels on student states are not guaranteed optimal recovery actions.",
+      "actor_and_normalization_unchanged": true,
+      "bounds_seconds": [
+        0,
+        0.25,
+        1,
+        4,
+        16.1
+      ],
+      "bins": {
+        "0-0.25s": {
+          "state_count": 76299,
+          "raw_rmse": 0.2471176546740724,
+          "clipped_rmse": 0.24629870550015387
+        },
+        "0.25-1s": {
+          "state_count": 494,
+          "raw_rmse": 0.4138126867888494,
+          "clipped_rmse": 0.3835713927508042
+        },
+        "1-4s": {
+          "state_count": 7,
+          "raw_rmse": 0.7968711104952565,
+          "clipped_rmse": 0.7382151573394042
+        },
+        "4-16.1s": {
+          "state_count": 0,
+          "raw_rmse": null,
+          "clipped_rmse": null
+        }
+      },
+      "raw_rmse": 0.24865260346613283,
+      "clipped_rmse": 0.24751435421666695,
+      "metrics": {
+        "episodes": 6021,
+        "return": -1.9064793886486586,
+        "length_s": 0.21151803618767515,
+        "progress_m": -0.0004448190412681862,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.002102983978508142,
+        "all_horizon_progress_speed_m_s": -0.002302093717524656,
+        "saturation_fraction": 0.0008810763888888889,
+        "mean_post_reset_root_height_m": 0.330254048841695
+      },
+      "checkpoints": {
+        "teacher": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "sha256": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0"
+        },
+        "student": {
+          "path": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,2264 @@
+{
+  "date": "2026-10-07",
+  "training_seed": 42,
+  "reset_seeds": [
+    123,
+    456,
+    789
+  ],
+  "worlds_per_body": 64,
+  "steps": 1200,
+  "control_hz": 60,
+  "episode_limit_s": 16,
+  "scope": "Ideal simulated effort task. Go2 is now a source; A1 and five legs are development transfer probes.",
+  "teacher500": {
+    "results": {
+      "go2": {
+        "progress_speed_m_s": {
+          "mean": -0.0005655285979931554,
+          "range": [
+            -0.0005861279787495732,
+            -0.000533612328581512
+          ],
+          "values": [
+            -0.0005861279787495732,
+            -0.0005768454866483808,
+            -0.000533612328581512
+          ]
+        },
+        "survival": {
+          "mean": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "length_s": {
+          "mean": 16.0,
+          "range": [
+            16.0,
+            16.0
+          ],
+          "values": [
+            16.0,
+            16.0,
+            16.0
+          ]
+        },
+        "return": {
+          "mean": 14.772966384887695,
+          "range": [
+            14.607929229736328,
+            14.878862380981445
+          ],
+          "values": [
+            14.607929229736328,
+            14.832107543945312,
+            14.878862380981445
+          ]
+        },
+        "episodes": 192
+      }
+    },
+    "reports": [
+      {
+        "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_0500/final.pt",
+        "checkpoint_sha256": "f486f7a63bf1ba055cc3a2cb9c234c241c3bb0fb98b10052457750094914e3a0",
+        "seed": 123,
+        "worlds": 64,
+        "steps": 1200,
+        "training_updates": 500,
+        "actor_and_normalization_unchanged": true,
+        "target_training": true,
+        "metrics": {
+          "go2": {
+            "episodes": 64,
+            "return": 14.607929229736328,
+            "length_s": 16.0,
+            "progress_m": -0.009378047659993172,
+            "survival": 1.0,
+            "progress_speed_m_s": -0.0005861279787495732,
+            "all_horizon_progress_speed_m_s": -0.00010599782690405846,
+            "saturation_fraction": 0.0,
+            "mean_post_reset_root_height_m": 0.2312899539868037
+          }
+        },
+        "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+        "versions": {
+          "torch": "2.12.0+cu130",
+          "newton": "1.6.1rc1",
+          "mujoco-warp": "3.12.0",
+          "warp-lang": "1.17.0",
+          "rsl-rl-lib": "5.5.1"
+        }
+      },
+      {
+        "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_0500/final.pt",
+        "checkpoint_sha256": "f486f7a63bf1ba055cc3a2cb9c234c241c3bb0fb98b10052457750094914e3a0",
+        "seed": 456,
+        "worlds": 64,
+        "steps": 1200,
+        "training_updates": 500,
+        "actor_and_normalization_unchanged": true,
+        "target_training": true,
+        "metrics": {
+          "go2": {
+            "episodes": 64,
+            "return": 14.832107543945312,
+            "length_s": 16.0,
+            "progress_m": -0.009229527786374092,
+            "survival": 1.0,
+            "progress_speed_m_s": -0.0005768454866483808,
+            "all_horizon_progress_speed_m_s": -6.881719455122947e-05,
+            "saturation_fraction": 0.0,
+            "mean_post_reset_root_height_m": 0.23129118873427312
+          }
+        },
+        "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+        "versions": {
+          "torch": "2.12.0+cu130",
+          "newton": "1.6.1rc1",
+          "mujoco-warp": "3.12.0",
+          "warp-lang": "1.17.0",
+          "rsl-rl-lib": "5.5.1"
+        }
+      },
+      {
+        "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_0500/final.pt",
+        "checkpoint_sha256": "f486f7a63bf1ba055cc3a2cb9c234c241c3bb0fb98b10052457750094914e3a0",
+        "seed": 789,
+        "worlds": 64,
+        "steps": 1200,
+        "training_updates": 500,
+        "actor_and_normalization_unchanged": true,
+        "target_training": true,
+        "metrics": {
+          "go2": {
+            "episodes": 64,
+            "return": 14.878862380981445,
+            "length_s": 16.0,
+            "progress_m": -0.008537797257304192,
+            "survival": 1.0,
+            "progress_speed_m_s": -0.000533612328581512,
+            "all_horizon_progress_speed_m_s": -5.147308111190796e-05,
+            "saturation_fraction": 0.0,
+            "mean_post_reset_root_height_m": 0.23133329323182503
+          }
+        },
+        "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+        "versions": {
+          "torch": "2.12.0+cu130",
+          "newton": "1.6.1rc1",
+          "mujoco-warp": "3.12.0",
+          "warp-lang": "1.17.0",
+          "rsl-rl-lib": "5.5.1"
+        }
+      }
+    ],
+    "report_files": [
+      "logs/shared_ant_graph/go2_learning_20261007/teacher_eval_123.json",
+      "logs/shared_ant_graph/go2_learning_20261007/teacher_eval_456.json",
+      "logs/shared_ant_graph/go2_learning_20261007/teacher_eval_789.json"
+    ]
+  },
+  "teacher1500": {
+    "results": {
+      "go2": {
+        "progress_speed_m_s": {
+          "mean": 9.920626640319824,
+          "range": [
+            9.916836738586426,
+            9.923225402832031
+          ],
+          "values": [
+            9.916836738586426,
+            9.923225402832031,
+            9.921817779541016
+          ]
+        },
+        "survival": {
+          "mean": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ],
+          "values": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "length_s": {
+          "mean": 16.0,
+          "range": [
+            16.0,
+            16.0
+          ],
+          "values": [
+            16.0,
+            16.0,
+            16.0
+          ]
+        },
+        "return": {
+          "mean": 144.79942830403647,
+          "range": [
+            144.79103088378906,
+            144.8146209716797
+          ],
+          "values": [
+            144.79103088378906,
+            144.8146209716797,
+            144.79263305664062
+          ]
+        },
+        "episodes": 192
+      }
+    },
+    "reports": [
+      {
+        "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+        "checkpoint_sha256": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0",
+        "seed": 123,
+        "worlds": 64,
+        "steps": 1200,
+        "training_updates": 1500,
+        "actor_and_normalization_unchanged": true,
+        "target_training": true,
+        "metrics": {
+          "go2": {
+            "episodes": 64,
+            "return": 144.79103088378906,
+            "length_s": 16.0,
+            "progress_m": 158.6693878173828,
+            "survival": 1.0,
+            "progress_speed_m_s": 9.916836738586426,
+            "all_horizon_progress_speed_m_s": 9.28262014389038,
+            "saturation_fraction": 0.03593424479166667,
+            "mean_post_reset_root_height_m": 0.2986869951834281
+          }
+        },
+        "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+        "versions": {
+          "torch": "2.12.0+cu130",
+          "newton": "1.6.1rc1",
+          "mujoco-warp": "3.12.0",
+          "warp-lang": "1.17.0",
+          "rsl-rl-lib": "5.5.1"
+        }
+      },
+      {
+        "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+        "checkpoint_sha256": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0",
+        "seed": 456,
+        "worlds": 64,
+        "steps": 1200,
+        "training_updates": 1500,
+        "actor_and_normalization_unchanged": true,
+        "target_training": true,
+        "metrics": {
+          "go2": {
+            "episodes": 64,
+            "return": 144.8146209716797,
+            "length_s": 16.0,
+            "progress_m": 158.7716064453125,
+            "survival": 1.0,
+            "progress_speed_m_s": 9.923225402832031,
+            "all_horizon_progress_speed_m_s": 9.284135150909425,
+            "saturation_fraction": 0.03588324652777778,
+            "mean_post_reset_root_height_m": 0.29831750464936097
+          }
+        },
+        "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+        "versions": {
+          "torch": "2.12.0+cu130",
+          "newton": "1.6.1rc1",
+          "mujoco-warp": "3.12.0",
+          "warp-lang": "1.17.0",
+          "rsl-rl-lib": "5.5.1"
+        }
+      },
+      {
+        "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+        "checkpoint_sha256": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0",
+        "seed": 789,
+        "worlds": 64,
+        "steps": 1200,
+        "training_updates": 1500,
+        "actor_and_normalization_unchanged": true,
+        "target_training": true,
+        "metrics": {
+          "go2": {
+            "episodes": 64,
+            "return": 144.79263305664062,
+            "length_s": 16.0,
+            "progress_m": 158.74908447265625,
+            "survival": 1.0,
+            "progress_speed_m_s": 9.921817779541016,
+            "all_horizon_progress_speed_m_s": 9.285265445709229,
+            "saturation_fraction": 0.03592881944444445,
+            "mean_post_reset_root_height_m": 0.2982236838837465
+          }
+        },
+        "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+        "versions": {
+          "torch": "2.12.0+cu130",
+          "newton": "1.6.1rc1",
+          "mujoco-warp": "3.12.0",
+          "warp-lang": "1.17.0",
+          "rsl-rl-lib": "5.5.1"
+        }
+      }
+    ],
+    "report_files": [
+      "logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_123.json",
+      "logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_456.json",
+      "logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_789.json"
+    ]
+  },
+  "protocol": {
+    "training_seed": 42,
+    "teacher_initial_updates": 500,
+    "teacher_worlds": 1024,
+    "teacher_rollout_steps": 32,
+    "teacher_transitions": 16384000,
+    "teacher_selection": "Fixed final checkpoint at 500 updates; continuation, if needed, is a separately reported stage.",
+    "teacher_gate": {
+      "mean_progress_speed_m_s_min": 1.0,
+      "mean_time_limit_survival_min": 0.95
+    },
+    "evaluation_reset_seeds": [
+      123,
+      456,
+      789
+    ],
+    "evaluation_worlds": 64,
+    "evaluation_steps": 1200,
+    "task": "The unchanged ideal-effort Go2 transfer task; 480 Hz physics / 60 Hz control.",
+    "later_conditional_comparison": [
+      "Go2-only attention imitation",
+      "Ant3+Ant4+Go2 attention imitation"
+    ],
+    "imitation_seed": 42,
+    "imitation_updates": 6000,
+    "imitation_batch_per_body": 128,
+    "collection_seeds": {
+      "train": [
+        1011,
+        2022
+      ],
+      "validation": [
+        3033
+      ],
+      "test": [
+        4044
+      ]
+    },
+    "preserved_ant_demonstrations": "logs/shared_ant_graph/imitation_20261007/data_*.pt",
+    "new_data_scope": "Go2 only; no A1 or reserved five-leg data for fitting.",
+    "source_hashes": {
+      "scripts/tools/train_mechanical_go2.py": "bee77e7444234c25c14bb365a7a6e93c3d7f8ea013046b08fa64faa3ccce7de8",
+      "scripts/tools/evaluate_mechanical_transfer.py": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2"
+    }
+  },
+  "continuation_protocol": {
+    "resume_checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_0500/final.pt",
+    "additional_updates": 1000,
+    "total_updates": 1500,
+    "training_seed": 42,
+    "worlds": 1024,
+    "new_target_transitions": 32768000,
+    "reason": "500-update policy survived 16 s but had near-zero progress; stability only emerged late.",
+    "changes": "No network, reward, task, action-rate or PPO setting changes.",
+    "competence_gate_unchanged": true
+  },
+  "comparison_protocol": {
+    "teacher": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+    "training_seed": 42,
+    "updates": 6000,
+    "batch_per_body": 128,
+    "normalization": "Each condition uses its training demonstrations only; normalization differs between source sets.",
+    "selection": "Minimum validation MSE; target rollout data never selects checkpoints.",
+    "source_hashes": {
+      "scripts/tools/distill_mechanical_cross_family.py": "a287bacf81b7325fc2e4af6d4b45a623c1acc2fcb32d9dc5b2dfb32283a455f3",
+      "scripts/tools/train_mechanical_go2.py": "bee77e7444234c25c14bb365a7a6e93c3d7f8ea013046b08fa64faa3ccce7de8",
+      "scripts/tools/distill_mechanical_ant.py": "b72679f1474881126106d7897c12d06744da4c0d15e8c55063ba5de22423e4ad",
+      "scripts/tools/evaluate_mechanical_transfer.py": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/__init__.py": "68f3f1b01983247aba6b319733d8b23d39a7e5103561db1873578f61f84b6202",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_observations.py": "e19f2cee5408cd2aeda6797cdfadd9933b000e40ebfbb4828f368016b8264984",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_policy.py": "b2d9dd4909ee0b9e5c20dcf090067dbd58acc9911d5243886731f0d54053b0c3",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_training.py": "02c7a22b4b264f07b83fb003542b075217a668d4e422bf7ce243ac79aedda944",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_controls.py": "78183cc0a4107003c46b5e8ee039832604d81e54d52dbaf9616b0ff1cb6b2a24",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_env.py": "4db4be7b14c2ed42ea14d16d4aea880346fa7f0f6bfe1c06bba4d790b1d40fa2",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_imitation.py": "12e9cd665d3d4daae33ad935c3d2e90e92e52348ec9bbf3c0a449297c3c4aa83",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_observations.py": "52813b4baa4232ae41413c81174b09960a99ef5163f56a884fcf36348a6cbeee",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_policy.py": "01e0f2882fe6ac895407a1ab6ab356901073b9668ebaeebf31879bc10dc735a1",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_training.py": "7605b901c6dce8917a82d2378abe10e36f0e80cca3cb4353487323d5ec0866e6",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/multi_robot_env.py": "d8a208c9ea740c25ffb71cdc19464d7ceab5b6b5d4c3b3a14a930ba3c8ed1382",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/multi_robot_env_cfg.py": "4cdafd815a2136f0db465b55206c4574c7cfac0c725aac8474180de4e7708177"
+    },
+    "comparison": "Equal Go2 sample presentations; joint fit additionally fits equal Ant3/Ant4 batches. Not equal total compute."
+  },
+  "status": {
+    "running": null,
+    "status": "complete",
+    "completed": [
+      {
+        "job": "teacher1500_eval_123",
+        "seconds": 13.29670859919861,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/train_mechanical_go2.py",
+          "--evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "123",
+          "--report",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_123.json"
+        ]
+      },
+      {
+        "job": "teacher1500_eval_456",
+        "seconds": 13.261296411976218,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/train_mechanical_go2.py",
+          "--evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "456",
+          "--report",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_456.json"
+        ]
+      },
+      {
+        "job": "teacher1500_eval_789",
+        "seconds": 12.707074367906898,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/train_mechanical_go2.py",
+          "--evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "789",
+          "--report",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_789.json"
+        ]
+      },
+      {
+        "job": "collect_go2_1011",
+        "seconds": 12.792288293130696,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "collect_go2",
+          "--teacher",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "--seed",
+          "1011",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_collection_1500/data_1011.pt"
+        ]
+      },
+      {
+        "job": "collect_go2_2022",
+        "seconds": 12.797176979016513,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "collect_go2",
+          "--teacher",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "--seed",
+          "2022",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_collection_1500/data_2022.pt"
+        ]
+      },
+      {
+        "job": "collect_go2_3033",
+        "seconds": 13.23436649190262,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "collect_go2",
+          "--teacher",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "--seed",
+          "3033",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_collection_1500/data_3033.pt"
+        ]
+      },
+      {
+        "job": "collect_go2_4044",
+        "seconds": 15.155423009768128,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "collect_go2",
+          "--teacher",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt",
+          "--seed",
+          "4044",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_collection_1500/data_4044.pt"
+        ]
+      },
+      {
+        "job": "bundle_1500",
+        "seconds": 3.440754694864154,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "bundle",
+          "--ant_data",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007",
+          "--go2_data",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_collection_1500",
+          "--ant_layout",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/ant_layout.pt",
+          "--go2_layout",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_collection_1500/data_1011.layout.pt",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/bundle_1500"
+        ]
+      },
+      {
+        "job": "fit_go2_only",
+        "seconds": 83.73123654490337,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "fit",
+          "--data",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/bundle_1500",
+          "--run_dir",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only",
+          "--bodies",
+          "go2",
+          "--updates",
+          "6000",
+          "--batch_per_body",
+          "128",
+          "--seed",
+          "42"
+        ]
+      },
+      {
+        "job": "go2_only_go2_eval_123",
+        "seconds": 15.068142586853355,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "--robot",
+          "go2",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "123",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_123.json"
+        ]
+      },
+      {
+        "job": "go2_only_go2_eval_456",
+        "seconds": 14.987401339691132,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "--robot",
+          "go2",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "456",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_456.json"
+        ]
+      },
+      {
+        "job": "go2_only_go2_eval_789",
+        "seconds": 15.337458502035588,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "--robot",
+          "go2",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "789",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_789.json"
+        ]
+      },
+      {
+        "job": "go2_only_a1_eval_123",
+        "seconds": 14.679204822983593,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "--robot",
+          "a1",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "123",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_123.json"
+        ]
+      },
+      {
+        "job": "go2_only_a1_eval_456",
+        "seconds": 14.831178013700992,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "--robot",
+          "a1",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "456",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_456.json"
+        ]
+      },
+      {
+        "job": "go2_only_a1_eval_789",
+        "seconds": 14.594103912822902,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+          "--robot",
+          "a1",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "789",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_789.json"
+        ]
+      },
+      {
+        "job": "fit_shared_ant_go2",
+        "seconds": 183.39664921630174,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "fit",
+          "--data",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/bundle_1500",
+          "--run_dir",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2",
+          "--bodies",
+          "ant_3",
+          "ant_4",
+          "go2",
+          "--updates",
+          "6000",
+          "--batch_per_body",
+          "128",
+          "--seed",
+          "42"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_ant_sources_eval_123",
+        "seconds": 11.75081566395238,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "ant_sources",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "123",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_123.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_ant_sources_eval_456",
+        "seconds": 11.65633574128151,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "ant_sources",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "456",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_456.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_ant_sources_eval_789",
+        "seconds": 11.618318486958742,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "ant_sources",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "789",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_789.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_go2_eval_123",
+        "seconds": 15.867613858077675,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "go2",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "123",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_123.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_go2_eval_456",
+        "seconds": 15.80518490076065,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "go2",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "456",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_456.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_go2_eval_789",
+        "seconds": 15.874545926228166,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "go2",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "789",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_789.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_a1_eval_123",
+        "seconds": 15.304992114193738,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "a1",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "123",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_123.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_a1_eval_456",
+        "seconds": 15.30078184325248,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "a1",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "456",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_456.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_a1_eval_789",
+        "seconds": 15.225951002910733,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "a1",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "789",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_789.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_dev_5_eval_123",
+        "seconds": 10.206531065981835,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "dev_5",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "123",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_123.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_dev_5_eval_456",
+        "seconds": 10.089472017716616,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "dev_5",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "456",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_456.json"
+        ]
+      },
+      {
+        "job": "shared_ant_go2_dev_5_eval_789",
+        "seconds": 10.192925845272839,
+        "returncode": 0,
+        "command": [
+          "/home/mrakhsha/Documents/Repos/IsaacLab/.venv/bin/python",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/scripts/tools/distill_mechanical_cross_family.py",
+          "evaluate",
+          "--checkpoint",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+          "--robot",
+          "dev_5",
+          "--worlds",
+          "64",
+          "--steps",
+          "1200",
+          "--seed",
+          "789",
+          "--output",
+          "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_789.json"
+        ]
+      }
+    ]
+  },
+  "students": {
+    "go2_only": {
+      "selected_step": 5750,
+      "updates": 6000,
+      "parameters": 164218,
+      "fitting_seconds": 79.9288842161186,
+      "action_metrics": {
+        "train": {
+          "go2": {
+            "raw_mse": 0.00031886855140328407,
+            "raw_rmse": 0.017856890335679054,
+            "relative_rmse": 0.04665250213693887,
+            "clipped_rmse": 0.01736168935894966,
+            "worst_joint_clipped_rmse": 0.022760432213544846,
+            "per_joint_raw_rmse": [
+              0.020263591781258583,
+              0.020521949976682663,
+              0.018282882869243622,
+              0.01331617683172226,
+              0.013351840898394585,
+              0.011227085255086422,
+              0.01553400605916977,
+              0.019191797822713852,
+              0.013166924938559532,
+              0.02276569977402687,
+              0.02267371118068695,
+              0.019062606617808342
+            ],
+            "teacher_saturation_fraction": 0.03550781309604645,
+            "student_saturation_fraction": 0.03466146066784859
+          }
+        },
+        "validation": {
+          "go2": {
+            "raw_mse": 0.00032849793205969036,
+            "raw_rmse": 0.01812451146543026,
+            "relative_rmse": 0.04735168272357071,
+            "clipped_rmse": 0.017600491642951965,
+            "worst_joint_clipped_rmse": 0.023343203589320183,
+            "per_joint_raw_rmse": [
+              0.02074321173131466,
+              0.02086295746266842,
+              0.01815175823867321,
+              0.013551285490393639,
+              0.01329929567873478,
+              0.01117622759193182,
+              0.015651224181056023,
+              0.01918156072497368,
+              0.01317074429243803,
+              0.02335621416568756,
+              0.023409152403473854,
+              0.019536254927515984
+            ],
+            "teacher_saturation_fraction": 0.0354296900331974,
+            "student_saturation_fraction": 0.03440972417593002
+          }
+        },
+        "test": {
+          "go2": {
+            "raw_mse": 0.0003289107698947191,
+            "raw_rmse": 0.01813589781522751,
+            "relative_rmse": 0.04738142785473202,
+            "clipped_rmse": 0.017619475722312927,
+            "worst_joint_clipped_rmse": 0.022896602749824524,
+            "per_joint_raw_rmse": [
+              0.020335787907242775,
+              0.021423501893877983,
+              0.018727902323007584,
+              0.013388803228735924,
+              0.01340846624225378,
+              0.011190550401806831,
+              0.01560935564339161,
+              0.019328337162733078,
+              0.013293120078742504,
+              0.022915402427315712,
+              0.023042434826493263,
+              0.019733114168047905
+            ],
+            "teacher_saturation_fraction": 0.035642363131046295,
+            "student_saturation_fraction": 0.03459201380610466
+          }
+        }
+      },
+      "training_agents": [
+        "go2"
+      ],
+      "evaluations": {
+        "go2": {
+          "results": {
+            "go2": {
+              "progress_speed_m_s": {
+                "mean": 0.8039224482971891,
+                "range": [
+                  0.7582400874611962,
+                  0.8635764693634086
+                ],
+                "values": [
+                  0.7899507880669623,
+                  0.8635764693634086,
+                  0.7582400874611962
+                ]
+              },
+              "survival": {
+                "mean": 0.0,
+                "range": [
+                  0.0,
+                  0.0
+                ],
+                "values": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "length_s": {
+                "mean": 0.6796083499292394,
+                "range": [
+                  0.6720633631259508,
+                  0.6896590085083371
+                ],
+                "values": [
+                  0.6771026781534304,
+                  0.6896590085083371,
+                  0.6720633631259508
+                ]
+              },
+              "return": {
+                "mean": -1.3300107819511842,
+                "range": [
+                  -1.3633212014365312,
+                  -1.2857269030002871
+                ],
+                "values": [
+                  -1.3409842414167337,
+                  -1.2857269030002871,
+                  -1.3633212014365312
+                ]
+              },
+              "episodes": 5506,
+              "teacher_speed_ratio": 0.08103545042506226,
+              "source_acceptance_passed": false
+            }
+          },
+          "reports": [
+            {
+              "metrics": {
+                "go2": {
+                  "episodes": 1835,
+                  "return": -1.3409842414167337,
+                  "length_s": 0.6771026781534304,
+                  "progress_m": 0.5348777942095531,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.7899507880669623
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+              "checkpoint_sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7",
+              "training_agents": [
+                "go2"
+              ],
+              "seed": 123,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "go2": {
+                  "episodes": 1818,
+                  "return": -1.2857269030002871,
+                  "length_s": 0.6896590085083371,
+                  "progress_m": 0.5955732916322987,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.8635764693634086
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+              "checkpoint_sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7",
+              "training_agents": [
+                "go2"
+              ],
+              "seed": 456,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "go2": {
+                  "episodes": 1853,
+                  "return": -1.3633212014365312,
+                  "length_s": 0.6720633631259508,
+                  "progress_m": 0.5095853832360866,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.7582400874611962
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+              "checkpoint_sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7",
+              "training_agents": [
+                "go2"
+              ],
+              "seed": 789,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            }
+          ],
+          "report_files": [
+            "logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_123.json",
+            "logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_456.json",
+            "logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_789.json"
+          ]
+        },
+        "a1": {
+          "results": {
+            "a1": {
+              "progress_speed_m_s": {
+                "mean": 0.031243399557280328,
+                "range": [
+                  0.03076596958558314,
+                  0.03165773995966976
+                ],
+                "values": [
+                  0.03130648912658809,
+                  0.03165773995966976,
+                  0.03076596958558314
+                ]
+              },
+              "survival": {
+                "mean": 0.0,
+                "range": [
+                  0.0,
+                  0.0
+                ],
+                "values": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "length_s": {
+                "mean": 0.22534936788605484,
+                "range": [
+                  0.2252375218963851,
+                  0.2255658140114448
+                ],
+                "values": [
+                  0.2252375218963851,
+                  0.2255658140114448,
+                  0.22524476775033458
+                ]
+              },
+              "return": {
+                "mean": -2.1411079664872976,
+                "range": [
+                  -2.1416476234394786,
+                  -2.140240294845954
+                ],
+                "values": [
+                  -2.140240294845954,
+                  -2.1416476234394786,
+                  -2.1414359811764614
+                ]
+              },
+              "episodes": 16942
+            }
+          },
+          "reports": [
+            {
+              "metrics": {
+                "a1": {
+                  "episodes": 5649,
+                  "return": -2.140240294845954,
+                  "length_s": 0.2252375218963851,
+                  "progress_m": 0.007051396030148826,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.03130648912658809
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+              "checkpoint_sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7",
+              "training_agents": [
+                "go2"
+              ],
+              "seed": 123,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "a1": {
+                  "episodes": 5641,
+                  "return": -2.1416476234394786,
+                  "length_s": 0.2255658140114448,
+                  "progress_m": 0.007140903883765553,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.03165773995966976
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+              "checkpoint_sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7",
+              "training_agents": [
+                "go2"
+              ],
+              "seed": 456,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "a1": {
+                  "episodes": 5652,
+                  "return": -2.1414359811764614,
+                  "length_s": 0.22524476775033458,
+                  "progress_m": 0.0069298736739185325,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.03076596958558314
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt",
+              "checkpoint_sha256": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7",
+              "training_agents": [
+                "go2"
+              ],
+              "seed": 789,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            }
+          ],
+          "report_files": [
+            "logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_123.json",
+            "logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_456.json",
+            "logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_789.json"
+          ]
+        }
+      }
+    },
+    "shared_ant_go2": {
+      "selected_step": 6000,
+      "updates": 6000,
+      "parameters": 164218,
+      "fitting_seconds": 179.78532072901726,
+      "action_metrics": {
+        "train": {
+          "ant_3": {
+            "raw_mse": 0.003915696870535612,
+            "raw_rmse": 0.06257552653551102,
+            "relative_rmse": 0.07977939458059577,
+            "clipped_rmse": 0.05203378573060036,
+            "worst_joint_clipped_rmse": 0.05736461281776428,
+            "per_joint_raw_rmse": [
+              0.05865456163883209,
+              0.07018650323152542,
+              0.06173325330018997,
+              0.059828415513038635,
+              0.06618398427963257,
+              0.05793895944952965
+            ],
+            "teacher_saturation_fraction": 0.22060763835906982,
+            "student_saturation_fraction": 0.22166667878627777
+          },
+          "ant_4": {
+            "raw_mse": 0.004852646961808205,
+            "raw_rmse": 0.06966093927621841,
+            "relative_rmse": 0.09656508732292624,
+            "clipped_rmse": 0.06009986624121666,
+            "worst_joint_clipped_rmse": 0.06565363705158234,
+            "per_joint_raw_rmse": [
+              0.0615166500210762,
+              0.07311395555734634,
+              0.06893083453178406,
+              0.0702715590596199,
+              0.06828939914703369,
+              0.07676603645086288,
+              0.06558464467525482,
+              0.07172074168920517
+            ],
+            "teacher_saturation_fraction": 0.17627279460430145,
+            "student_saturation_fraction": 0.17490559816360474
+          },
+          "go2": {
+            "raw_mse": 0.001839733449742198,
+            "raw_rmse": 0.04289211332798004,
+            "relative_rmse": 0.11205895015567108,
+            "clipped_rmse": 0.04123849794268608,
+            "worst_joint_clipped_rmse": 0.05282283574342728,
+            "per_joint_raw_rmse": [
+              0.05025651678442955,
+              0.046076882630586624,
+              0.04230456426739693,
+              0.03786220774054527,
+              0.034807391464710236,
+              0.022910235449671745,
+              0.037069205194711685,
+              0.04102122038602829,
+              0.025302661582827568,
+              0.05282783880829811,
+              0.06105433776974678,
+              0.04746413230895996
+            ],
+            "teacher_saturation_fraction": 0.03550781309604645,
+            "student_saturation_fraction": 0.03666883707046509
+          }
+        },
+        "validation": {
+          "ant_3": {
+            "raw_mse": 0.0045431312173604965,
+            "raw_rmse": 0.06740275025367737,
+            "relative_rmse": 0.08593376592443694,
+            "clipped_rmse": 0.05477682501077652,
+            "worst_joint_clipped_rmse": 0.06044747680425644,
+            "per_joint_raw_rmse": [
+              0.06365340203046799,
+              0.0755007266998291,
+              0.06491687893867493,
+              0.062773197889328,
+              0.07095495611429214,
+              0.06570684164762497
+            ],
+            "teacher_saturation_fraction": 0.2212413251399994,
+            "student_saturation_fraction": 0.2229340374469757
+          },
+          "ant_4": {
+            "raw_mse": 0.005342119839042425,
+            "raw_rmse": 0.07308980822563171,
+            "relative_rmse": 0.10131823188882916,
+            "clipped_rmse": 0.06260839849710464,
+            "worst_joint_clipped_rmse": 0.06793195754289627,
+            "per_joint_raw_rmse": [
+              0.06498143821954727,
+              0.07674767822027206,
+              0.07023078948259354,
+              0.0734260082244873,
+              0.07202143967151642,
+              0.07984290271997452,
+              0.07005642354488373,
+              0.07635798305273056
+            ],
+            "teacher_saturation_fraction": 0.17689453065395355,
+            "student_saturation_fraction": 0.1758333444595337
+          },
+          "go2": {
+            "raw_mse": 0.0018589788815006614,
+            "raw_rmse": 0.043115876615047455,
+            "relative_rmse": 0.11264354899669687,
+            "clipped_rmse": 0.04142645746469498,
+            "worst_joint_clipped_rmse": 0.05358050763607025,
+            "per_joint_raw_rmse": [
+              0.05033443868160248,
+              0.045946504920721054,
+              0.04259844124317169,
+              0.038560397922992706,
+              0.03517017886042595,
+              0.023264292627573013,
+              0.03745979070663452,
+              0.04050076752901077,
+              0.025001196190714836,
+              0.05358804389834404,
+              0.061884526163339615,
+              0.04704708233475685
+            ],
+            "teacher_saturation_fraction": 0.0354296900331974,
+            "student_saturation_fraction": 0.03647135570645332
+          }
+        },
+        "test": {
+          "ant_3": {
+            "raw_mse": 0.004643620923161507,
+            "raw_rmse": 0.06814412027597427,
+            "relative_rmse": 0.08687895409453215,
+            "clipped_rmse": 0.05465615540742874,
+            "worst_joint_clipped_rmse": 0.060911159962415695,
+            "per_joint_raw_rmse": [
+              0.06549953669309616,
+              0.08104909956455231,
+              0.0664115697145462,
+              0.06257811188697815,
+              0.07158813625574112,
+              0.059591952711343765
+            ],
+            "teacher_saturation_fraction": 0.22006945312023163,
+            "student_saturation_fraction": 0.22111111879348755
+          },
+          "ant_4": {
+            "raw_mse": 0.005500633269548416,
+            "raw_rmse": 0.07416625320911407,
+            "relative_rmse": 0.1028104203424076,
+            "clipped_rmse": 0.06362775713205338,
+            "worst_joint_clipped_rmse": 0.06963331997394562,
+            "per_joint_raw_rmse": [
+              0.06688154488801956,
+              0.07951956987380981,
+              0.07127854228019714,
+              0.07566583156585693,
+              0.07213534414768219,
+              0.08115534484386444,
+              0.06962646543979645,
+              0.07592805474996567
+            ],
+            "teacher_saturation_fraction": 0.17711588740348816,
+            "student_saturation_fraction": 0.17537760734558105
+          },
+          "go2": {
+            "raw_mse": 0.0018639627378433943,
+            "raw_rmse": 0.04317363351583481,
+            "relative_rmse": 0.11279444460460003,
+            "clipped_rmse": 0.04151343181729317,
+            "worst_joint_clipped_rmse": 0.05385744944214821,
+            "per_joint_raw_rmse": [
+              0.050542738288640976,
+              0.04658149555325508,
+              0.043134111911058426,
+              0.03803958743810654,
+              0.03536086529493332,
+              0.02263808809220791,
+              0.03680235892534256,
+              0.040777500718832016,
+              0.025339288637042046,
+              0.05387306585907936,
+              0.06117679923772812,
+              0.04762885347008705
+            ],
+            "teacher_saturation_fraction": 0.035642363131046295,
+            "student_saturation_fraction": 0.03699652850627899
+          }
+        }
+      },
+      "training_agents": [
+        "ant_3",
+        "ant_4",
+        "go2"
+      ],
+      "evaluations": {
+        "ant_sources": {
+          "results": {
+            "ant_3": {
+              "progress_speed_m_s": {
+                "mean": 5.4667628478603865,
+                "range": [
+                  5.448723958098503,
+                  5.4818540476462605
+                ],
+                "values": [
+                  5.469710537836394,
+                  5.448723958098503,
+                  5.4818540476462605
+                ]
+              },
+              "survival": {
+                "mean": 0.8980533891389505,
+                "range": [
+                  0.8970588235294118,
+                  0.8985506719437198
+                ],
+                "values": [
+                  0.8985506719437198,
+                  0.8985506719437198,
+                  0.8970588235294118
+                ]
+              },
+              "length_s": {
+                "mean": 14.940301485107716,
+                "range": [
+                  14.901932391567506,
+                  14.95990340778793
+                ],
+                "values": [
+                  14.95990340778793,
+                  14.901932391567506,
+                  14.959068655967712
+                ]
+              },
+              "return": {
+                "mean": 81.26176549786022,
+                "range": [
+                  80.78082165510759,
+                  81.59807430996614
+                ],
+                "values": [
+                  81.40640052850695,
+                  80.78082165510759,
+                  81.59807430996614
+                ]
+              },
+              "episodes": 206,
+              "teacher_speed_ratio": 0.9657872562853773,
+              "source_acceptance_passed": false
+            },
+            "ant_4": {
+              "progress_speed_m_s": {
+                "mean": 5.086008582794363,
+                "range": [
+                  5.060244524470284,
+                  5.123530099593771
+                ],
+                "values": [
+                  5.060244524470284,
+                  5.123530099593771,
+                  5.074251124319032
+                ]
+              },
+              "survival": {
+                "mean": 0.963541628792882,
+                "range": [
+                  0.953124943189323,
+                  0.984375
+                ],
+                "values": [
+                  0.953124943189323,
+                  0.984375,
+                  0.953124943189323
+                ]
+              },
+              "length_s": {
+                "mean": 15.686111755669117,
+                "range": [
+                  15.602343767881393,
+                  15.819533132016659
+                ],
+                "values": [
+                  15.636458367109299,
+                  15.819533132016659,
+                  15.602343767881393
+                ]
+              },
+              "return": {
+                "mean": 78.96086175739765,
+                "range": [
+                  78.34326726198196,
+                  80.16751021146774
+                ],
+                "values": [
+                  78.34326726198196,
+                  80.16751021146774,
+                  78.37180779874325
+                ]
+              },
+              "episodes": 192,
+              "teacher_speed_ratio": 0.9681367302031046,
+              "source_acceptance_passed": false
+            }
+          },
+          "reports": [
+            {
+              "metrics": {
+                "ant_3": {
+                  "episodes": 69,
+                  "return": 81.40640052850695,
+                  "length_s": 14.95990340778793,
+                  "progress_m": 81.82634131459223,
+                  "survival": 0.8985506719437198,
+                  "progress_speed_m_s": 5.469710537836394
+                },
+                "ant_4": {
+                  "episodes": 64,
+                  "return": 78.34326726198196,
+                  "length_s": 15.636458367109299,
+                  "progress_m": 79.12430283427238,
+                  "survival": 0.953124943189323,
+                  "progress_speed_m_s": 5.060244524470284
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 123,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "ant_3": {
+                  "episodes": 69,
+                  "return": 80.78082165510759,
+                  "length_s": 14.901932391567506,
+                  "progress_m": 81.19651604389799,
+                  "survival": 0.8985506719437198,
+                  "progress_speed_m_s": 5.448723958098503
+                },
+                "ant_4": {
+                  "episodes": 64,
+                  "return": 80.16751021146774,
+                  "length_s": 15.819533132016659,
+                  "progress_m": 81.05185416340828,
+                  "survival": 0.984375,
+                  "progress_speed_m_s": 5.123530099593771
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 456,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "ant_3": {
+                  "episodes": 68,
+                  "return": 81.59807430996614,
+                  "length_s": 14.959068655967712,
+                  "progress_m": 82.00343106073491,
+                  "survival": 0.8970588235294118,
+                  "progress_speed_m_s": 5.4818540476462605
+                },
+                "ant_4": {
+                  "episodes": 64,
+                  "return": 78.37180779874325,
+                  "length_s": 15.602343767881393,
+                  "progress_m": 79.1702104061842,
+                  "survival": 0.953124943189323,
+                  "progress_speed_m_s": 5.074251124319032
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 789,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            }
+          ],
+          "report_files": [
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_123.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_456.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_789.json"
+          ]
+        },
+        "go2": {
+          "results": {
+            "go2": {
+              "progress_speed_m_s": {
+                "mean": -0.002565219551414533,
+                "range": [
+                  -0.003526899630306653,
+                  -0.0017693624313367363
+                ],
+                "values": [
+                  -0.002399396592600211,
+                  -0.0017693624313367363,
+                  -0.003526899630306653
+                ]
+              },
+              "survival": {
+                "mean": 0.0,
+                "range": [
+                  0.0,
+                  0.0
+                ],
+                "values": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "length_s": {
+                "mean": 0.21161988404082618,
+                "range": [
+                  0.210907751701418,
+                  0.21215279329319794
+                ],
+                "values": [
+                  0.21215279329319794,
+                  0.21179910712786257,
+                  0.210907751701418
+                ]
+              },
+              "return": {
+                "mean": -1.9086622703508767,
+                "range": [
+                  -1.9105620728929837,
+                  -1.9070086237687986
+                ],
+                "values": [
+                  -1.9105620728929837,
+                  -1.9084161143908476,
+                  -1.9070086237687986
+                ]
+              },
+              "episodes": 18053,
+              "teacher_speed_ratio": -0.00025857434660315316,
+              "source_acceptance_passed": false
+            }
+          },
+          "reports": [
+            {
+              "metrics": {
+                "go2": {
+                  "episodes": 6000,
+                  "return": -1.9105620728929837,
+                  "length_s": 0.21215279329319794,
+                  "progress_m": -0.000509038689338316,
+                  "survival": 0.0,
+                  "progress_speed_m_s": -0.002399396592600211
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 123,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "go2": {
+                  "episodes": 6016,
+                  "return": -1.9084161143908476,
+                  "length_s": 0.21179910712786257,
+                  "progress_m": -0.0003747493831427048,
+                  "survival": 0.0,
+                  "progress_speed_m_s": -0.0017693624313367363
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 456,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "go2": {
+                  "episodes": 6037,
+                  "return": -1.9070086237687986,
+                  "length_s": 0.210907751701418,
+                  "progress_m": -0.0007438504715045385,
+                  "survival": 0.0,
+                  "progress_speed_m_s": -0.003526899630306653
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 789,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            }
+          ],
+          "report_files": [
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_123.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_456.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_789.json"
+          ]
+        },
+        "a1": {
+          "results": {
+            "a1": {
+              "progress_speed_m_s": {
+                "mean": 0.2331298008800583,
+                "range": [
+                  0.23187378925619687,
+                  0.23376085778587222
+                ],
+                "values": [
+                  0.23375475559810582,
+                  0.23187378925619687,
+                  0.23376085778587222
+                ]
+              },
+              "survival": {
+                "mean": 0.0,
+                "range": [
+                  0.0,
+                  0.0
+                ],
+                "values": [
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "length_s": {
+                "mean": 0.29382069379271375,
+                "range": [
+                  0.29319494704886706,
+                  0.2944096954548917
+                ],
+                "values": [
+                  0.2944096954548917,
+                  0.29319494704886706,
+                  0.2938574388743825
+                ]
+              },
+              "return": {
+                "mean": -3.025998279054282,
+                "range": [
+                  -3.0296163842475794,
+                  -3.023113933979021
+                ],
+                "values": [
+                  -3.0296163842475794,
+                  -3.023113933979021,
+                  -3.0252645189362455
+                ]
+              },
+              "episodes": 12974
+            }
+          },
+          "reports": [
+            {
+              "metrics": {
+                "a1": {
+                  "episodes": 4314,
+                  "return": -3.0296163842475794,
+                  "length_s": 0.2944096954548917,
+                  "progress_m": 0.06881966640677098,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.23375475559810582
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 123,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "a1": {
+                  "episodes": 4335,
+                  "return": -3.023113933979021,
+                  "length_s": 0.29319494704886706,
+                  "progress_m": 0.0679842233629908,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.23187378925619687
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 456,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "a1": {
+                  "episodes": 4325,
+                  "return": -3.0252645189362455,
+                  "length_s": 0.2938574388743825,
+                  "progress_m": 0.06869236697803516,
+                  "survival": 0.0,
+                  "progress_speed_m_s": 0.23376085778587222
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 789,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            }
+          ],
+          "report_files": [
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_123.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_456.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_789.json"
+          ]
+        },
+        "dev_5": {
+          "results": {
+            "dev_5": {
+              "progress_speed_m_s": {
+                "mean": 0.1311299969476877,
+                "range": [
+                  0.11009231736259589,
+                  0.14404947814262367
+                ],
+                "values": [
+                  0.14404947814262367,
+                  0.11009231736259589,
+                  0.13924819533784358
+                ]
+              },
+              "survival": {
+                "mean": 0.9742788461538462,
+                "range": [
+                  0.9692307692307692,
+                  0.984375
+                ],
+                "values": [
+                  0.9692307692307692,
+                  0.9692307692307692,
+                  0.984375
+                ]
+              },
+              "length_s": {
+                "mean": 15.822891829258358,
+                "range": [
+                  15.695899295806885,
+                  15.996876895427704
+                ],
+                "values": [
+                  15.77589929654048,
+                  15.695899295806885,
+                  15.996876895427704
+                ]
+              },
+              "return": {
+                "mean": -6.549376662954306,
+                "range": [
+                  -7.070149348332332,
+                  -6.237584665417671
+                ],
+                "values": [
+                  -6.340395975112915,
+                  -7.070149348332332,
+                  -6.237584665417671
+                ]
+              },
+              "episodes": 194
+            }
+          },
+          "reports": [
+            {
+              "metrics": {
+                "dev_5": {
+                  "episodes": 65,
+                  "return": -6.340395975112915,
+                  "length_s": 15.77589929654048,
+                  "progress_m": 2.27251006089724,
+                  "survival": 0.9692307692307692,
+                  "progress_speed_m_s": 0.14404947814262367
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 123,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "dev_5": {
+                  "episodes": 65,
+                  "return": -7.070149348332332,
+                  "length_s": 15.695899295806885,
+                  "progress_m": 1.727997926565317,
+                  "survival": 0.9692307692307692,
+                  "progress_speed_m_s": 0.11009231736259589
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 456,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            },
+            {
+              "metrics": {
+                "dev_5": {
+                  "episodes": 64,
+                  "return": -6.237584665417671,
+                  "length_s": 15.996876895427704,
+                  "progress_m": 2.2275362387299538,
+                  "survival": 0.984375,
+                  "progress_speed_m_s": 0.13924819533784358
+                }
+              },
+              "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt",
+              "checkpoint_sha256": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+              "training_agents": [
+                "ant_3",
+                "ant_4",
+                "go2"
+              ],
+              "seed": 789,
+              "worlds": 64,
+              "steps": 1200,
+              "evaluation_updates": 0,
+              "actor_and_normalization_unchanged": true
+            }
+          ],
+          "report_files": [
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_123.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_456.json",
+            "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_789.json"
+          ]
+        }
+      }
+    }
+  },
+  "cost": {
+    "new_teacher_transitions": 49152000,
+    "new_go2_collection_transitions": 307200,
+    "training_rows_per_body": 38400,
+    "validation_rows_per_body": 19200,
+    "test_rows_per_body": 19200,
+    "go2_sample_presentations_per_fit": 768000,
+    "shared_total_sample_presentations": 2304000,
+    "note": "Historical Ant teachers and demonstrations reused; all new training seed 42. Wall times reflect changing workstation load."
+  },
+  "artifacts": {
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only/best.pt": "80796449b5d2318c35986d7f8eb89ea70d593aa5234d28e9182b9ff233b609c7",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only/experiment.json": "47d3f136429609a077d5eaa4df8f88f71ed8c166211db96e549dcc8468bee072",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only/history.json": "634fa329865a7374a1ffa0779094ca1bebcb5a0835bfd8c5acd7ecfa3f776e7d",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/best.pt": "696181cbe4711e9f5ebe8d82c25d96817cf234e2f2fef2701fc47921e3ba6aca",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/experiment.json": "e77edbcf244dfe38b96a557543b896af7d9e18260e5abe6f3e47077d7dd1a0ca",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2/history.json": "bb6c539e9d2a049ee2aa3d0f6fcf648c40ae90f9dd601b9e081717b9a97b38f9",
+    "logs/shared_ant_graph/go2_learning_20261007/teacher_1500/final.pt": "afbacb463c7b2cddc7f717363d8ee9337aa2113a0fee30a739ae057f9aa7d0c0",
+    "logs/shared_ant_graph/go2_learning_20261007/bundle_1500/metadata.json": "c9b91060b25ccf19f02745d1595207e3f3ad9d8a343cfdfef26aab0ad0afaf54",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_123.json": "9ccb293aa679dd04e5c74b737348e243b7e6faa683af2a1fa1e7d85c226aac46",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_456.json": "98f72345c174e13754fa3e5e7b7a13a942e05c4d0804935f276c13e50524ecaf",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only_a1_eval_789.json": "472ee25670bfea930845589637c88f6106a75b5c0814405ae714abf1cb142445",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_123.json": "9a5ace477a8617e76d2425edfa7623de628783938570ba2d887f39fb76f0e246",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_456.json": "bb2111a2308b83c7e8c6885bf017fa49173e69da70d809b0965a7f9340a7af5d",
+    "logs/shared_ant_graph/go2_learning_20261007/go2_only_go2_eval_789.json": "d55f4ea34b2b840c399db3e52ec7aae64697bdc6092bd93269181e3cb3d0d7e9",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_123.json": "8c477a65a64020be5e2e7d8a9a4259dc5bb48df4a63dbcb65b2f115fbb8cc600",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_456.json": "c3ef782f0ca020212b7a052e900d5318e2eea650e6df82adcd1e70dcdd0b6f24",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_a1_eval_789.json": "0e7bc0bf4fddd64244462073eff70a244d8aea7f3fda95a4cf0e7a4ef843d4f2",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_123.json": "56bb9cdc1d63bc7bf396053f94da2472eb2de195405336c014d30a1c6c97f0a7",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_456.json": "b6e75d11d313db6503aafbccd9e461c68732e28a75b476e751102540a68592b0",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_ant_sources_eval_789.json": "52add172bcd12e0ade9257fff8541d53baf3d63f005da79128def4621a5a3216",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_123.json": "50f7bb9c767d2f4afe2bf8462d627442fb894820fbd5adc78796f5d7d54711a9",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_456.json": "bb64e21298dae24f54a9d6ad1e1fa0c8c69bf22a1d5850011dfa1f0aceeedc6d",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_dev_5_eval_789.json": "b8cdd8adaef2d8530ee01d583cc775639a1e2962bb20273f4f0484c1b89fdfb2",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_123.json": "7a77df35bb00f677a81a82d34ae57ec8e1ed0bbb722d829aeb8ed5d8b74a5cd6",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_456.json": "049e0a683b972892a105dc62b41e06840d640ece24bc23ced7d429fe6e575c6b",
+    "logs/shared_ant_graph/go2_learning_20261007/shared_ant_go2_go2_eval_789.json": "799b890c72f412aaaa4c715ef6ee10232077c116c58d858d89d61d97edf6d95d",
+    "logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_123.json": "bdf7ddb8be5fc8da77d5e3ca48440957b0a430817700024d7236c87f9524f2d6",
+    "logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_456.json": "ec1a0a86c32d59eda5ba07776efa86bb97af83e893590faa911f7514ef4a21cc",
+    "logs/shared_ant_graph/go2_learning_20261007/teacher1500_eval_789.json": "83b7f38438c12c34948e4bb0cc7b006b44951d4fa5ccd57c91e5f2aecd550769",
+    "logs/shared_ant_graph/go2_learning_20261007/teacher_eval_123.json": "456b7bfa80b8828367e3af14fc1abf2c3548e555af7a58ab0fd8b0ff18962598",
+    "logs/shared_ant_graph/go2_learning_20261007/teacher_eval_456.json": "6b3b0c7b3bd6daf308098a861571ac7a655d8f5fb9cb597325e5f160084de639",
+    "logs/shared_ant_graph/go2_learning_20261007/teacher_eval_789.json": "ace016a48c59729bf1c484e7342e2223230f84547536df215f73d5356c74bb8d"
+  },
+  "ant_references": {
+    "teacher": {
+      "ant_3": {
+        "mean_speed_m_s": 5.6604213943417685,
+        "speed_range_m_s": [
+          5.633533334113725,
+          5.6803717613220215
+        ],
+        "mean_survival": 0.9844551282051283,
+        "episodes": 193
+      },
+      "ant_4": {
+        "mean_speed_m_s": 5.253399054209392,
+        "speed_range_m_s": [
+          5.248169422149658,
+          5.259864807128906
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    },
+    "ant_only_attention": {
+      "ant_3": {
+        "mean_speed_m_s": 5.5659214702606805,
+        "speed_range_m_s": [
+          5.549951280537392,
+          5.582854925118048
+        ],
+        "mean_survival": 0.9791666666666666,
+        "episodes": 192
+      },
+      "ant_4": {
+        "mean_speed_m_s": 5.031572341918945,
+        "speed_range_m_s": [
+          5.004961967468262,
+          5.083372116088867
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    }
+  }
+}

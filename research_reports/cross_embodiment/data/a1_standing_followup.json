@@ -1,0 +1,383 @@
+{
+  "robot": "a1",
+  "reset_seed": 123,
+  "worlds": 64,
+  "steps": 1200,
+  "kp": 25.0,
+  "kd": 2.0,
+  "feedback_dt": 0.0020833333333333333,
+  "note": "Post-matrix sanity check prompted by weak standing survival at kd=0.5. No actor or plant change.",
+  "metrics": {
+    "episodes": 64,
+    "return": 17.54362678527832,
+    "length_s": 16.0,
+    "progress_m": -0.01285494677722454,
+    "survival": 1.0,
+    "progress_speed_m_s": -0.0008034341735765338,
+    "all_horizon_progress_speed_m_s": -0.0014503412880003453,
+    "saturation_fraction": null,
+    "mean_post_reset_root_height_m": 0.25411202204724154,
+    "world0_trace": [
+      {
+        "step": 1,
+        "root_position_world0": [
+          27.999969482421875,
+          -28.000160217285156,
+          0.418464332818985
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 31,
+        "root_position_world0": [
+          27.966915130615234,
+          -28.021743774414062,
+          0.26534733176231384
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 61,
+        "root_position_world0": [
+          27.971731185913086,
+          -28.019882202148438,
+          0.260859876871109
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 91,
+        "root_position_world0": [
+          27.975191116333008,
+          -28.019756317138672,
+          0.2576228380203247
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 121,
+        "root_position_world0": [
+          27.976661682128906,
+          -28.019506454467773,
+          0.2552018165588379
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 151,
+        "root_position_world0": [
+          27.978330612182617,
+          -28.019506454467773,
+          0.25353243947029114
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 181,
+        "root_position_world0": [
+          27.97964859008789,
+          -28.019506454467773,
+          0.25234922766685486
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 211,
+        "root_position_world0": [
+          27.98056411743164,
+          -28.019506454467773,
+          0.25152117013931274
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 241,
+        "root_position_world0": [
+          27.98147964477539,
+          -28.019506454467773,
+          0.25094035267829895
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 271,
+        "root_position_world0": [
+          27.981969833374023,
+          -28.019506454467773,
+          0.2505316436290741
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 301,
+        "root_position_world0": [
+          27.9824275970459,
+          -28.019506454467773,
+          0.2502429187297821
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 331,
+        "root_position_world0": [
+          27.982885360717773,
+          -28.019506454467773,
+          0.25003746151924133
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 361,
+        "root_position_world0": [
+          27.98334312438965,
+          -28.019506454467773,
+          0.24989019334316254
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 391,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24978366494178772
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 421,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24970592558383942
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 451,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24964869022369385
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 481,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24960601329803467
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 511,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24957384169101715
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 541,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24954959750175476
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 571,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24953050911426544
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 601,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24951624870300293
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 631,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.249504953622818
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 661,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.2494962364435196
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 691,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.2494889795780182
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 721,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.2494836300611496
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 751,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.249479278922081
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 781,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24947570264339447
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 811,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.2494724839925766
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 841,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.2494702935218811
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 871,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.24946852028369904
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 901,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.2494668960571289
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 931,
+        "root_position_world0": [
+          27.98366355895996,
+          -28.019506454467773,
+          0.249465674161911
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 961,
+        "root_position_world0": [
+          28.00004005432129,
+          -28.000131607055664,
+          0.4185803234577179
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 991,
+        "root_position_world0": [
+          27.96827507019043,
+          -28.028179168701172,
+          0.2649649381637573
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 1021,
+        "root_position_world0": [
+          27.9749755859375,
+          -28.025344848632812,
+          0.2607336938381195
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 1051,
+        "root_position_world0": [
+          27.977703094482422,
+          -28.025590896606445,
+          0.2574383318424225
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 1081,
+        "root_position_world0": [
+          27.979190826416016,
+          -28.025590896606445,
+          0.2550535500049591
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 1111,
+        "root_position_world0": [
+          27.980754852294922,
+          -28.025590896606445,
+          0.2534027695655823
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 1141,
+        "root_position_world0": [
+          27.98190689086914,
+          -28.025590896606445,
+          0.25223931670188904
+        ],
+        "reset_world0": false
+      },
+      {
+        "step": 1171,
+        "root_position_world0": [
+          27.98282241821289,
+          -28.025590896606445,
+          0.25142914056777954
+        ],
+        "reset_world0": false
+      }
+    ]
+  }
+}

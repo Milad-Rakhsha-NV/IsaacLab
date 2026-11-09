@@ -1,0 +1,486 @@
+{
+  "attention_diverse_seed42": {
+    "all_source": {
+      "ant_3": {
+        "mean_speed_m_s": 1.1037702978505317,
+        "speed_range_m_s": [
+          1.0909018516540527,
+          1.114538550376892
+        ],
+        "mean_survival": 0.9948717948717949,
+        "episodes": 193
+      },
+      "ant_4": {
+        "mean_speed_m_s": 2.9911854498875976,
+        "speed_range_m_s": [
+          2.9819860458374023,
+          3.000912666320801
+        ],
+        "mean_survival": 0.9947916666666666,
+        "episodes": 192
+      },
+      "ant_3_small": {
+        "mean_speed_m_s": 0.9138583938280741,
+        "speed_range_m_s": [
+          0.8970394134521484,
+          0.9284902215003967
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_large": {
+        "mean_speed_m_s": 3.2647720182385247,
+        "speed_range_m_s": [
+          3.249000072479248,
+          3.293104648590088
+        ],
+        "mean_survival": 0.9947916666666666,
+        "episodes": 192
+      },
+      "ant_3_payload": {
+        "mean_speed_m_s": 1.1759194628495337,
+        "speed_range_m_s": [
+          1.1660731026092828,
+          1.1938432612541832
+        ],
+        "mean_survival": 0.9794070512820513,
+        "episodes": 194
+      },
+      "ant_4_payload": {
+        "mean_speed_m_s": 2.968014717102051,
+        "speed_range_m_s": [
+          2.9665870666503906,
+          2.9700088500976562
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_heavy_limbs": {
+        "mean_speed_m_s": 1.1053798198699951,
+        "speed_range_m_s": [
+          1.0902464389801025,
+          1.1255394220352173
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_light_limbs": {
+        "mean_speed_m_s": 3.0289890087073656,
+        "speed_range_m_s": [
+          3.0157532691955566,
+          3.03700384262788
+        ],
+        "mean_survival": 0.9895833333333334,
+        "episodes": 192
+      }
+    }
+  },
+  "pooled_diverse_seed42": {
+    "all_source": {
+      "ant_3": {
+        "mean_speed_m_s": 1.2553411458318402,
+        "speed_range_m_s": [
+          1.2446947448521413,
+          1.2710720162428462
+        ],
+        "mean_survival": 0.65012045012045,
+        "episodes": 222
+      },
+      "ant_4": {
+        "mean_speed_m_s": 3.101959149042765,
+        "speed_range_m_s": [
+          3.0891339778900146,
+          3.113739013671875
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_small": {
+        "mean_speed_m_s": 1.082650626181152,
+        "speed_range_m_s": [
+          1.073402967869241,
+          1.0937134516193097
+        ],
+        "mean_survival": 0.713592138003633,
+        "episodes": 216
+      },
+      "ant_4_large": {
+        "mean_speed_m_s": 3.4095935026804605,
+        "speed_range_m_s": [
+          3.3906443119049072,
+          3.4196839332580566
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_payload": {
+        "mean_speed_m_s": 1.2700539429982503,
+        "speed_range_m_s": [
+          1.2679239511489868,
+          1.274257779121399
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_payload": {
+        "mean_speed_m_s": 3.0502450466156006,
+        "speed_range_m_s": [
+          3.0493104457855225,
+          3.0508694648742676
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_heavy_limbs": {
+        "mean_speed_m_s": 1.203700304031372,
+        "speed_range_m_s": [
+          1.2030189037322998,
+          1.2048633098602295
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_light_limbs": {
+        "mean_speed_m_s": 3.145470937093099,
+        "speed_range_m_s": [
+          3.1441683769226074,
+          3.146780490875244
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    }
+  },
+  "specialists_canonical_seed42": {
+    "canonical": {
+      "ant_3": {
+        "mean_speed_m_s": 5.66282736377322,
+        "speed_range_m_s": [
+          5.602712724101642,
+          5.707183837890625
+        ],
+        "mean_survival": 0.9948717948717949,
+        "episodes": 193
+      },
+      "ant_4": {
+        "mean_speed_m_s": 5.227695528309821,
+        "speed_range_m_s": [
+          5.205755710601807,
+          5.238783836364746
+        ],
+        "mean_survival": 0.9947916666666666,
+        "episodes": 192
+      }
+    }
+  },
+  "specialists_diverse_seed42": {
+    "canonical": {
+      "ant_3": {
+        "mean_speed_m_s": 3.1444018853549798,
+        "speed_range_m_s": [
+          3.1213346112221583,
+          3.17244775608612
+        ],
+        "mean_survival": 0.9741986993031624,
+        "episodes": 193
+      },
+      "ant_4": {
+        "mean_speed_m_s": 4.29602901311626,
+        "speed_range_m_s": [
+          4.235010089589347,
+          4.326695986908798
+        ],
+        "mean_survival": 0.9701357466063348,
+        "episodes": 198
+      }
+    },
+    "all_source": {
+      "ant_3": {
+        "mean_speed_m_s": 3.195431812302357,
+        "speed_range_m_s": [
+          3.163425042361016,
+          3.2190353870391846
+        ],
+        "mean_survival": 0.9692307692307692,
+        "episodes": 194
+      },
+      "ant_4": {
+        "mean_speed_m_s": 4.30933144155491,
+        "speed_range_m_s": [
+          4.304822539098274,
+          4.311710846105265
+        ],
+        "mean_survival": 0.9647949065859514,
+        "episodes": 198
+      },
+      "ant_3_small": {
+        "mean_speed_m_s": 2.256868309360196,
+        "speed_range_m_s": [
+          2.243004264060268,
+          2.2673582475699408
+        ],
+        "mean_survival": 0.984375,
+        "episodes": 192
+      },
+      "ant_4_large": {
+        "mean_speed_m_s": 4.669594293713715,
+        "speed_range_m_s": [
+          4.646826159274137,
+          4.6918323092006275
+        ],
+        "mean_survival": 0.856931990784146,
+        "episodes": 222
+      },
+      "ant_3_payload": {
+        "mean_speed_m_s": 3.372274746325807,
+        "speed_range_m_s": [
+          3.35131414279778,
+          3.3856661582946157
+        ],
+        "mean_survival": 0.7854832173971771,
+        "episodes": 200
+      },
+      "ant_4_payload": {
+        "mean_speed_m_s": 4.252247860072106,
+        "speed_range_m_s": [
+          4.229844700700707,
+          4.280257225036621
+        ],
+        "mean_survival": 0.9745920745920746,
+        "episodes": 195
+      },
+      "ant_3_heavy_limbs": {
+        "mean_speed_m_s": 2.512211845809336,
+        "speed_range_m_s": [
+          2.5102806056552893,
+          2.5136371625120035
+        ],
+        "mean_survival": 0.6591721262656343,
+        "episodes": 210
+      },
+      "ant_4_light_limbs": {
+        "mean_speed_m_s": 4.1321745953566085,
+        "speed_range_m_s": [
+          4.121025817180767,
+          4.14042854309082
+        ],
+        "mean_survival": 0.984375,
+        "episodes": 192
+      }
+    }
+  },
+  "attention_no_inertia_diverse_seed42": {
+    "canonical": {
+      "ant_3": {
+        "mean_speed_m_s": 1.895379141882363,
+        "speed_range_m_s": [
+          1.8648371696472168,
+          1.9430288076400757
+        ],
+        "mean_survival": 0.9948717948717949,
+        "episodes": 193
+      },
+      "ant_4": {
+        "mean_speed_m_s": 2.093835433324178,
+        "speed_range_m_s": [
+          2.0830583572387695,
+          2.110905170440674
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    },
+    "all_source": {
+      "ant_3": {
+        "mean_speed_m_s": 1.9117982429168796,
+        "speed_range_m_s": [
+          1.8207346479796158,
+          1.9837101543946805
+        ],
+        "mean_survival": 0.9896634615384615,
+        "episodes": 193
+      },
+      "ant_4": {
+        "mean_speed_m_s": 2.0762225357983124,
+        "speed_range_m_s": [
+          2.0666086673736572,
+          2.0903009081761876
+        ],
+        "mean_survival": 0.9947916666666666,
+        "episodes": 192
+      },
+      "ant_3_small": {
+        "mean_speed_m_s": 1.5304368092479164,
+        "speed_range_m_s": [
+          1.5103480815887451,
+          1.5626171668257227
+        ],
+        "mean_survival": 0.9745920562290274,
+        "episodes": 195
+      },
+      "ant_4_large": {
+        "mean_speed_m_s": 2.2319761912027993,
+        "speed_range_m_s": [
+          2.2222278118133545,
+          2.2446651458740234
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_payload": {
+        "mean_speed_m_s": 2.367537180582682,
+        "speed_range_m_s": [
+          2.3459126949310303,
+          2.3908863067626953
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_payload": {
+        "mean_speed_m_s": 2.0551597277323403,
+        "speed_range_m_s": [
+          2.0461087226867676,
+          2.0658822059631348
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_heavy_limbs": {
+        "mean_speed_m_s": 1.9763153791427612,
+        "speed_range_m_s": [
+          1.9646937847137451,
+          1.9936813116073608
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_light_limbs": {
+        "mean_speed_m_s": 2.1280046732573825,
+        "speed_range_m_s": [
+          2.1131484960856106,
+          2.14808067070497
+        ],
+        "mean_survival": 0.9845352564102564,
+        "episodes": 193
+      }
+    },
+    "development": {
+      "dev_5": {
+        "mean_speed_m_s": 0.1701967865228653,
+        "speed_range_m_s": [
+          0.15858392417430878,
+          0.17962506413459778
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    }
+  },
+  "pooled_no_inertia_diverse_seed42": {
+    "canonical": {
+      "ant_3": {
+        "mean_speed_m_s": 2.0936619440714517,
+        "speed_range_m_s": [
+          2.0869524478912354,
+          2.103672981262207
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4": {
+        "mean_speed_m_s": 2.2930727005004883,
+        "speed_range_m_s": [
+          2.2751598358154297,
+          2.3081231117248535
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    },
+    "all_source": {
+      "ant_3": {
+        "mean_speed_m_s": 2.116585890452067,
+        "speed_range_m_s": [
+          2.1145708560943604,
+          2.119959831237793
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4": {
+        "mean_speed_m_s": 2.2998860677083335,
+        "speed_range_m_s": [
+          2.2951178550720215,
+          2.3084239959716797
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_small": {
+        "mean_speed_m_s": 1.6727012839262325,
+        "speed_range_m_s": [
+          1.6470881838633533,
+          1.7102148532867432
+        ],
+        "mean_survival": 0.9948717948717949,
+        "episodes": 193
+      },
+      "ant_4_large": {
+        "mean_speed_m_s": 2.6044462521870932,
+        "speed_range_m_s": [
+          2.6014397144317627,
+          2.606372833251953
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_payload": {
+        "mean_speed_m_s": 1.891785701115926,
+        "speed_range_m_s": [
+          1.884589433670044,
+          1.8960293531417847
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_payload": {
+        "mean_speed_m_s": 2.1700581709543862,
+        "speed_range_m_s": [
+          2.1622190475463867,
+          2.1833138465881348
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_3_heavy_limbs": {
+        "mean_speed_m_s": 1.7742742697397869,
+        "speed_range_m_s": [
+          1.7561285495758057,
+          1.8090152740478516
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      },
+      "ant_4_light_limbs": {
+        "mean_speed_m_s": 2.3858885765075684,
+        "speed_range_m_s": [
+          2.3776984214782715,
+          2.391261100769043
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    },
+    "development": {
+      "dev_5": {
+        "mean_speed_m_s": 0.28682653109232586,
+        "speed_range_m_s": [
+          0.2812025547027588,
+          0.2907703220844269
+        ],
+        "mean_survival": 1.0,
+        "episodes": 192
+      }
+    }
+  }
+}

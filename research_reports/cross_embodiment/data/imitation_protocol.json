@@ -1,0 +1,124 @@
+{
+  "training_seed": 42,
+  "conditions": [
+    [
+      "tiny_graph",
+      "message_passing",
+      [
+        "ant_3",
+        "ant_4"
+      ],
+      1000,
+      64
+    ],
+    [
+      "mlp_joint",
+      "mlp",
+      [
+        "ant_3",
+        "ant_4"
+      ],
+      6000,
+      0
+    ],
+    [
+      "graph_ant_3",
+      "message_passing",
+      [
+        "ant_3"
+      ],
+      6000,
+      0
+    ],
+    [
+      "graph_ant_4",
+      "message_passing",
+      [
+        "ant_4"
+      ],
+      6000,
+      0
+    ],
+    [
+      "graph_joint",
+      "message_passing",
+      [
+        "ant_3",
+        "ant_4"
+      ],
+      6000,
+      0
+    ],
+    [
+      "attention_joint",
+      "attention",
+      [
+        "ant_3",
+        "ant_4"
+      ],
+      6000,
+      0
+    ]
+  ],
+  "collection_seeds": {
+    "train": [
+      1011,
+      2022
+    ],
+    "validation": [
+      3033
+    ],
+    "test": [
+      4044
+    ]
+  },
+  "collection_worlds_per_body": 64,
+  "collection_steps": 1200,
+  "capture_stride": 4,
+  "collected_transitions": 614400,
+  "teacher_training_transitions": 16384000,
+  "main_updates": 6000,
+  "batch_per_body": 128,
+  "learning_rate": 0.0003,
+  "learning_rate_schedule": "cosine to 0.00003",
+  "selection": "minimum validation action MSE at steps 1,250,500,...,6000",
+  "evaluation_seeds": [
+    123,
+    456,
+    789
+  ],
+  "evaluation_worlds_per_body": 64,
+  "evaluation_steps": 1200,
+  "target_data_used": false,
+  "source_hashes": {
+    "scripts/tools/distill_mechanical_ant.py": "df5bfcf9255d4fa02023374fdfa18e141e3ca1c3a2a67b1e7179289225f71fd0",
+    "logs/shared_ant_graph/imitation_20261007/run_imitation.py": "0f35d995fee83484a35e0cfc54e6744541456700e767e89877de1b3abc22d27b",
+    "scripts/tools/train_mechanical_ant.py": "34a9d9040bdd0d606097433ae6a91778c8a46037a3b371b04eb56642cfc99e37",
+    "scripts/tools/train_mechanical_controls.py": "7b77484e72961129be1352036fa49a236ee1aa63a0107f9fef911486c91f54b5",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_controls.py": "78183cc0a4107003c46b5e8ee039832604d81e54d52dbaf9616b0ff1cb6b2a24",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_policy.py": "b2d9dd4909ee0b9e5c20dcf090067dbd58acc9911d5243886731f0d54053b0c3",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_training.py": "7605b901c6dce8917a82d2378abe10e36f0e80cca3cb4353487323d5ec0866e6",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/multi_robot_env.py": "d8a208c9ea740c25ffb71cdc19464d7ceab5b6b5d4c3b3a14a930ba3c8ed1382",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/multi_robot_env_cfg.py": "4cdafd815a2136f0db465b55206c4574c7cfac0c725aac8474180de4e7708177",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_policy.py": "01e0f2882fe6ac895407a1ab6ab356901073b9668ebaeebf31879bc10dc735a1",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_env.py": "4db4be7b14c2ed42ea14d16d4aea880346fa7f0f6bfe1c06bba4d790b1d40fa2",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_observations.py": "52813b4baa4232ae41413c81174b09960a99ef5163f56a884fcf36348a6cbeee",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_training.py": "02c7a22b4b264f07b83fb003542b075217a668d4e422bf7ce243ac79aedda944",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_observations.py": "e19f2cee5408cd2aeda6797cdfadd9933b000e40ebfbb4828f368016b8264984",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/__init__.py": "68f3f1b01983247aba6b319733d8b23d39a7e5103561db1873578f61f84b6202",
+    "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_imitation.py": "12e9cd665d3d4daae33ad935c3d2e90e92e52348ec9bbf3c0a449297c3c4aa83",
+    "uv.lock": "e23bd78a5eb2b07348462a3e2f9e630b55a9747fad0996c1d6b9e3fc63a3ff6f",
+    "source/isaaclab_assets/isaaclab_assets/robots/ant_variants.py": "20d79195d3ac89f63c25f4b42a0fe20e5af68112a35792b380a4ba8917f55719",
+    "source/isaaclab_assets/isaaclab_assets/robots/ant.py": "870d47453d8f4694339161a40f0700368593ae791b96d9b94ec1cc50140d8fd6",
+    "logs/shared_ant_graph/mechanical_pilot_20261002/controls/specialists_canonical_seed42/final.pt": "ff8511bc910a0ffd645a2bd67389538f7d1d894dab5c28b246aaecfaab4f4a55"
+  },
+  "descriptor_absolute_tolerance": 1e-12,
+  "notes": [
+    "Fixed raw-action MSE balances bodies and valid actuators.",
+    "Normalizers use only training demonstrations.",
+    "Entire collection reset seeds separate train, validation and test.",
+    "Single-body runs use the same per-body sample presentations as joint runs.",
+    "Tiny fit uses 64 randomly chosen training states per body and training-MSE checkpoint selection.",
+    "Student weights start randomly; teacher weights and statistics remain frozen."
+  ]
+}

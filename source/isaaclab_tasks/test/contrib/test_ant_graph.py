@@ -5,6 +5,11 @@
 
 """Graph policy contracts: enumeration/padding invariance and real shared PPO collection."""
 
+import json
+import subprocess
+import sys
+from pathlib import Path
+
 import torch
 from rsl_rl.runners import OnPolicyRunner
 from tensordict import TensorDict
@@ -18,6 +23,60 @@ from isaaclab_tasks.contrib.multi_robot_locomotion.graph_policy import GraphMode
 from isaaclab_tasks.contrib.multi_robot_locomotion.graph_training import GraphVecEnv
 from isaaclab_tasks.contrib.multi_robot_locomotion.multi_robot_env import MultiRobotLocomotionEnv
 from isaaclab_tasks.contrib.multi_robot_locomotion.multi_robot_env_cfg import AntThreeFourEnvCfg
+
+
+def test_single_source_cli_selection_resume_and_evaluation(tmp_path):
+    """A source ablation trains only the selected body and restores that split from its checkpoint."""
+    root = Path(__file__).resolve().parents[4]
+    command = [sys.executable, str(root / "scripts/tools/train_shared_ant_graph.py"), "--num_envs", "4"]
+    run_dir = tmp_path / "single_source"
+    result = subprocess.run(
+        command + ["--source-agents", "ant_3", "--updates", "1", "--run_dir", str(run_dir)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    manifest = json.loads((run_dir / "experiment.json").read_text())
+    assert manifest["training_agents"] == ["ant_3"]
+    assert manifest["target_training"] is False
+    assert manifest["transitions_per_update"] == 128
+    checkpoint = run_dir / "final.pt"
+    resumed = tmp_path / "resumed"
+    result = subprocess.run(
+        command + ["--checkpoint", str(checkpoint), "--updates", "1", "--run_dir", str(resumed)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    manifest = json.loads((resumed / "experiment.json").read_text())
+    assert manifest["training_agents"] == ["ant_3"]
+    assert manifest["transitions_per_update"] == 128
+    assert manifest["completed_updates"] == 2
+    result = subprocess.run(
+        command + ["--checkpoint", str(checkpoint), "--source-agents", "ant_4", "--run_dir", str(resumed)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 2
+    assert "source selection" in result.stderr
+    report = tmp_path / "evaluation.json"
+    result = subprocess.run(
+        command + ["--evaluate", "--checkpoint", str(resumed / "final.pt"), "--report", str(report)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    metrics = json.loads(report.read_text())["metrics"]
+    assert set(metrics) == {"ant_3"}
+    assert metrics["ant_3"]["episodes"] > 0
 
 
 def test_graph_policy_permutation_padding_and_variable_joint_count():

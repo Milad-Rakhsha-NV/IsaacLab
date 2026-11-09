@@ -1,0 +1,4493 @@
+{
+  "protocol": {
+    "worlds": 64,
+    "steps": 1200,
+    "reset_seeds": [
+      123,
+      456,
+      789
+    ],
+    "target_training": false,
+    "source_hashes": {
+      "scripts/tools/evaluate_mechanical_transfer.py": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/__init__.py": "68f3f1b01983247aba6b319733d8b23d39a7e5103561db1873578f61f84b6202",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_observations.py": "e19f2cee5408cd2aeda6797cdfadd9933b000e40ebfbb4828f368016b8264984",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_policy.py": "b2d9dd4909ee0b9e5c20dcf090067dbd58acc9911d5243886731f0d54053b0c3",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/graph_training.py": "02c7a22b4b264f07b83fb003542b075217a668d4e422bf7ce243ac79aedda944",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_controls.py": "78183cc0a4107003c46b5e8ee039832604d81e54d52dbaf9616b0ff1cb6b2a24",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_env.py": "4db4be7b14c2ed42ea14d16d4aea880346fa7f0f6bfe1c06bba4d790b1d40fa2",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_imitation.py": "12e9cd665d3d4daae33ad935c3d2e90e92e52348ec9bbf3c0a449297c3c4aa83",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_observations.py": "52813b4baa4232ae41413c81174b09960a99ef5163f56a884fcf36348a6cbeee",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_policy.py": "01e0f2882fe6ac895407a1ab6ab356901073b9668ebaeebf31879bc10dc735a1",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_training.py": "7605b901c6dce8917a82d2378abe10e36f0e80cca3cb4353487323d5ec0866e6",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/multi_robot_env.py": "d8a208c9ea740c25ffb71cdc19464d7ceab5b6b5d4c3b3a14a930ba3c8ed1382",
+      "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/multi_robot_env_cfg.py": "4cdafd815a2136f0db465b55206c4574c7cfac0c725aac8474180de4e7708177"
+    },
+    "jobs": [
+      [
+        "dev_5",
+        "attention",
+        123
+      ],
+      [
+        "dev_5",
+        "attention",
+        456
+      ],
+      [
+        "dev_5",
+        "attention",
+        789
+      ],
+      [
+        "dev_5",
+        "graph",
+        123
+      ],
+      [
+        "dev_5",
+        "graph",
+        456
+      ],
+      [
+        "dev_5",
+        "graph",
+        789
+      ],
+      [
+        "go2",
+        "attention",
+        123
+      ],
+      [
+        "go2",
+        "attention",
+        456
+      ],
+      [
+        "go2",
+        "attention",
+        789
+      ],
+      [
+        "go2",
+        "graph",
+        123
+      ],
+      [
+        "go2",
+        "graph",
+        456
+      ],
+      [
+        "go2",
+        "graph",
+        789
+      ],
+      [
+        "go2",
+        "stand",
+        123
+      ],
+      [
+        "go2",
+        "stand",
+        456
+      ],
+      [
+        "go2",
+        "stand",
+        789
+      ],
+      [
+        "a1",
+        "attention",
+        123
+      ],
+      [
+        "a1",
+        "attention",
+        456
+      ],
+      [
+        "a1",
+        "attention",
+        789
+      ],
+      [
+        "a1",
+        "graph",
+        123
+      ],
+      [
+        "a1",
+        "graph",
+        456
+      ],
+      [
+        "a1",
+        "graph",
+        789
+      ],
+      [
+        "a1",
+        "stand",
+        123
+      ],
+      [
+        "a1",
+        "stand",
+        456
+      ],
+      [
+        "a1",
+        "stand",
+        789
+      ],
+      [
+        "ant_3",
+        "attention",
+        123
+      ],
+      [
+        "ant_4",
+        "attention",
+        123
+      ]
+    ],
+    "note": "Ant source regression checks use reset 123 only; no checkpoint selection on targets."
+  },
+  "results": {
+    "dev_5": {
+      "attention": {
+        "reset_reports": [
+          "attention_dev_5_reset123.json",
+          "attention_dev_5_reset456.json",
+          "attention_dev_5_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 64,
+            "progress_speed_m_s": 0.22895219922065735,
+            "all_horizon_progress_speed_m_s": 0.28074355125427247,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": 0.0812734375
+          },
+          {
+            "seed": 456,
+            "episodes": 64,
+            "progress_speed_m_s": 0.22964699566364288,
+            "all_horizon_progress_speed_m_s": 0.27733722925186155,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": 0.077203125
+          },
+          {
+            "seed": 789,
+            "episodes": 64,
+            "progress_speed_m_s": 0.2775692939758301,
+            "all_horizon_progress_speed_m_s": 0.32264158725738523,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": 0.08871744791666666
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": 0.2453894962867101,
+          "range": [
+            0.22895219922065735,
+            0.2775692939758301
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": 0.29357412258783977,
+          "range": [
+            0.27733722925186155,
+            0.32264158725738523
+          ]
+        },
+        "survival": {
+          "mean": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ]
+        },
+        "length_s": {
+          "mean": 16.0,
+          "range": [
+            16.0,
+            16.0
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.08239800347222222,
+          "range": [
+            0.077203125,
+            0.08871744791666666
+          ]
+        }
+      },
+      "graph": {
+        "reset_reports": [
+          "graph_dev_5_reset123.json",
+          "graph_dev_5_reset456.json",
+          "graph_dev_5_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 64,
+            "progress_speed_m_s": 0.17769455909729004,
+            "all_horizon_progress_speed_m_s": 0.17085193693637848,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": 0.04087369791666667
+          },
+          {
+            "seed": 456,
+            "episodes": 64,
+            "progress_speed_m_s": 0.16899782419204712,
+            "all_horizon_progress_speed_m_s": 0.1665630042552948,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": 0.03974739583333333
+          },
+          {
+            "seed": 789,
+            "episodes": 64,
+            "progress_speed_m_s": 0.18117427825927734,
+            "all_horizon_progress_speed_m_s": 0.17427322566509246,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": 0.041229166666666664
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": 0.17595555384953818,
+          "range": [
+            0.16899782419204712,
+            0.18117427825927734
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": 0.17056272228558858,
+          "range": [
+            0.1665630042552948,
+            0.17427322566509246
+          ]
+        },
+        "survival": {
+          "mean": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ]
+        },
+        "length_s": {
+          "mean": 16.0,
+          "range": [
+            16.0,
+            16.0
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.04061675347222222,
+          "range": [
+            0.03974739583333333,
+            0.041229166666666664
+          ]
+        }
+      }
+    },
+    "go2": {
+      "attention": {
+        "reset_reports": [
+          "attention_go2_reset123.json",
+          "attention_go2_reset456.json",
+          "attention_go2_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 6010,
+            "progress_speed_m_s": -0.08447063699337964,
+            "all_horizon_progress_speed_m_s": -0.08423289575844137,
+            "survival": 0.0,
+            "length_s": 0.21194677137693826,
+            "saturation_fraction": 0.5464496527777778
+          },
+          {
+            "seed": 456,
+            "episodes": 6019,
+            "progress_speed_m_s": -0.08582619797516897,
+            "all_horizon_progress_speed_m_s": -0.08567342777105295,
+            "survival": 0.0,
+            "length_s": 0.21166031416378697,
+            "saturation_fraction": 0.5467632378472222
+          },
+          {
+            "seed": 789,
+            "episodes": 6020,
+            "progress_speed_m_s": -0.08417616516993207,
+            "all_horizon_progress_speed_m_s": -0.08391581816231337,
+            "survival": 0.0,
+            "length_s": 0.21156701495085048,
+            "saturation_fraction": 0.5463335503472222
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": -0.08482433337949356,
+          "range": [
+            -0.08582619797516897,
+            -0.08417616516993207
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": -0.0846073805639359,
+          "range": [
+            -0.08567342777105295,
+            -0.08391581816231337
+          ]
+        },
+        "survival": {
+          "mean": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        },
+        "length_s": {
+          "mean": 0.21172470016385858,
+          "range": [
+            0.21156701495085048,
+            0.21194677137693826
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.546515480324074,
+          "range": [
+            0.5463335503472222,
+            0.5467632378472222
+          ]
+        }
+      },
+      "graph": {
+        "reset_reports": [
+          "graph_go2_reset123.json",
+          "graph_go2_reset456.json",
+          "graph_go2_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 5516,
+            "progress_speed_m_s": -0.05874919674794006,
+            "all_horizon_progress_speed_m_s": -0.05844203101079444,
+            "survival": 0.0,
+            "length_s": 0.2304417625031798,
+            "saturation_fraction": 0.6823990885416666
+          },
+          {
+            "seed": 456,
+            "episodes": 5480,
+            "progress_speed_m_s": -0.05867703655734268,
+            "all_horizon_progress_speed_m_s": -0.05848882451789521,
+            "survival": 0.0,
+            "length_s": 0.23236619753722293,
+            "saturation_fraction": 0.6822840711805556
+          },
+          {
+            "seed": 789,
+            "episodes": 5515,
+            "progress_speed_m_s": -0.05753613975953215,
+            "all_horizon_progress_speed_m_s": -0.05729156900393946,
+            "survival": 0.0,
+            "length_s": 0.23071624527491988,
+            "saturation_fraction": 0.6828428819444444
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": -0.058320791021604965,
+          "range": [
+            -0.05874919674794006,
+            -0.05753613975953215
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": -0.05807414151087637,
+          "range": [
+            -0.05848882451789521,
+            -0.05729156900393946
+          ]
+        },
+        "survival": {
+          "mean": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        },
+        "length_s": {
+          "mean": 0.23117473510510753,
+          "range": [
+            0.2304417625031798,
+            0.23236619753722293
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.6825086805555556,
+          "range": [
+            0.6822840711805556,
+            0.6828428819444444
+          ]
+        }
+      },
+      "stand": {
+        "reset_reports": [
+          "stand_go2_reset123.json",
+          "stand_go2_reset456.json",
+          "stand_go2_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 64,
+            "progress_speed_m_s": -0.0001918791967909783,
+            "all_horizon_progress_speed_m_s": -0.0005072527332231402,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": null
+          },
+          {
+            "seed": 456,
+            "episodes": 64,
+            "progress_speed_m_s": -0.00018100725719705224,
+            "all_horizon_progress_speed_m_s": -0.000474497233517468,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": null
+          },
+          {
+            "seed": 789,
+            "episodes": 64,
+            "progress_speed_m_s": -0.00017019896768033504,
+            "all_horizon_progress_speed_m_s": -0.00044957464560866354,
+            "survival": 1.0,
+            "length_s": 16.0,
+            "saturation_fraction": null
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": -0.0001810284738894552,
+          "range": [
+            -0.0001918791967909783,
+            -0.00017019896768033504
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": -0.0004771082041164239,
+          "range": [
+            -0.0005072527332231402,
+            -0.00044957464560866354
+          ]
+        },
+        "survival": {
+          "mean": 1.0,
+          "range": [
+            1.0,
+            1.0
+          ]
+        },
+        "length_s": {
+          "mean": 16.0,
+          "range": [
+            16.0,
+            16.0
+          ]
+        },
+        "saturation_fraction": null
+      }
+    },
+    "a1": {
+      "attention": {
+        "reset_reports": [
+          "attention_a1_reset123.json",
+          "attention_a1_reset456.json",
+          "attention_a1_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 6162,
+            "progress_speed_m_s": -0.0019701935807186826,
+            "all_horizon_progress_speed_m_s": -0.0017401633220629265,
+            "survival": 0.0,
+            "length_s": 0.2067456615629888,
+            "saturation_fraction": 0.5183452690972222
+          },
+          {
+            "seed": 456,
+            "episodes": 6155,
+            "progress_speed_m_s": -0.002634981463747016,
+            "all_horizon_progress_speed_m_s": -0.0024071757899626787,
+            "survival": 0.0,
+            "length_s": 0.20686977004055856,
+            "saturation_fraction": 0.5178841145833334
+          },
+          {
+            "seed": 789,
+            "episodes": 6156,
+            "progress_speed_m_s": -0.002734722686510435,
+            "all_horizon_progress_speed_m_s": -0.0025069683723458525,
+            "survival": 0.0,
+            "length_s": 0.20683345804263276,
+            "saturation_fraction": 0.5186610243055556
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": -0.0024466325769920447,
+          "range": [
+            -0.002734722686510435,
+            -0.0019701935807186826
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": -0.002218102494790486,
+          "range": [
+            -0.0025069683723458525,
+            -0.0017401633220629265
+          ]
+        },
+        "survival": {
+          "mean": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        },
+        "length_s": {
+          "mean": 0.2068162965487267,
+          "range": [
+            0.2067456615629888,
+            0.20686977004055856
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.518296802662037,
+          "range": [
+            0.5178841145833334,
+            0.5186610243055556
+          ]
+        }
+      },
+      "graph": {
+        "reset_reports": [
+          "graph_a1_reset123.json",
+          "graph_a1_reset456.json",
+          "graph_a1_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 5701,
+            "progress_speed_m_s": 0.0007663225387282335,
+            "all_horizon_progress_speed_m_s": 0.0009074402080301525,
+            "survival": 0.0,
+            "length_s": 0.22323278391168863,
+            "saturation_fraction": 0.7345659722222222
+          },
+          {
+            "seed": 456,
+            "episodes": 5700,
+            "progress_speed_m_s": -0.00028096839394100106,
+            "all_horizon_progress_speed_m_s": -0.00019648223439219236,
+            "survival": 0.0,
+            "length_s": 0.22333919922510784,
+            "saturation_fraction": 0.7350672743055555
+          },
+          {
+            "seed": 789,
+            "episodes": 5710,
+            "progress_speed_m_s": -0.0011066659774430763,
+            "all_horizon_progress_speed_m_s": -0.0009864807253876506,
+            "survival": 0.0,
+            "length_s": 0.2230560597704296,
+            "saturation_fraction": 0.7345952690972222
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": -0.0002071039442186146,
+          "range": [
+            -0.0011066659774430763,
+            0.0007663225387282335
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": -9.184091724989683e-05,
+          "range": [
+            -0.0009864807253876506,
+            0.0009074402080301525
+          ]
+        },
+        "survival": {
+          "mean": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        },
+        "length_s": {
+          "mean": 0.22320934763574202,
+          "range": [
+            0.2230560597704296,
+            0.22333919922510784
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.7347428385416667,
+          "range": [
+            0.7345659722222222,
+            0.7350672743055555
+          ]
+        }
+      },
+      "stand": {
+        "reset_reports": [
+          "stand_a1_reset123.json",
+          "stand_a1_reset456.json",
+          "stand_a1_reset789.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 331,
+            "progress_speed_m_s": -0.004499523903154869,
+            "all_horizon_progress_speed_m_s": -0.005985210201470181,
+            "survival": 0.1933534782818797,
+            "length_s": 3.297432208439375,
+            "saturation_fraction": null
+          },
+          {
+            "seed": 456,
+            "episodes": 454,
+            "progress_speed_m_s": -0.0056652581259391726,
+            "all_horizon_progress_speed_m_s": -0.006945191832346609,
+            "survival": 0.13656388114858828,
+            "length_s": 2.403083863893795,
+            "saturation_fraction": null
+          },
+          {
+            "seed": 789,
+            "episodes": 379,
+            "progress_speed_m_s": -0.004897903596060564,
+            "all_horizon_progress_speed_m_s": -0.006523743751313304,
+            "survival": 0.16886543653571195,
+            "length_s": 2.9115656665415752,
+            "saturation_fraction": null
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": -0.0050208952083848684,
+          "range": [
+            -0.0056652581259391726,
+            -0.004499523903154869
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": -0.0064847152617100315,
+          "range": [
+            -0.006945191832346609,
+            -0.005985210201470181
+          ]
+        },
+        "survival": {
+          "mean": 0.16626093198872666,
+          "range": [
+            0.13656388114858828,
+            0.1933534782818797
+          ]
+        },
+        "length_s": {
+          "mean": 2.8706939129582483,
+          "range": [
+            2.403083863893795,
+            3.297432208439375
+          ]
+        },
+        "saturation_fraction": null
+      }
+    },
+    "ant_3": {
+      "attention": {
+        "reset_reports": [
+          "attention_ant_3_reset123.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 66,
+            "progress_speed_m_s": 5.5069546612655715,
+            "all_horizon_progress_speed_m_s": 5.250282934308052,
+            "survival": 0.9393939393939394,
+            "length_s": 15.332323251348553,
+            "saturation_fraction": 0.22059678819444445
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": 5.5069546612655715,
+          "range": [
+            5.5069546612655715,
+            5.5069546612655715
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": 5.250282934308052,
+          "range": [
+            5.250282934308052,
+            5.250282934308052
+          ]
+        },
+        "survival": {
+          "mean": 0.9393939393939394,
+          "range": [
+            0.9393939393939394,
+            0.9393939393939394
+          ]
+        },
+        "length_s": {
+          "mean": 15.332323251348553,
+          "range": [
+            15.332323251348553,
+            15.332323251348553
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.22059678819444445,
+          "range": [
+            0.22059678819444445,
+            0.22059678819444445
+          ]
+        }
+      }
+    },
+    "ant_4": {
+      "attention": {
+        "reset_reports": [
+          "attention_ant_4_reset123.json"
+        ],
+        "samples": [
+          {
+            "seed": 123,
+            "episodes": 64,
+            "progress_speed_m_s": 4.987133070557097,
+            "all_horizon_progress_speed_m_s": 4.8007526189088825,
+            "survival": 0.984375,
+            "length_s": 15.836720630526543,
+            "saturation_fraction": 0.16978841145833334
+          }
+        ],
+        "progress_speed_m_s": {
+          "mean": 4.987133070557097,
+          "range": [
+            4.987133070557097,
+            4.987133070557097
+          ]
+        },
+        "all_horizon_progress_speed_m_s": {
+          "mean": 4.8007526189088825,
+          "range": [
+            4.8007526189088825,
+            4.8007526189088825
+          ]
+        },
+        "survival": {
+          "mean": 0.984375,
+          "range": [
+            0.984375,
+            0.984375
+          ]
+        },
+        "length_s": {
+          "mean": 15.836720630526543,
+          "range": [
+            15.836720630526543,
+            15.836720630526543
+          ]
+        },
+        "saturation_fraction": {
+          "mean": 0.16978841145833334,
+          "range": [
+            0.16978841145833334,
+            0.16978841145833334
+          ]
+        }
+      }
+    }
+  },
+  "reports": {
+    "attention_dev_5_reset123.json": {
+      "robot": "dev_5",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "joint_names": [
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "descriptor_sha256": "f6d1592a181c289414caf5ecbef4246feac639b5ee5bd14732f9fb0901dddc9f",
+      "tokens": 55,
+      "actions": 10,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 12.279013633728027,
+        "length_s": 16.0,
+        "progress_m": 3.6632351875305176,
+        "survival": 1.0,
+        "progress_speed_m_s": 0.22895219922065735,
+        "all_horizon_progress_speed_m_s": 0.28074355125427247,
+        "saturation_fraction": 0.0812734375,
+        "mean_post_reset_root_height_m": 0.5402478605012099
+      }
+    },
+    "attention_dev_5_reset456.json": {
+      "robot": "dev_5",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "joint_names": [
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "descriptor_sha256": "f6d1592a181c289414caf5ecbef4246feac639b5ee5bd14732f9fb0901dddc9f",
+      "tokens": 55,
+      "actions": 10,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 12.516857147216797,
+        "length_s": 16.0,
+        "progress_m": 3.674351930618286,
+        "survival": 1.0,
+        "progress_speed_m_s": 0.22964699566364288,
+        "all_horizon_progress_speed_m_s": 0.27733722925186155,
+        "saturation_fraction": 0.077203125,
+        "mean_post_reset_root_height_m": 0.5407493758201599
+      }
+    },
+    "attention_dev_5_reset789.json": {
+      "robot": "dev_5",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "joint_names": [
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "descriptor_sha256": "f6d1592a181c289414caf5ecbef4246feac639b5ee5bd14732f9fb0901dddc9f",
+      "tokens": 55,
+      "actions": 10,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 10.971933364868164,
+        "length_s": 16.0,
+        "progress_m": 4.441108703613281,
+        "survival": 1.0,
+        "progress_speed_m_s": 0.2775692939758301,
+        "all_horizon_progress_speed_m_s": 0.32264158725738523,
+        "saturation_fraction": 0.08871744791666666,
+        "mean_post_reset_root_height_m": 0.5372892476121585
+      }
+    },
+    "graph_dev_5_reset123.json": {
+      "robot": "dev_5",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "joint_names": [
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "descriptor_sha256": "f6d1592a181c289414caf5ecbef4246feac639b5ee5bd14732f9fb0901dddc9f",
+      "tokens": 55,
+      "actions": 10,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 15.986223220825195,
+        "length_s": 16.0,
+        "progress_m": 2.8431129455566406,
+        "survival": 1.0,
+        "progress_speed_m_s": 0.17769455909729004,
+        "all_horizon_progress_speed_m_s": 0.17085193693637848,
+        "saturation_fraction": 0.04087369791666667,
+        "mean_post_reset_root_height_m": 0.5649640853703022
+      }
+    },
+    "graph_dev_5_reset456.json": {
+      "robot": "dev_5",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "joint_names": [
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "descriptor_sha256": "f6d1592a181c289414caf5ecbef4246feac639b5ee5bd14732f9fb0901dddc9f",
+      "tokens": 55,
+      "actions": 10,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 16.03426742553711,
+        "length_s": 16.0,
+        "progress_m": 2.703965187072754,
+        "survival": 1.0,
+        "progress_speed_m_s": 0.16899782419204712,
+        "all_horizon_progress_speed_m_s": 0.1665630042552948,
+        "saturation_fraction": 0.03974739583333333,
+        "mean_post_reset_root_height_m": 0.5652226518591245
+      }
+    },
+    "graph_dev_5_reset789.json": {
+      "robot": "dev_5",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "joint_names": [
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot",
+        "radial_3_leg",
+        "radial_3_foot",
+        "radial_4_leg",
+        "radial_4_foot"
+      ],
+      "descriptor_sha256": "f6d1592a181c289414caf5ecbef4246feac639b5ee5bd14732f9fb0901dddc9f",
+      "tokens": 55,
+      "actions": 10,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 16.07677459716797,
+        "length_s": 16.0,
+        "progress_m": 2.8987884521484375,
+        "survival": 1.0,
+        "progress_speed_m_s": 0.18117427825927734,
+        "all_horizon_progress_speed_m_s": 0.17427322566509246,
+        "saturation_fraction": 0.041229166666666664,
+        "mean_post_reset_root_height_m": 0.5651659470796585
+      }
+    },
+    "attention_go2_reset123.json": {
+      "robot": "go2",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 6010,
+        "return": -9.427719756172422,
+        "length_s": 0.21194677137693826,
+        "progress_m": -0.01790327878690018,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.08447063699337964,
+        "all_horizon_progress_speed_m_s": -0.08423289575844137,
+        "saturation_fraction": 0.5464496527777778,
+        "mean_post_reset_root_height_m": 0.32588877065728106
+      }
+    },
+    "attention_go2_reset456.json": {
+      "robot": "go2",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 6019,
+        "return": -9.414538198183651,
+        "length_s": 0.21166031416378697,
+        "progress_m": -0.01816600002690764,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.08582619797516897,
+        "all_horizon_progress_speed_m_s": -0.08567342777105295,
+        "saturation_fraction": 0.5467632378472222,
+        "mean_post_reset_root_height_m": 0.3259682010735075
+      }
+    },
+    "attention_go2_reset789.json": {
+      "robot": "go2",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 6020,
+        "return": -9.405091629788725,
+        "length_s": 0.21156701495085048,
+        "progress_m": -0.017808899995012277,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.08417616516993207,
+        "all_horizon_progress_speed_m_s": -0.08391581816231337,
+        "saturation_fraction": 0.5463335503472222,
+        "mean_post_reset_root_height_m": 0.3259536329905192
+      }
+    },
+    "graph_go2_reset123.json": {
+      "robot": "go2",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 5516,
+        "return": -9.955952350604006,
+        "length_s": 0.2304417625031798,
+        "progress_m": -0.013538268444241386,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.05874919674794006,
+        "all_horizon_progress_speed_m_s": -0.05844203101079444,
+        "saturation_fraction": 0.6823990885416666,
+        "mean_post_reset_root_height_m": 0.3244467203194896
+      }
+    },
+    "graph_go2_reset456.json": {
+      "robot": "go2",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 5480,
+        "return": -10.017410309297325,
+        "length_s": 0.23236619753722293,
+        "progress_m": -0.01363455986758234,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.05867703655734268,
+        "all_horizon_progress_speed_m_s": -0.05848882451789521,
+        "saturation_fraction": 0.6822840711805556,
+        "mean_post_reset_root_height_m": 0.3237958993886908
+      }
+    },
+    "graph_go2_reset789.json": {
+      "robot": "go2",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 5515,
+        "return": -9.961830803706013,
+        "length_s": 0.23071624527491988,
+        "progress_m": -0.013274522132932289,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.05753613975953215,
+        "all_horizon_progress_speed_m_s": -0.05729156900393946,
+        "saturation_fraction": 0.6828428819444444,
+        "mean_post_reset_root_height_m": 0.3238505197192232
+      }
+    },
+    "stand_go2_reset123.json": {
+      "robot": "go2",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": null,
+      "checkpoint_sha256": null,
+      "training_agents": [],
+      "imitation_steps": null,
+      "routing": "stand",
+      "standing_control": {
+        "kp": 25.0,
+        "kd": 0.5,
+        "feedback_dt": 0.0020833333333333333
+      },
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 17.524215698242188,
+        "length_s": 16.0,
+        "progress_m": -0.003070067148655653,
+        "survival": 1.0,
+        "progress_speed_m_s": -0.0001918791967909783,
+        "all_horizon_progress_speed_m_s": -0.0005072527332231402,
+        "saturation_fraction": null,
+        "mean_post_reset_root_height_m": 0.25417508482933043
+      }
+    },
+    "stand_go2_reset456.json": {
+      "robot": "go2",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": null,
+      "checkpoint_sha256": null,
+      "training_agents": [],
+      "imitation_steps": null,
+      "routing": "stand",
+      "standing_control": {
+        "kp": 25.0,
+        "kd": 0.5,
+        "feedback_dt": 0.0020833333333333333
+      },
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 17.524351119995117,
+        "length_s": 16.0,
+        "progress_m": -0.002896116115152836,
+        "survival": 1.0,
+        "progress_speed_m_s": -0.00018100725719705224,
+        "all_horizon_progress_speed_m_s": -0.000474497233517468,
+        "saturation_fraction": null,
+        "mean_post_reset_root_height_m": 0.25417485311627386
+      }
+    },
+    "stand_go2_reset789.json": {
+      "robot": "go2",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": null,
+      "checkpoint_sha256": null,
+      "training_agents": [],
+      "imitation_steps": null,
+      "routing": "stand",
+      "standing_control": {
+        "kp": 25.0,
+        "kd": 0.5,
+        "feedback_dt": 0.0020833333333333333
+      },
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/Go2/go2.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*_hip_joint": 23.7,
+        ".*_thigh_joint": 23.7,
+        ".*_calf_joint": 45.43
+      },
+      "termination_height": 0.2,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        6,
+        7
+      ],
+      "body_names": [
+        "base",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "Head_upper",
+        "Head_lower",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "d744f54b3d06638a9b0a4fe0b658272f68293bbc0daf83df04faffec2e4f54ac",
+      "tokens": 84,
+      "actions": 12,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 17.524646759033203,
+        "length_s": 16.0,
+        "progress_m": -0.0027231834828853607,
+        "survival": 1.0,
+        "progress_speed_m_s": -0.00017019896768033504,
+        "all_horizon_progress_speed_m_s": -0.00044957464560866354,
+        "saturation_fraction": null,
+        "mean_post_reset_root_height_m": 0.2541793854782979
+      }
+    },
+    "attention_a1_reset123.json": {
+      "robot": "a1",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 6162,
+        "return": -9.227053379014265,
+        "length_s": 0.2067456615629888,
+        "progress_m": -0.00040732897525283784,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.0019701935807186826,
+        "all_horizon_progress_speed_m_s": -0.0017401633220629265,
+        "saturation_fraction": 0.5183452690972222,
+        "mean_post_reset_root_height_m": 0.34814605336636306
+      }
+    },
+    "attention_a1_reset456.json": {
+      "robot": "a1",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 6155,
+        "return": -9.206002484793396,
+        "length_s": 0.20686977004055856,
+        "progress_m": -0.0005450980094664795,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.002634981463747016,
+        "all_horizon_progress_speed_m_s": -0.0024071757899626787,
+        "saturation_fraction": 0.5178841145833334,
+        "mean_post_reset_root_height_m": 0.3481944349780679
+      }
+    },
+    "attention_a1_reset789.json": {
+      "robot": "a1",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 6156,
+        "return": -9.21679426184562,
+        "length_s": 0.20683345804263276,
+        "progress_m": -0.0005656321500385921,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.002734722686510435,
+        "all_horizon_progress_speed_m_s": -0.0025069683723458525,
+        "saturation_fraction": 0.5186610243055556,
+        "mean_post_reset_root_height_m": 0.3481188400958975
+      }
+    },
+    "graph_a1_reset123.json": {
+      "robot": "a1",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 5701,
+        "return": -11.701076995529766,
+        "length_s": 0.22323278391168863,
+        "progress_m": 0.0001710683136945764,
+        "survival": 0.0,
+        "progress_speed_m_s": 0.0007663225387282335,
+        "all_horizon_progress_speed_m_s": 0.0009074402080301525,
+        "saturation_fraction": 0.7345659722222222,
+        "mean_post_reset_root_height_m": 0.3471829805398981
+      }
+    },
+    "graph_a1_reset456.json": {
+      "robot": "a1",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 5700,
+        "return": -11.696509180403591,
+        "length_s": 0.22333919922510784,
+        "progress_m": -6.275125611034781e-05,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.00028096839394100106,
+        "all_horizon_progress_speed_m_s": -0.00019648223439219236,
+        "saturation_fraction": 0.7350672743055555,
+        "mean_post_reset_root_height_m": 0.34718839804331464
+      }
+    },
+    "graph_a1_reset789.json": {
+      "robot": "a1",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/graph_joint/best.pt",
+      "checkpoint_sha256": "efae89c745974e12fdbe4297ff3bb9a6de512d2e0e2c02ce6dbbbc76ffc8c05f",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "message_passing",
+      "standing_control": null,
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 5710,
+        "return": -11.69186849894749,
+        "length_s": 0.2230560597704296,
+        "progress_m": -0.0002468485524104437,
+        "survival": 0.0,
+        "progress_speed_m_s": -0.0011066659774430763,
+        "all_horizon_progress_speed_m_s": -0.0009864807253876506,
+        "saturation_fraction": 0.7345952690972222,
+        "mean_post_reset_root_height_m": 0.34735387747486435
+      }
+    },
+    "stand_a1_reset123.json": {
+      "robot": "a1",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": null,
+      "checkpoint_sha256": null,
+      "training_agents": [],
+      "imitation_steps": null,
+      "routing": "stand",
+      "standing_control": {
+        "kp": 25.0,
+        "kd": 0.5,
+        "feedback_dt": 0.0020833333333333333
+      },
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "status": "complete",
+      "metrics": {
+        "episodes": 331,
+        "return": 1.9464680240953798,
+        "length_s": 3.297432208439375,
+        "progress_m": -0.014836875040905714,
+        "survival": 0.1933534782818797,
+        "progress_speed_m_s": -0.004499523903154869,
+        "all_horizon_progress_speed_m_s": -0.005985210201470181,
+        "saturation_fraction": null,
+        "mean_post_reset_root_height_m": 0.2585630615303914
+      }
+    },
+    "stand_a1_reset456.json": {
+      "robot": "a1",
+      "seed": 456,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": null,
+      "checkpoint_sha256": null,
+      "training_agents": [],
+      "imitation_steps": null,
+      "routing": "stand",
+      "standing_control": {
+        "kp": 25.0,
+        "kd": 0.5,
+        "feedback_dt": 0.0020833333333333333
+      },
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "status": "complete",
+      "metrics": {
+        "episodes": 454,
+        "return": 0.8521676681902965,
+        "length_s": 2.403083863893795,
+        "progress_m": -0.013614090387237623,
+        "survival": 0.13656388114858828,
+        "progress_speed_m_s": -0.0056652581259391726,
+        "all_horizon_progress_speed_m_s": -0.006945191832346609,
+        "saturation_fraction": null,
+        "mean_post_reset_root_height_m": 0.26048328811923666
+      }
+    },
+    "stand_a1_reset789.json": {
+      "robot": "a1",
+      "seed": 789,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": null,
+      "checkpoint_sha256": null,
+      "training_agents": [],
+      "imitation_steps": null,
+      "routing": "stand",
+      "standing_control": {
+        "kp": 25.0,
+        "kd": 0.5,
+        "feedback_dt": 0.0020833333333333333
+      },
+      "actuation": "ideal effort plus 0.1 N m s/rad damping; no position drive or motor torque-speed curve",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/IsaacLab/Robots/Unitree/A1/a1.usd",
+      "action_scale": 1.0,
+      "joint_gears": {
+        ".*": 33.5
+      },
+      "termination_height": 0.21,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 2048,
+          "nconmax": 256,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        7
+      ],
+      "body_names": [
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot"
+      ],
+      "joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint"
+      ],
+      "descriptor_sha256": "6d1c78c1d8a98f142031b5b4ebf4b954bd44c95b8875018acb46c5c5c0164091",
+      "tokens": 66,
+      "actions": 12,
+      "status": "complete",
+      "metrics": {
+        "episodes": 379,
+        "return": 1.4744456257071532,
+        "length_s": 2.9115656665415752,
+        "progress_m": -0.014260567948320453,
+        "survival": 0.16886543653571195,
+        "progress_speed_m_s": -0.004897903596060564,
+        "all_horizon_progress_speed_m_s": -0.006523743751313304,
+        "saturation_fraction": null,
+        "mean_post_reset_root_height_m": 0.2593295378610492
+      }
+    },
+    "attention_ant_3_reset123.json": {
+      "robot": "ant_3",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot"
+      ],
+      "joint_names": [
+        "radial_0_leg",
+        "radial_0_foot",
+        "radial_1_leg",
+        "radial_1_foot",
+        "radial_2_leg",
+        "radial_2_foot"
+      ],
+      "descriptor_sha256": "a186f8dc98c3a1434543957e25642ffa0cc708d6ceae559437458f0ad6d40c73",
+      "tokens": 37,
+      "actions": 6,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 66,
+        "return": 84.21318400267398,
+        "length_s": 15.332323251348553,
+        "progress_m": 84.43440899704441,
+        "survival": 0.9393939393939394,
+        "progress_speed_m_s": 5.5069546612655715,
+        "all_horizon_progress_speed_m_s": 5.250282934308052,
+        "saturation_fraction": 0.22059678819444445,
+        "mean_post_reset_root_height_m": 0.5764595800638199
+      }
+    },
+    "attention_ant_4_reset123.json": {
+      "robot": "ant_4",
+      "seed": 123,
+      "worlds": 64,
+      "steps": 1200,
+      "schema": "newton-ant-mechanics-v1",
+      "versions": {
+        "torch": "2.12.0+cu130",
+        "newton": "1.6.1rc1",
+        "mujoco-warp": "3.12.0",
+        "warp-lang": "1.17.0",
+        "rsl-rl-lib": "5.5.1"
+      },
+      "target_training": false,
+      "checkpoint": "/home/mrakhsha/Documents/Repos/IsaacLab/logs/shared_ant_graph/imitation_20261007/attention_joint/best.pt",
+      "checkpoint_sha256": "0025c604c119f95c761f60e1583f77953d371def124498613ced36a7c0b41719",
+      "training_agents": [
+        "ant_3",
+        "ant_4"
+      ],
+      "imitation_steps": 6000,
+      "routing": "attention",
+      "standing_control": null,
+      "actuation": "source Ant actuation",
+      "asset": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.1/Isaac/Robots/IsaacSim/Ant/ant_instanceable.usd",
+      "action_scale": 0.5,
+      "joint_gears": {
+        ".*": 15.0
+      },
+      "termination_height": 0.31,
+      "reset_position_noise_rad": [
+        -0.2,
+        0.2
+      ],
+      "reset_velocity_noise_rad_s": [
+        -0.1,
+        0.1
+      ],
+      "step_dt": 0.016666666666666666,
+      "physics_config": {
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "launcher_type": null,
+        "deterministic": false,
+        "num_substeps": 1,
+        "collision_decimation": 0,
+        "debug_mode": false,
+        "use_cuda_graph": true,
+        "deterministic_mode": "not_guaranteed",
+        "solver_cfg": {
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "solver_type": "mujoco_warp",
+          "njmax": 200,
+          "nconmax": 100,
+          "iterations": 100,
+          "ls_iterations": 50,
+          "solver": "newton",
+          "integrator": "implicitfast",
+          "use_mujoco_cpu": false,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "default_actuator_gear": null,
+          "actuator_gears": null,
+          "update_data_interval": 1,
+          "save_to_mjcf": null,
+          "impratio": 1.0,
+          "cone": "pyramidal",
+          "ccd_iterations": 35,
+          "enable_multiccd": false,
+          "ls_parallel": false,
+          "use_mujoco_contacts": true,
+          "tolerance": 1e-06
+        },
+        "soft_contact_cfg": null,
+        "collision_cfg": null,
+        "default_shape_cfg": {
+          "margin": 0.0,
+          "gap": 0.01,
+          "ke": 2500.0,
+          "kd": 100.0,
+          "mu": 1.0
+        },
+        "load_visual_shapes": null,
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "bvh_constructor_gaussian": "cubql"
+      },
+      "source_sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2",
+      "shape_types": [
+        1,
+        3,
+        4
+      ],
+      "body_names": [
+        "torso",
+        "front_left_leg",
+        "front_left_foot",
+        "front_right_leg",
+        "front_right_foot",
+        "left_back_leg",
+        "left_back_foot",
+        "right_back_leg",
+        "right_back_foot"
+      ],
+      "joint_names": [
+        "front_left_leg",
+        "front_left_foot",
+        "front_right_leg",
+        "front_right_foot",
+        "left_back_leg",
+        "left_back_foot",
+        "right_back_leg",
+        "right_back_foot"
+      ],
+      "descriptor_sha256": "17526bf4046f380af275c8f764094daf9a7a3e937f1587fa31bbc3b71931e63c",
+      "tokens": 46,
+      "actions": 8,
+      "actor_and_normalization_unchanged": true,
+      "status": "complete",
+      "metrics": {
+        "episodes": 64,
+        "return": 78.28916612267494,
+        "length_s": 15.836720630526543,
+        "progress_m": 78.97983318567276,
+        "survival": 0.984375,
+        "progress_speed_m_s": 4.987133070557097,
+        "all_horizon_progress_speed_m_s": 4.8007526189088825,
+        "saturation_fraction": 0.16978841145833334,
+        "mean_post_reset_root_height_m": 0.6383149844904741
+      }
+    }
+  }
+}

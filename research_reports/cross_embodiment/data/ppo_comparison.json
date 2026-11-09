@@ -1,0 +1,176 @@
+{
+  "attention_canonical_seed42": {
+    "ant_3": {
+      "mean_speed_m_s": 1.2755454914940048,
+      "speed_range_m_s": [
+        1.2711865118660475,
+        1.2787349224090576
+      ],
+      "episodes": 193,
+      "mean_survival": 0.9948717948717949
+    },
+    "ant_4": {
+      "mean_speed_m_s": 2.346021720249694,
+      "speed_range_m_s": [
+        2.325822950856515,
+        2.369432122566563
+      ],
+      "episodes": 200,
+      "mean_survival": 0.9001959713851814
+    },
+    "dev_5": {
+      "mean_speed_m_s": 0.7255218227704366,
+      "speed_range_m_s": [
+        0.7225791215896606,
+        0.7311803698539734
+      ],
+      "episodes": 192,
+      "mean_survival": 1.0
+    }
+  },
+  "pooled_canonical_seed42": {
+    "ant_3": {
+      "mean_speed_m_s": 2.2903143715951435,
+      "speed_range_m_s": [
+        2.2845396995544434,
+        2.2969704127590633
+      ],
+      "episodes": 192,
+      "mean_survival": 0.9947916666666666
+    },
+    "ant_4": {
+      "mean_speed_m_s": 2.132490396499634,
+      "speed_range_m_s": [
+        2.1103429794311523,
+        2.1759636402130127
+      ],
+      "episodes": 192,
+      "mean_survival": 1.0
+    },
+    "dev_5": {
+      "mean_speed_m_s": 0.5580867528915405,
+      "speed_range_m_s": [
+        0.5498803853988647,
+        0.5728250741958618
+      ],
+      "episodes": 192,
+      "mean_survival": 1.0
+    }
+  },
+  "attention_diverse_seed42": {
+    "ant_3": {
+      "mean_speed_m_s": 1.0889728930053808,
+      "speed_range_m_s": [
+        1.0583000183105469,
+        1.1313026149444874
+      ],
+      "episodes": 194,
+      "mean_survival": 0.98989898989899
+    },
+    "ant_4": {
+      "mean_speed_m_s": 2.996183590337452,
+      "speed_range_m_s": [
+        2.993099082245877,
+        2.9979491233825684
+      ],
+      "episodes": 192,
+      "mean_survival": 0.9947916666666666
+    },
+    "dev_5": {
+      "mean_speed_m_s": 0.8746949632962545,
+      "speed_range_m_s": [
+        0.8475937843322754,
+        0.9093814492225647
+      ],
+      "episodes": 192,
+      "mean_survival": 1.0
+    }
+  },
+  "pooled_diverse_seed42": {
+    "ant_3": {
+      "mean_speed_m_s": 1.2532017027852638,
+      "speed_range_m_s": [
+        1.2328189483283858,
+        1.268682426686404
+      ],
+      "episodes": 217,
+      "mean_survival": 0.7463836928843968
+    },
+    "ant_4": {
+      "mean_speed_m_s": 3.109553654988607,
+      "speed_range_m_s": [
+        3.1032700538635254,
+        3.1166586875915527
+      ],
+      "episodes": 192,
+      "mean_survival": 1.0
+    },
+    "dev_5": {
+      "mean_speed_m_s": 0.45075799028078717,
+      "speed_range_m_s": [
+        0.4392109513282776,
+        0.4711538255214691
+      ],
+      "episodes": 192,
+      "mean_survival": 1.0
+    }
+  },
+  "message_passing_canonical_seed42": {
+    "ant_3": {
+      "mean_speed_m_s": 1.9197744131088257,
+      "speed_range_m_s": [
+        1.9018861055374146,
+        1.9362165927886963
+      ],
+      "mean_survival": 1.0,
+      "episodes": 192
+    },
+    "ant_4": {
+      "mean_speed_m_s": 2.479905692001622,
+      "speed_range_m_s": [
+        2.4712035301943116,
+        2.494147834598396
+      ],
+      "mean_survival": 0.9895833333333334,
+      "episodes": 192
+    },
+    "dev_5": {
+      "mean_speed_m_s": 1.2892383734385173,
+      "speed_range_m_s": [
+        1.2850807905197144,
+        1.2935853004455566
+      ],
+      "mean_survival": 1.0,
+      "episodes": 192
+    }
+  },
+  "message_passing_diverse_seed42": {
+    "ant_3": {
+      "mean_speed_m_s": 2.002160429954529,
+      "speed_range_m_s": [
+        1.919167160987854,
+        2.044687271118164
+      ],
+      "mean_survival": 1.0,
+      "episodes": 192
+    },
+    "ant_4": {
+      "mean_speed_m_s": 2.7877829869588218,
+      "speed_range_m_s": [
+        2.7741193771362305,
+        2.797018051147461
+      ],
+      "mean_survival": 1.0,
+      "episodes": 192
+    },
+    "dev_5": {
+      "mean_speed_m_s": 0.19686560332775116,
+      "speed_range_m_s": [
+        0.18567299842834473,
+        0.21922391653060913
+      ],
+      "mean_survival": 1.0,
+      "episodes": 192
+    }
+  }
+}

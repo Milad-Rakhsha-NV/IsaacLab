@@ -1,0 +1,98 @@
+{
+  "snapshot_date": "2026-10-07",
+  "git_head": "0a4c3c6014c49712142209e82b4ca52912898612",
+  "branch": "milad/research/multi-robot-learning",
+  "working_tree_note": "Research implementation includes uncommitted files; source hashes, not HEAD alone, identify this snapshot.",
+  "inputs": [
+    {
+      "source": "logs/shared_ant_graph/imitation_20261007/summary.json",
+      "snapshot": "data/imitation_summary.json",
+      "sha256": "6c264b451231a12f3e735b6e570ecabfff7bf987b22f787cfe8702185e971f2f"
+    },
+    {
+      "source": "logs/shared_ant_graph/imitation_20261007/protocol.json",
+      "snapshot": "data/imitation_protocol.json",
+      "sha256": "fd34e911d887e2eba28bbb54aeead7474483076fb2823f1b2b12afcaef31c771"
+    },
+    {
+      "source": "logs/shared_ant_graph/message_passing_20261006/comparison.json",
+      "snapshot": "data/ppo_comparison.json",
+      "sha256": "2de85df462c75056a55134d06c19e949177fa14a231f96e792020d1d6345fd4a"
+    },
+    {
+      "source": "logs/shared_ant_graph/mechanical_pilot_20261002/controls/summary.json",
+      "snapshot": "data/mechanical_controls.json",
+      "sha256": "75aa16b69e63deddcb6d5d20c5d8edad8485e9fddaf16ce355ad544703b0eec3"
+    },
+    {
+      "source": "CROSS_EMBODIMENT_RESEARCH_PLAN.md",
+      "sha256": "ea09d8027bf380efef4580fd46c06bfac4844fb878354b927381872256379aec",
+      "earlier_snapshot_hashes": [
+        "856634a0304dcb6a3d81896cce228ff0fba12750a46f678280c60d2e46a4abf3"
+      ]
+    },
+    {
+      "source": "MULTI_ROBOT_TRAINING_ARCHITECTURE.md",
+      "sha256": "d1b72a6008ea663e5b528469c79b69d93f2ba2d0509b178420846ffb5109f88d",
+      "earlier_snapshot_hashes": [
+        "9d7fb6572ba9a19d7adc28c61ecd0f08453b10fb1e66f649eb96c906fee2e34e"
+      ]
+    },
+    {
+      "source": "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_observations.py",
+      "sha256": "52813b4baa4232ae41413c81174b09960a99ef5163f56a884fcf36348a6cbeee"
+    },
+    {
+      "source": "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_policy.py",
+      "sha256": "01e0f2882fe6ac895407a1ab6ab356901073b9668ebaeebf31879bc10dc735a1"
+    },
+    {
+      "source": "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_env.py",
+      "sha256": "4db4be7b14c2ed42ea14d16d4aea880346fa7f0f6bfe1c06bba4d790b1d40fa2"
+    },
+    {
+      "source": "source/isaaclab_tasks/isaaclab_tasks/contrib/multi_robot_locomotion/mechanical_imitation.py",
+      "sha256": "12e9cd665d3d4daae33ad935c3d2e90e92e52348ec9bbf3c0a449297c3c4aa83"
+    },
+    {
+      "source": "scripts/tools/distill_mechanical_ant.py",
+      "sha256": "b72679f1474881126106d7897c12d06744da4c0d15e8c55063ba5de22423e4ad",
+      "earlier_snapshot_hashes": [
+        "df5bfcf9255d4fa02023374fdfa18e141e3ca1c3a2a67b1e7179289225f71fd0"
+      ]
+    },
+    {
+      "source": "logs/shared_ant_graph/other_robots_20261007/summary.json",
+      "snapshot": "data/transfer_summary.json",
+      "sha256": "4fda2e971a902f24a0a71dfbf9f1a90a270324ba162b25cf5330bffe3ae6e176"
+    },
+    {
+      "source": "logs/shared_ant_graph/other_robots_20261007/a1_stand_damping2_reset123.json",
+      "snapshot": "data/a1_standing_followup.json",
+      "sha256": "009fd07900d0183535bfe83217999caad9cff651058521181aadf7b259377bae"
+    },
+    {
+      "source": "scripts/tools/evaluate_mechanical_transfer.py",
+      "sha256": "a3fc1a1aa0a9cb41ebd5f9b399a34be920ac85df711c5cbeb9d8200abe9f77e2"
+    },
+    {
+      "source": "logs/shared_ant_graph/go2_learning_20261007/summary.json",
+      "snapshot": "data/go2_learning_summary.json",
+      "sha256": "6a51a1358091a189f7cba86d51f61ba03ef6430e7e193d68b4580ccf8b461898"
+    },
+    {
+      "source": "logs/shared_ant_graph/go2_learning_20261007/diagnostics.json",
+      "snapshot": "data/go2_diagnostics.json",
+      "sha256": "e43c6a5dbfb6608372bf1afad92fe909eb0ba4a7de008afb500e34075a7d3284"
+    },
+    {
+      "source": "scripts/tools/train_mechanical_go2.py",
+      "sha256": "bee77e7444234c25c14bb365a7a6e93c3d7f8ea013046b08fa64faa3ccce7de8"
+    },
+    {
+      "source": "scripts/tools/distill_mechanical_cross_family.py",
+      "sha256": "a287bacf81b7325fc2e4af6d4b45a623c1acc2fcb32d9dc5b2dfb32283a455f3"
+    }
+  ],
+  "latest_extension": "Completed Go2 source-learning comparison; existing training seed 42. Per-run snapshots identify historical code; current maintained-file hashes need not match older runs."
+}
