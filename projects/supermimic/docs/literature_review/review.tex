@@ -1,0 +1,103 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=24mm,headheight=15pt]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\allowdisplaybreaks[2]
+\usepackage{booktabs,tabularx,longtable,array,graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem,fancyhdr,titlesec,microtype}
+\usepackage[hyphens]{url}
+\usepackage[colorlinks=true,linkcolor=RoyalBlue,citecolor=RoyalBlue,urlcolor=RoyalBlue,
+ pdftitle={World Models, Contact Geometry, and Useful Policy Gradients},
+ pdfauthor={IsaacLab research literature review},bookmarksnumbered=true]{hyperref}
+\definecolor{ink}{HTML}{14263D}
+\definecolor{blue}{HTML}{2563EB}
+\definecolor{green}{HTML}{0F766E}
+\definecolor{orange}{HTML}{B45309}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\setlength{\emergencystretch}{3em}
+\renewcommand{\arraystretch}{1.15}
+\renewcommand{\tabularxcolumn}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlist{leftmargin=*,itemsep=0.25em,topsep=0.3em}
+\titleformat{\section}{\Large\bfseries\color{ink}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.7em}{}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small World models, contact geometry, and useful policy gradients}
+\fancyfoot[L]{\small\color{gray}Focused literature review / November 9, 2026}
+\fancyfoot[R]{\thepage}
+\newtcolorbox{keyidea}[1]{colback=blue!4,colframe=blue!60,title={#1},
+ fonttitle=\bfseries,boxrule=0.5pt,arc=2pt,breakable}
+\newtcolorbox{interpretation}[1]{colback=green!4,colframe=green!65,title={#1},
+ fonttitle=\bfseries,boxrule=0.5pt,arc=2pt,breakable}
+\newtcolorbox{limitation}[1]{colback=orange!4,colframe=orange!65,title={#1},
+ fonttitle=\bfseries,boxrule=0.5pt,arc=2pt,breakable}
+\newcommand{\R}{\mathbb R}
+\newcommand{\E}{\mathbb E}
+\newcommand{\sg}{\operatorname{sg}}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\newcommand{\TV}{D_{\mathrm{TV}}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\code}[1]{\texttt{\small\detokenize{#1}}}
+\newcommand{\loc}[1]{\par{\footnotesize\color{gray}\raggedright Source locator: #1.\par}}
+\newcommand{\Fsim}{F_{\mathrm{sim}}}
+\newcommand{\Fhat}{\widehat F_\phi}
+\newcommand{\Hhist}{\mathcal H}
+\newcommand{\Gtask}{\mathcal G}
+\newcommand{\policy}{\pi_\theta}
+\tikzset{box/.style={draw=blue!55,fill=blue!4,rounded corners=2pt,align=center,
+ minimum height=10mm,font=\small,inner sep=4pt},
+ arr/.style={-{Latex[length=2mm]},thick,draw=ink},
+ grad/.style={-{Latex[length=2mm]},thick,dashed,draw=orange}}
+\begin{document}
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+\vspace*{12mm}
+{\color{blue}\large A FOCUSED MATHEMATICAL LITERATURE REVIEW}\par
+\vspace{8mm}
+{\Huge\bfseries\color{ink}World Models,\\Contact Geometry,\\and Useful Policy Gradients}\par
+\vspace{8mm}
+{\Large From learned motion dynamics to adaptation under new contacts}\par
+\vspace{10mm}
+\begin{keyidea}{The research question}
+How much additional interaction is needed to adapt a motion-pretrained world
+model to new contact geometry, and what model structure makes its gradients
+useful for control?
+\end{keyidea}
+\vspace{5mm}
+This review develops one notation, examines eleven selected papers, and separates
+three questions: predicting physical outcomes, obtaining useful optimization
+directions, and transferring knowledge to a new environment.
+\par
+\vspace{6mm}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+Coverage & Foundational work from 2018--2022 and directly relevant work from 2025--2026\\
+Recent anchors & PWM, DMO, RWM-U, SuperMimic, $\nabla$Mimic, and WM-LOCO\\
+Foundations & PETS, MBPO, Dreamer, ContactNets, and SHAC\\
+Scope & Robot dynamics, contact structure, policy learning, terrain information,
+and measurable adaptation cost\\
+Prepared & November 9, 2026\\
+\end{tabularx}
+\vfill
+{\small Primary papers are cited with version and section/equation locators.
+Mathematics is restated in a common notation rather than copied verbatim.
+Critical interpretations, illustrative derivations, and proposed experiments
+are explicitly distinguished from published findings. No new training result
+or claim of novelty is asserted by this review.}
+\end{titlepage}
+\hypersetup{pageanchor=true}
+\tableofcontents
+\clearpage
+\input{sections/framework.tex}
+\input{sections/foundations.tex}
+\input{sections/gradient_methods.tex}
+\input{sections/recent_robotics.tex}
+\input{sections/synthesis.tex}
+\input{sections/appendices.tex}
+\input{references.tex}
+\end{document}

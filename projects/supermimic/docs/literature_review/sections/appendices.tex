@@ -1,0 +1,156 @@
+\section{Reading priorities and conclusions to keep provisional}
+For the research question, read SuperMimic to understand the source-model
+opportunity, PWM to understand models as optimization interfaces, DMO to
+separate forward error from backward error, and WM-LOCO to understand the closest
+terrain-aware humanoid setting. Then use ContactNets to reason about structure
+and $\nabla$Mimic to reason about gradient handling. RWM-U, PETS, MBPO, Dreamer,
+and SHAC supply the complementary uncertainty, rollout, representation, and
+value-learning principles.
+
+The strongest provisional hypothesis is that a motion-trained model supplies a
+useful initialization, but the benefit depends on explicit geometry information
+and on preserving useful sensitivities near newly encountered contacts. That
+hypothesis has not been demonstrated by the proposed experiments in this review.
+
+The evidence does not justify an a priori interaction count, a guarantee that
+structured models require less data, or a universal claim that exact or learned
+gradients are better. It does justify experiments that isolate those mechanisms.
+The paper-specific formulations and the experimental design should be used as a
+map for testing, not as a substitute for new measurements.
+
+\appendix
+\section{Symbol crosswalk to the original papers}\label{app:crosswalk}
+The mathematical roles stay fixed in this review even when a paper reuses a
+letter for a different network. This table is a navigation aid, not a claim that
+the complete state representations are equivalent.
+\begin{longtable}{@{}L{0.17\linewidth}L{0.37\linewidth}L{0.38\linewidth}@{}}
+\toprule Paper & Original role / notation & This review\\\midrule\endhead
+PETS & Physical $s$; model $f_\theta$ & Physical $x$; transition $\widehat P_\phi$\\
+MBPO & Model $p_\theta$; rollout length $k$ & $\widehat P_\phi$; $h_{\rm roll}$\\
+Dreamer & Representation $p_\theta$ & Posterior $\mathsf q_\phi$\\
+Dreamer & Transition $q_\theta$ & Prior $\mathsf p_\phi$\\
+Dreamer & Action $q_\varphi$; value $v_\psi$ & Actor $\pi_\theta$; value $V_\psi$\\
+ContactNets & Geometry parameters $\theta$; impulses $\lambda$ & Geometry/model $\phi$; impulses $j$\\
+SHAC & Value $V_\varphi$; target $V_{\varphi'}$ & $V_\psi$; $V_{\bar\psi}$\\
+SHAC & Short horizon $h$, full task horizon $H$ & Optimization window $H$; task horizon stated separately\\
+PWM & Task embedding $e$ & Task embedding $w$, distinct from terrain encoding $e_t$\\
+DMO & State $s$; model $\hat f_\varphi$ & State $x$; model $\Fhat$\\
+RWM-U & Uncertainty penalty coefficient $\lambda$ & $\beta_U$, distinct from lambda returns\\
+SuperMimic & Model weights $\omega$; survival $c_t$ & Model $\phi$; cumulative survival $C_t$\\
+SuperMimic & Reward $r_{t+1}$ & Transition-associated reward $r_t$\\
+$\nabla$Mimic & Action cotangent $g_i$; target $y_i$ & $b_i$; physical setpoint target $u_i^{\rm target}$\\
+$\nabla$Mimic & Critic $V_\varphi$ & Critic $V_\psi$\\
+WM-LOCO & Memory $h_t$; stochastic state $z_t$ & Memory $m_t$; stochastic state $\ell_t$\\
+WM-LOCO & Velocity command $c_t$ & Part of task-goal input $g_t$\\
+WM-LOCO & Observation feature $e_t$ & $f_t^o$, distinct from environment encoding $e_t$\\
+WM-LOCO & Predictive feature projection $g_\psi$ & $\mathcal P_\theta$, assigned to the policy role\\
+\bottomrule
+\end{longtable}
+In particular, $\phi$ never denotes the actor merely because an original paper
+uses that letter. A latent state $z$ also never silently becomes the physical
+robot state $x$. When a single objective is applied to either, its placeholder
+$y$ is explicitly defined.
+
+\section{Primary-source audit and version sensitivity}\label{app:sources}
+The accompanying \code{source_manifest.json} records the exact downloaded PDF
+URLs, file sizes, and SHA-256 hashes. Source PDFs and copied paper figures are
+not redistributed. All figures in this review are synthetic explanations or
+original diagrams.
+
+\begin{longtable}{@{}L{0.17\linewidth}L{0.27\linewidth}L{0.48\linewidth}@{}}
+\toprule Paper & Reviewed version & Main verification location\\\midrule\endhead
+PETS & arXiv 1805.12114v2 & Sections 4--5: model distributions, ensemble fitting, particle planning\\
+MBPO & arXiv 1906.08253v3 & Sections 4--5: bounds versus practical short-rollout algorithm\\
+Dreamer & arXiv 1912.01603v3 & Sections 2--4: latent components, actor/value returns, reconstruction\\
+ContactNets & arXiv 2009.11193v2 & Section 4: learned geometry and impulse-consistency losses\\
+SHAC & arXiv 2204.07137v1 & Section 3.2 and Algorithm 1: windows, critic, target update\\
+PWM & arXiv 2407.02466v3 & Section 3.3: pretraining and first-order policy extraction\\
+DMO & CoRL 2025 PMLR PDF & Section 3 and Appendix A.1.3: forward/backward decoupling\\
+RWM-U & arXiv 2504.16680v3 & Sections 3--4: recurrent predictions, uncertainty, MOPO-PPO\\
+SuperMimic & arXiv 2610.28480v1 & Sections 3.1--3.3: online fitting, context, soft-survival imagination\\
+$\nabla$Mimic & arXiv 2610.41654v1 & Sections 4--6 and 8: clipping, targets, derivative semantics, limitations\\
+WM-LOCO & arXiv 2609.02542v2 & Section II: RSSM and PPO conditioning; terrain/reward evaluation\\
+\bottomrule
+\end{longtable}
+
+RWM-U's reviewed 2026 version revises its 2025 preprint. WM-LOCO's second version
+also changes the experimental presentation relative to its first version. Claims
+must be read from the cited version rather than assembled from incompatible
+abstracts or web summaries.
+
+For reproduction, check implementation details not resolved by a compact paper
+equation: normalization, unit conversions, terminal bootstrapping, uncertainty
+scalarization, gradient clipping placement, and whether a learned feature is
+detached during a policy update. A sum of losses does not by itself specify
+every module's gradient routing.
+
+\section{Unified algorithm templates}\label{app:algorithms}
+These templates are review-level reconstructions. They express the different
+information and derivative paths, not line-for-line reproductions of source code.
+
+\subsection{Fully imagined pathwise policy update}
+\begin{enumerate}
+\item Sample real replay starts and infer any required latent/history state.
+\item Hold model weights fixed. For $H$ steps, construct the current task and
+environment inputs, evaluate the actor, predict the successor, and compute reward
+and continuation. Advance reference and environment queries consistently.
+\item Add a value tail; backpropagate into actor parameters through model
+operations and state-dependent inputs.
+\item Detach the resulting value targets and fit the critic. Fit the model in
+its own supervised phase using real transitions.
+\end{enumerate}
+The model is fixed within the actor update, not necessarily throughout training.
+The critic loss being small does not validate the imagined dynamics.
+
+\subsection{Simulator-forward, learned-model-backward update}
+\begin{enumerate}
+\item Run the current policy in the physical simulator and record actual states.
+\item At each visited input, evaluate the learned transition and install a
+forward-value correction such as Equation~\eqref{eq:dmo}.
+\item Differentiate the simulator-valued return using those learned local
+derivatives. Train the critic on simulator-valued rewards and states.
+\item Count the simulator trajectory transitions in the interaction budget;
+update the model from executed transitions separately.
+\end{enumerate}
+This removes imagined forward drift, not local derivative error.
+
+\subsection{Predictive-feature PPO update}
+\begin{enumerate}
+\item Infer predictive recurrent memory from actual observations and past actions.
+\item Give a projected memory feature to the actor and collect simulator rollouts.
+\item Compute PPO advantages and the clipped policy objective from those rollouts.
+\item Train predictive heads and latent dynamics on sequences with their model
+loss. Verify cross-module gradient routing in the chosen implementation.
+\end{enumerate}
+The presence of a predictive latent simulator does not make this a pathwise
+policy-gradient method through imagined transitions.
+
+\subsection{Planning or synthetic-data control}
+PETS-style control evaluates candidate action sequences under model uncertainty,
+executes one action, and replans. MBPO-style learning creates short synthetic
+transition branches and uses them in a separate actor--critic learner. Both use
+forward predictions without requiring a policy gradient through a chain of
+transition Jacobians.
+
+\section{A worksheet for reading future papers}
+For a new paper, fill in the following before comparing its score with ours:
+\begin{enumerate}
+\item What information is supplied to the model, actor, and critic separately?
+Does the geometry exist in those inputs?
+\item Is the predicted state physical, latent, or an observation history? Is it
+sufficient for the task, or only a useful approximation?
+\item What advances a rollout: physical simulation, a transition mean, samples,
+or an observation-conditioned posterior?
+\item What exactly is differentiated to update the actor? Where are gradients
+stopped, clipped, replaced, or approximated?
+\item What supervises each predictive head? Are analytic rewards distinguished
+from learned rewards?
+\item Which parameters are reused, frozen, or adapted across environments?
+What target interaction is actually counted?
+\item Does the evaluation test complete tasks and held-out contact geometry,
+or only training instances and short prefixes?
+\item Can architecture size, reward shaping, privileged information, or a
+pretrained policy explain the apparent model benefit?
+\end{enumerate}
+This worksheet preserves the common mathematical comparison even when future
+papers use new terminology for familiar components.

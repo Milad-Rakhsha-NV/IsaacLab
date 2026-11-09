@@ -1,0 +1,277 @@
+\section{PETS: uncertainty-aware dynamics for planning}\label{sec:pets}
+\textbf{Chua et al., 2018.} Deep Reinforcement Learning in a Handful of Trials
+using Probabilistic Dynamics Models~\cite{pets}.
+\loc{Sections 4--5; probabilistic ensembles, trajectory sampling, and MPC}
+
+\subsection{Reported mechanism in common notation}
+PETS fits bootstrapped probabilistic neural dynamics models and propagates
+particles through them to evaluate candidate action sequences. Model differences
+represent epistemic uncertainty; each model's predicted distribution represents
+transition uncertainty. Control uses sampling-based model predictive control,
+executing the first selected action and replanning. This is a model-based
+planning method, not policy BPTT through a learned simulator.
+
+For model index $b=1,\ldots,B$, the normalized predictive form is
+\begin{align}
+\widehat P_{\phi_b}(x'\mid x,a)&=\mathcal N\big(x+\mu_{\phi_b}(x,a),
+\Sigma_{\phi_b}(x,a)\big),\\
+L_b&=\E_{\mathcal D_b}\left[
+(\Delta x-\mu_b)^T\Sigma_b^{-1}(\Delta x-\mu_b)+\log\det\Sigma_b\right].
+\end{align}
+Constants and a common factor of one half are omitted. $\mathcal D_b$ is a
+bootstrap sample; the covariance is diagonal in the neural parameterization.
+Particle propagation and the finite planning objective can be written
+\begin{align}
+\hat x_{k+1}^{(p)}&\sim\widehat P_{\phi_{b_{p,k}}}(\cdot\mid\hat x_k^{(p)},a_k),\\
+a_{t:t+H-1}^{*}&\approx\arg\max_{a_{t:t+H-1}}
+\frac1P\sum_p\sum_{k=0}^{H-1}\gamma^k r(\hat x_k^{(p)},a_k),\\
+a_t^{\rm execute}&=a_t^*.
+\end{align}
+Resampling ensemble identity across steps and retaining it along a particle
+are different trajectory-sampling choices. The latter preserves a coherent
+model hypothesis through a rollout.
+
+\subsection{What the formulation exposes}
+For an equally weighted ensemble, the law of total variance gives
+\begin{equation}\label{eq:ensemblevariance}
+\operatorname{Var}(x')=\frac1B\sum_b\Sigma_b
++\frac1B\sum_b(\mu_b-\bar\mu)(\mu_b-\bar\mu)^T.
+\end{equation}
+The first term describes spread inside a model; the second describes disagreement
+between models. A deterministic network with an uncertainty score bolted onto
+its output is therefore not equivalent to this construction.
+
+Equation~\eqref{eq:ensemblevariance} is a useful design lens, not a calibration
+guarantee. If every model ignores a stair riser, all can agree on the same wrong
+prediction. If geometry is missing from the input, variance can instead represent
+different unobserved environments producing different outcomes. Measuring that
+spread does not tell the controller where the obstacle actually is.
+
+There is also a control distinction. Candidate-action search can evaluate
+sequences across different predicted outcomes without using $\partial\Fhat/\partial a$.
+A derivative-based policy can fail even when such a planner succeeds, or vice
+versa. Comparing them distinguishes model quality from gradient usability.
+
+\subsection{Relevance to adaptation and a discriminating experiment}
+Use an ensemble as an uncertainty baseline for the new-geometry problem. On
+held-out stair contacts, measure whether disagreement ranks actual prediction
+errors and failed control updates. Report reliability curves by contact type,
+not just a global correlation. In particular, test examples with unseen riser
+height and examples with an unseen collision orientation separately.
+
+An uncertainty-gated controller should be compared with an ungated controller
+under the same interaction budget, including any extra samples the gate requests.
+The research question is whether uncertainty identifies when additional contact
+data is useful. Calling the ensemble ``uncertainty aware'' alone does not answer it.
+
+\section{MBPO: controlling the amount of model-generated experience}\label{sec:mbpo}
+\textbf{Janner et al., 2019.} When to Trust Your Model: Model-Based Policy
+Optimization~\cite{mbpo}.
+\loc{Sections 4--5; practical algorithm and branched-rollout analysis}
+
+\subsection{Reported mechanism in common notation}
+MBPO learns an ensemble transition/reward model from real experience, starts
+short model rollouts from replay states, and trains a model-free policy using
+the generated transitions. The practical implementation uses SAC. Its central
+choice is the amount of model usage, rather than differentiating a policy through
+many learned transition steps. Real collection and model learning continue online.
+
+Let $\mathcal D_{\rm real}$ and $\mathcal D_{\rm model}$ denote replay sources:
+\begin{align}
+x_0&\sim\mathcal D_{\rm real},\quad a_k\sim\policy(\cdot\mid\hat x_k),\\
+(\hat x_{k+1},\hat r_k)&\sim\widehat P_\phi^{x,r}(\cdot\mid\hat x_k,a_k),
+\qquad 0\le k<h_{\rm roll},\\
+\mathcal D_{\rm model}&\leftarrow\mathcal D_{\rm model}\cup
+\{(\hat x_k,a_k,\hat r_k,\hat x_{k+1})\}.
+\end{align}
+The superscript $x,r$ explicitly denotes a joint state/reward predictor;
+$\widehat P_\phi$ without it continues to mean the state-transition distribution.
+A soft actor--critic update on the chosen replay mixture has the standard skeleton
+\begin{align}
+y_t&=r_t+\gamma c_t\E_{a'\sim\policy}
+\left[\min_iQ_{\bar\psi_i}(x_{t+1},a')-\alpha\log\policy(a'\mid x_{t+1})\right],\\
+L_Q&=\sum_i\E\big[Q_{\psi_i}(x_t,a_t)-\sg(y_t)\big]^2,\\
+L_\pi&=\E_{x,a\sim\policy}\left[\alpha\log\policy(a\mid x)-\min_iQ_{\psi_i}(x,a)\right].
+\end{align}
+The actor differentiates through the critic's action input, not through a chain
+of $\Fhat$ Jacobians. These equations express the estimator distinction; they
+do not reproduce every replay or target-update hyperparameter.
+
+\subsection{An original coupling argument for short rollouts}
+The following is a review derivation, not MBPO's published policy-improvement
+theorem. Fix a policy, environment, and initial-state distribution. For this argument only, use the same
+bounded current-state reward $|r(x,a)|\le R_{\max}$ in both systems and assume a
+uniform transition error $\TV(P,\widehat P)\le\varepsilon$ on every visited input.
+Couple the two trajectories so each step remains matched with probability at
+least $1-\varepsilon$. By a union bound,
+\begin{equation}
+\Pr[x_t\ne\hat x_t]\le\min(1,t\varepsilon).
+\end{equation}
+When the states disagree, their rewards differ by at most $2R_{\max}$, giving
+\begin{equation}\label{eq:coupling}
+|J_H-\widehat J_H|\le2R_{\max}\sum_{t=0}^{H-1}\gamma^t\min(1,t\varepsilon).
+\end{equation}
+If a learned reward also has uniformly bounded error $\varepsilon_r$, add
+$\varepsilon_r\sum_t\gamma^t$. The difficult premise is uniform error on visited
+inputs; an average replay loss does not provide it. Starting near real states
+reduces initial distribution mismatch but does not certify the rest of the rollout.
+For deterministic point transitions, total variation can already equal one
+whenever the next states differ, however small their Euclidean separation.
+Thus this stochastic-transition illustration is not a bound obtained by plugging
+a state MSE into Equation~\eqref{eq:coupling}.
+
+\subsection{Relevance to the research question}
+After transfer to a stair scene, the trusted horizon may shrink specifically near
+edges while remaining longer in free swing. That motivates testing horizon choice
+against contact-conditioned validation, rather than automatically retaining the
+flat-ground horizon.
+
+An MBPO-style baseline is particularly informative because it can use the same
+adapted model without depending on its transition derivatives. If synthetic-data
+learning works but BPTT does not, a possible explanation is derivative quality
+rather than missing predictive information. The comparison must still match
+state/action distributions and count extra simulator interaction fairly.
+
+\section{Dreamer: latent state inference and differentiable imagination}\label{sec:dreamer}
+\textbf{Hafner et al., ICLR 2020.} Dream to Control: Learning Behaviors by
+Latent Imagination~\cite{dreamer}.
+\loc{Sections 2--3, Equations 1--8; Section 4, reconstruction objective}
+
+\subsection{Reported mechanism in common notation}
+The original Dreamer learns recurrent latent dynamics from images and rewards,
+then learns actions and values inside imagined latent trajectories. Its action
+optimization uses differentiable imagined values. This review concerns the
+original continuous-control Dreamer, not every later method with that name.
+Its original posterior $p_\theta$ becomes $\mathsf q_\phi$ here; original prior
+$q_\theta$ becomes $\mathsf p_\phi$; original actor parameters $\phi$ become $\theta$.
+
+An RSSM representation can be expressed as
+\begin{align}
+m_t&=f_\phi(m_{t-1},\ell_{t-1},a_{t-1}),\\
+\ell_t&\sim\mathsf q_\phi(\ell_t\mid m_t,\mathcal E_\phi(o_t)),
+\quad\hat\ell_t\sim\mathsf p_\phi(\ell_t\mid m_t),\\
+\hat o_t&\sim p_\phi(o_t\mid z_t),\quad
+\hat r_t\sim p_\phi(r_t\mid z_t),\quad z_t=(m_t,\ell_t).
+\end{align}
+In the reconstruction formulation, the minimized negative-ELBO form is
+\begin{equation}
+L_{\rm WM}=\E\sum_t\left[-\log p_\phi(o_t\mid z_t)-\log p_\phi(r_t\mid z_t)
++\beta\KL\big(\mathsf q_\phi(\ell_t\mid m_t,o_t)\|\mathsf p_\phi(\ell_t\mid m_t)\big)\right].
+\end{equation}
+The posterior incorporates evidence; the prior must advance without the next
+image. Imagined actor training therefore starts at inferred states and then uses
+the transition prior. For lambda returns $Y_t$ in Equation~\eqref{eq:lambda},
+\begin{equation}
+\max_\theta\E\sum_tY_t,\qquad
+\min_\psi\E\sum_t\big[V_\psi(z_t)-\sg(Y_t)\big]^2.
+\end{equation}
+Gradients through $Y_t$ are retained for the actor and stopped for value fitting.
+Continuous stochastic variables permit the reparameterization
+\begin{equation}
+\ell=\mu_\phi+\sigma_\phi\odot\epsilon,\qquad
+a=\tanh\big(\mu_\theta(z)+\sigma_\theta(z)\odot\eta\big),
+\quad\epsilon,\eta\sim\mathcal N(0,I).
+\end{equation}
+This displays the sampling-gradient mechanism, not every source-specific
+constraint on the networks producing means and scales. The sampled noise is
+held fixed in an individual backward evaluation.
+
+\subsection{Why posterior reconstruction is not a rollout test}
+The posterior has access to $o_t$. A good reconstruction can arise because the
+encoder directly supplies the missing information at every step. During imagined
+control, those future observations do not exist. The transition prior, not the
+observation-conditioned posterior, must maintain the useful state.
+
+For stair adaptation, evaluate open-loop predictions initialized from one
+posterior state, then propagate only actions and the prior. Compare errors at
+touchdown and occlusion with posterior reconstruction errors. A gap between the
+two identifies a failure of predictive state rather than image decoding alone.
+
+The latent state also need not be a geometrically explicit map. A compact memory
+can encode enough terrain information to choose an action while still being
+unsuitable for checking foot clearance or contact constraints. Conversely,
+forcing all pixels to reconstruct can allocate capacity to appearance details
+that are unimportant for control. The useful representation is a testable
+task-dependent property, not implied by the name ``world model.''
+
+\subsection{An action-sensitivity test for a latent representation}
+One possible review-level diagnostic is to compare two action sequences from
+the same inferred state. If they lead to different support outcomes in physics,
+the prior should preserve a corresponding distinction in predicted rewards,
+geometry-relevant outputs, or controller values. Otherwise the latent model may
+represent appearance while erasing the intervention that matters.
+
+This is especially important during transfer. A previously useful latent
+compression may discard vertical surfaces because they were irrelevant in the
+source scene. Reusing its weights is reasonable as initialization, but freezing
+the encoder can restrict the information available to any later controller.
+
+\section{ContactNets: learn contact structure rather than smooth state averages}\label{sec:contactnets}
+\textbf{Pfrommer, Halm, and Posa, CoRL 2020.} ContactNets: Learning
+Discontinuous Contact Dynamics with Smooth, Implicit Representations~\cite{contactnets}.
+\loc{Sections 3--4; Equations 8--17}
+
+\subsection{Reported mechanism in common notation}
+ContactNets assumes known contact-free dynamics and learns geometric/contact
+quantities from state transitions. Signed distances and contact Jacobians
+parameterize discontinuous impulses through a mechanics-based resolver.
+Training optimizes a contact-consistency loss over unobserved impulses, rather
+than differentiating a next-state MSE through the discontinuous forward solve.
+Friction is absorbed into the learned tangential parameterization. Original
+contact impulses $\lambda$ are denoted $j$ here, avoiding conflict with lambda returns.
+
+Let $d_{\phi,i}(q)$ be learned signed distance and
+\begin{equation}
+J^n_{\phi,i}(q)=\nabla_qd_{\phi,i}(q)\,\Gamma(q),\qquad
+b^{\rm obs}=M(q)(v'-v)-\Delta t\,f_{\rm free}(x,u).
+\end{equation}
+The tangential Jacobian $J^\tau_\phi$ is parameterized under the paper's
+geometric assumptions; it is not universally the gradient of a scalar distance.
+For one observed transition, define the following normalized costs:
+\begin{align}
+L_1(j)&=\norm{\sum_iJ_{\phi,i}^Tj_i-b^{\rm obs}}^2,\\
+L_2(j)&=\sum_i d_{\phi,i}(q')^2\norm{j_i}^2,\\
+\tilde v'(j)&=v+M^{-1}\left(\Delta t\,f_{\rm free}+\sum_iJ_{\phi,i}^Tj_i\right),\\
+\tilde d'_i(j)&=d_{\phi,i}(q)+\Delta t\,J^n_{\phi,i}(q)\tilde v'(j),\\
+L_3(j)&=\sum_i\min(0,\tilde d'_i(j))^2,\\
+L_4(j)&=\sum_i\norm{\norm{J^\tau_{\phi,i}v'}j_i^\tau+j_i^nJ^\tau_{\phi,i}v'}^2,\\
+L_{\rm CN}(\phi)&=\E_{\mathcal D}\min_{\substack{j_i^n\ge0\\\norm{j_i^\tau}\le j_i^n}}
+\sum_{k=1}^{4}L_k(j).
+\end{align}
+The unit friction cone follows the absorbed-friction convention. Predictive
+dynamics are subsequently generated by the contact resolver, not by identifying
+the training optimizer's impulses with a universal feedforward impulse network.
+
+\subsection{Interpreting the structure}
+$L_1$ explains the observed net contact impulse. $L_2$ discourages impulses
+away from surfaces. $L_3$ penalizes predicted penetration, and $L_4$ expresses
+a frictional dissipation residual. The observed $q'$ fixes geometric quantities
+while the inner optimization searches for compatible impulses. At fixed learned
+geometry this inner identification problem has useful convex structure; the
+neural parameter-learning problem is not thereby globally convex.
+
+The important representation principle is that smooth geometric functions can
+parameterize a discontinuous transition. This differs from requiring a smooth
+MLP to directly approximate every state jump. The transition may still have
+mode boundaries, and differentiating a resulting controller is a separate issue
+from learning a physically plausible contact description.
+
+\subsection{What transfers to our problem, and what does not}
+For a G1 with known robot geometry, it may be unnecessary to learn every signed
+distance from scratch. A first comparison can supply exact static terrain
+geometry and learn only uncertain contact parameters or residual effects. This
+isolates the value of mechanics structure from visual reconstruction and
+geometry identification.
+
+Known mass and contact-free dynamics are substantive assumptions. If they are
+wrong, a learned contact term can compensate for inertia or actuator errors and
+lose its intended physical interpretation. A contact-structured model must
+therefore be tested under controlled identification errors, not simply declared
+more transferable than a state MLP.
+
+The relevant experiment compares additional target data needed by an unstructured
+conditioned model and a structured contact model, holding environmental inputs
+and known physics constant. A reduction in penetration alone is insufficient:
+the model must also support actual successful control updates. ContactNets is
+the structural precedent, not evidence that this humanoid adaptation result
+has already been demonstrated.

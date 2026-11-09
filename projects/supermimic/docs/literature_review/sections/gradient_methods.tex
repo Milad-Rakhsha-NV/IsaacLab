@@ -1,0 +1,202 @@
+\section{SHAC: short differentiable windows with a value tail}\label{sec:shac}
+\textbf{Xu et al., ICLR 2022.} Accelerated Policy Learning with Parallel
+Differentiable Simulation~\cite{shac}.
+\loc{Section 3.2, Equations 5--7, Algorithm 1, and Appendix A.1}
+
+\subsection{Reported mechanism in common notation}
+SHAC optimizes a policy through short parallel simulator rollouts, adding a
+critic bootstrap beyond the window. Windows continue across training updates;
+gradients are cut between windows. A reparameterized stochastic policy enables
+pathwise differentiation. A target value network supports the actor update,
+and a lambda-return critic is fitted from sampled simulator trajectories.
+The transition derivatives come from the selected differentiable simulator,
+not a learned world model.
+
+With $a_t=\mu_\theta(x_t)+\sigma_\theta(x_t)\odot\epsilon_t$ for a fixed noise
+realization, the normalized short-window objective is
+\begin{align}
+x_{t+1}&=\Fsim(x_t,a_t),\\
+L_\pi&=-\frac1{BH}\sum_{b=1}^B\left[
+\sum_{t=0}^{H-1}\gamma^t r_t^{(b)}+\gamma^HV_{\bar\psi}(x_H^{(b)})\right],\\
+L_V&=\E\big[V_\psi(x_t)-\sg(Y_t)\big]^2,\\
+\bar\psi&\leftarrow\rho\bar\psi+(1-\rho)\psi.
+\end{align}
+The last equation expresses Polyak averaging in parameter form. Terminal
+trajectories require special reset and bootstrap handling; concatenating a reset
+state into a physical derivative chain is not the intended update.
+
+\subsection{Why the critic changes the gradient problem}
+For a one-step window with deterministic action, the action sensitivity includes
+\begin{equation}
+\nabla_a\big[r(x,a)+\gamma V_\psi(\Fsim(x,a))\big]
+=r_a+\gamma F_a^T\nabla_xV_\psi(x').
+\end{equation}
+The learned value supplies a direction associated with longer-term outcomes
+without requiring a long physical Jacobian chain. This shortens differentiation
+but introduces dependence on the critic's quality. It does not make difficult
+contact branches disappear.
+
+Freezing the target critic's weights still allows its state derivative. Cutting
+the simulator chain at a window boundary is different from removing all
+derivatives inside the window. Increasing $H$ trades a smaller fraction of
+bootstrapped return for a longer, potentially unstable derivative product.
+Thus a value tail and horizon selection are coupled design decisions.
+
+\subsection{How to use SHAC as a research control}
+A simulator-gradient method answers whether learning the transition function
+is helpful for a particular optimization problem. It is not automatically the
+correctness oracle: its derivative is that of its numerical contact model,
+and a local active-set derivative need not describe a finite change in contact mode.
+
+If a contact-structured learned model beats this baseline, isolate why. Is its
+forward prediction better for the evaluated physics? Is the gradient smoother?
+Is the model enabling a larger batch or more updates per second? Or does the
+critic behave differently? Match these factors before attributing a result to
+the model's physical structure.
+
+For a new staircase, known simulator geometry may require no learned dynamics
+adaptation, while the policy still needs training. That is a valuable comparison
+to the total interaction and compute cost of adapting a learned model. A later
+failure of a particular SHAC recipe on G1 tracking should not be generalized
+to every SHAC task or simulator.
+
+\section{PWM: pretrained latent dynamics as an optimization interface}\label{sec:pwm}
+\textbf{Georgiev et al., ICLR 2025.} PWM: Policy Learning with Multi-Task
+World Models~\cite{pwm}.
+\loc{Section 3, Equations 4 and 6--10, Algorithm 1, and Appendix C}
+
+\subsection{Reported mechanism in common notation}
+PWM pretrains a task-conditioned latent world model and extracts policies by
+first-order optimization through imagined rollouts. Its model uses latent
+consistency and reward prediction, with SimNorm regularization. Actor training
+uses a short return plus a value tail; critics use lambda returns. The method
+emphasizes optimization properties of a learned model, rather than prediction
+accuracy alone. Optional subsequent online fine-tuning is distinct from the
+initial offline policy-extraction phase.
+
+Let $w$ be the learned task embedding, which is not a terrain map. The normalized
+state inference and training form is
+\begin{align}
+z_0&=\mathcal E_\phi(x_0,w),\qquad
+\hat z_{k+1}=\mathcal F_\phi(\hat z_k,a_k,w),\\
+L_{\rm WM}&=\E_{\mathcal D}\sum_k\gamma^k\left[
+\norm{\hat z_{k+1}-\sg(\mathcal E_\phi(x_{k+1},w))}^2
++\operatorname{CE}\big(p_\phi^r(\cdot\mid\hat z_k,a_k,w),T(r_k)\big)\right].
+\end{align}
+$T$ denotes the log-space categorical reward target. Policy extraction optimizes
+Equation~\eqref{eq:shortobjective} with $y=z$ and learned rewards. The paper uses
+three value estimators; this is not an ensemble of transition models.
+
+For groups $u^{(i)}$ in a latent vector, SimNorm is
+\begin{equation}
+\operatorname{SimNorm}(u)=\operatorname{concat}_i
+\operatorname{softmax}(u^{(i)}).
+\end{equation}
+The model uses MLPs with LayerNorm and Mish, with SimNorm on encoder and
+transition outputs. These architecture choices belong to PWM; they should not
+be silently substituted for another paper's network specification.
+
+\subsection{What regularization can and cannot guarantee}
+Each normalized group lies on a probability simplex. Its Jacobian is
+\begin{equation}
+J_{\rm softmax}=\operatorname{diag}(p)-pp^T.
+\end{equation}
+This controls the local response of that particular operation and bounds its
+output representation. The entire model also contains linear maps and nonlinear
+composition, so simplex-valued features alone are not a guarantee of accurate,
+small, or useful physical transition sensitivities.
+
+There are at least three separate properties to test: state prediction error,
+gradient variability, and the actual return achieved after applying an update.
+A low-variance gradient that consistently points toward a wrong optimum is not
+a good controller-training signal. Likewise, a larger modeling error can coexist
+with a useful finite-scale optimization direction. The synthetic construction
+in Section~\ref{sec:common} demonstrates why these quantities are logically separate.
+
+\subsection{Relevance to motion-pretrained transfer}
+PWM is the closest conceptual precedent for treating an existing world model as
+a resource from which to learn a new controller. But a task embedding can index
+training tasks without encoding the spatial geometry of a new staircase. Reusing
+a latent model requires testing whether the new interactions remain representable,
+not merely attaching a new task ID.
+
+For our question, compare a plain latent/state model and a regularized one with
+matched target-data budgets. Hold forward error approximately comparable where
+possible, then measure finite-update utility and stability near new contacts.
+An improvement would help distinguish beneficial optimization structure from
+simply fitting more data with a larger network.
+
+The comparison should include online adaptation. Offline source data may contain
+many motions while containing no riser impacts. An actor optimized entirely in
+that model can select unsupported actions. A successful extraction result on a
+covered task does not quantify the additional contact experience required to
+make the new task covered.
+
+\section{DMO: real forward trajectories with learned backward sensitivities}\label{sec:dmo}
+\textbf{Amigo et al., CoRL 2025.} First Order Model-Based RL through Decoupled
+Backpropagation~\cite{dmo}.
+\loc{Section 3.2; Appendix A.1.3, PyTorch decoupling implementation}
+
+\subsection{Reported mechanism in common notation}
+DMO generates forward trajectories with a simulator and computes backward
+sensitivities through a learned dynamics model evaluated along those trajectories.
+Its variants combine this construction with finite-window BPTT, SHAC, or SAPO.
+Model fitting uses replay transitions; value targets use simulator trajectories.
+The forward/backward separation removes compounding model prediction errors
+from the rollout values, while retaining learned transition derivatives.
+The paper includes physical Go2 locomotion demonstrations.
+
+Let $x_{t+1}^{\rm sim}$ be a non-differentiable simulator result. A normalized
+stop-gradient construction is
+\begin{equation}\label{eq:dmo}
+\tilde x_{t+1}=\sg(x_{t+1}^{\rm sim})+
+\Fhat(\tilde x_t,a_t)-\sg\big(\Fhat(\tilde x_t,a_t)\big).
+\end{equation}
+Algebraically the forward value is $x_{t+1}^{\rm sim}$; automatic differentiation
+assigns the derivatives
+\begin{equation}
+\frac{\partial\tilde x_{t+1}}{\partial\tilde x_t}=\widehat F_x,
+\qquad\frac{\partial\tilde x_{t+1}}{\partial a_t}=\widehat F_a.
+\end{equation}
+For a Gaussian transition mean/covariance, the normalized maximum-likelihood
+fit is the negative log likelihood in Equation~\eqref{eq:nll}. DMO-SHAC then
+uses the simulator-valued objective
+\begin{equation}
+J_H^{\rm DMO}=\E\left[\sum_{t<H}\gamma^t r(x_t^{\rm sim},a_t)
++\gamma^HV_\psi(x_H^{\rm sim})\right]
+\end{equation}
+with the backward rule in Equation~\eqref{eq:dmo}. DMO-BPTT omits the value tail;
+the entropy-regularized variant adds its policy-entropy and critic machinery.
+
+\subsection{Why this is a particularly important control experiment}
+Suppose a fully imagined stair rollout diverges after an incorrectly predicted
+toe collision. All later states, rewards, and actor observations can then be
+evaluated in the wrong contact regime. DMO instead evaluates the next local
+model sensitivity at a simulator state. This separates forward distribution
+drift from backward model error.
+
+It does not make the learned Jacobians exact. A model can have a poor derivative
+at an accurate simulator state, and products of those poor derivatives can
+remain misleading. The update is a surrogate-gradient estimator: stop-gradient
+algebra does not turn it into the true mathematical derivative of the simulator
+return as a function of the actions.
+
+The construction also changes the cost model. A learned rollout can generate
+additional hypothetical states without additional simulator interaction. DMO
+uses simulator transitions for its forward windows. An adaptation comparison
+must count those transitions and their compute time rather than treating the
+backward model as a source of free forward data.
+
+\subsection{A diagnostic experiment suggested by this separation}
+Use the same learned model, starting states, policy, reward, and horizon in
+two updates: one fully imagined and one simulator-forward/model-backward.
+Evaluate the resulting policy changes in the simulator. If the decoupled update
+works while the imagined one fails, forward rollout drift is implicated. If both
+fail despite good one-step predictions, investigate local sensitivities, value
+targets, or the task objective.
+
+Neither comparison alone proves that a structured contact model is necessary.
+Repeat it with both a plain conditioned model and a structured model. This
+crossed design identifies whether structure improves forward accuracy, backward
+utility, or both. It directly informs the proposed contact-transfer question
+without requiring a differentiable simulator.

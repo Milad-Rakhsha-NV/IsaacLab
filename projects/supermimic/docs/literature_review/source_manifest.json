@@ -1,0 +1,79 @@
+[
+  {
+    "key": "pets",
+    "title": "PETS",
+    "url": "https://arxiv.org/pdf/1805.12114v2",
+    "sha256": "7dbf3c65ece763384258a60f5f4b26d7b849ad80765ed77435c4861f9583219c",
+    "bytes": 4020485
+  },
+  {
+    "key": "mbpo",
+    "title": "MBPO",
+    "url": "https://arxiv.org/pdf/1906.08253v3",
+    "sha256": "89d12b6142a285e541f6315a8911db469bea33514f3b80bdbe6e52439197b149",
+    "bytes": 3668344
+  },
+  {
+    "key": "dreamer",
+    "title": "Dreamer",
+    "url": "https://arxiv.org/pdf/1912.01603v3",
+    "sha256": "318891d59ba0065f57eb0e735735700e5eb528f53bf08b81c773437385586c64",
+    "bytes": 1999946
+  },
+  {
+    "key": "contactnets",
+    "title": "ContactNets",
+    "url": "https://arxiv.org/pdf/2009.11193v2",
+    "sha256": "4ecfd58daa97ea33a6e13dcc8cd327d1136d78ec88542e2a2cf45bfab18893b8",
+    "bytes": 1448958
+  },
+  {
+    "key": "pwm",
+    "title": "PWM",
+    "url": "https://arxiv.org/pdf/2407.02466v3",
+    "sha256": "ffb9b70145c79757d3efae7d722e3070295db56685fc762f8cc71cc711404ff5",
+    "bytes": 14852766
+  },
+  {
+    "key": "dmo",
+    "title": "DMO",
+    "url": "https://raw.githubusercontent.com/mlresearch/v305/main/assets/amigo25a/amigo25a.pdf",
+    "sha256": "4f3881b3e3314c67450e6a2401f063efb4bcdd0730ff760c8c78070b38c91c35",
+    "bytes": 5132707
+  },
+  {
+    "key": "supermimic",
+    "title": "SuperMimic",
+    "url": "https://arxiv.org/pdf/2610.28480v1",
+    "sha256": "fe213017ab062f4acc3965da89abd3c29969163e144a2628a662b8ce46691009",
+    "bytes": 3524904
+  },
+  {
+    "key": "nablamimic",
+    "title": "NablaMimic",
+    "url": "https://arxiv.org/pdf/2610.41654v1",
+    "sha256": "85d4b2b17ea38560b95eb84bd789b957210c8bf546724d3f833432512c659fa7",
+    "bytes": 522327
+  },
+  {
+    "key": "wmloco",
+    "title": "WM-LOCO",
+    "url": "https://arxiv.org/pdf/2609.02542v2",
+    "sha256": "408417613fa82582b63bf92db27b520edf26d56991f8afe98b451fa259341654",
+    "bytes": 2405640
+  },
+  {
+    "key": "shac",
+    "title": "SHAC",
+    "url": "https://arxiv.org/pdf/2204.07137v1",
+    "sha256": "dd31f40f762b9914a70a0fb8e65c95ece28b427bc1a42bb9605402c00f233a09",
+    "bytes": 13313276
+  },
+  {
+    "key": "rwmu",
+    "title": "RWM-U",
+    "url": "https://arxiv.org/pdf/2504.16680v3",
+    "sha256": "b0906b92791f4bf4c1b0758c1a53ce1ab1fb62baee1e556995b34c8fb7e74ddb",
+    "bytes": 39972099
+  }
+]

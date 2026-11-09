@@ -1,0 +1,363 @@
+\section{Cross-paper comparison: do not collapse the design choices}\label{sec:comparison}
+\subsection{Where forward states and actor updates come from}
+\begin{longtable}{@{}L{0.16\linewidth}L{0.25\linewidth}L{0.26\linewidth}L{0.25\linewidth}@{}}
+\toprule Method & Forward data for control learning & Policy update route & Model's main role\\\midrule\endhead
+PETS & Predicted physical-state particles & Action-sequence search & Uncertainty-aware planning\\
+MBPO & Short model branches from real replay & SAC actor--critic & Synthetic transition data\\
+Dreamer & Predicted latent trajectories & Differentiated imagined values & Latent inference and imagination\\
+ContactNets & Mechanics-based contact transitions & No single policy-learning recipe & Structured contact identification\\
+SHAC & Differentiable simulator windows & Pathwise simulator gradient & Known numerical dynamics\\
+PWM & Predicted task-conditioned latents & Pathwise model gradient & Pretrained optimization interface\\
+DMO & Simulator trajectories & Learned model Jacobians backward & Local sensitivity approximation\\
+RWM-U & Predicted observation histories & PPO with uncertainty penalty & Offline neural simulator\\
+SuperMimic & Predicted robot states from replay starts & Pathwise model gradient & Online shared motion dynamics\\
+$\nabla$Mimic & Specialized simulator windows & Clipped action gradients and target regression & Simulator adjoint, no learned dynamics\\
+WM-LOCO & Simulator interaction; predictive recurrent memory & PPO actor--critic & Terrain-aware predictive context\\
+\bottomrule
+\end{longtable}
+The entries separate algorithmic routes; they are not a performance ranking.
+A method can share an RSSM with another while using a different actor estimator.
+It can also share a short-horizon value-tail objective while obtaining derivatives
+from a different source.
+
+\subsection{The evidence relevant to geometry adaptation}
+\begin{longtable}{@{}L{0.16\linewidth}L{0.40\linewidth}L{0.36\linewidth}@{}}
+\toprule Method & Relevant evidence in the reviewed work & Transfer question still requiring a test\\\midrule\endhead
+PETS & Uncertainty-aware planning on control benchmarks & Does disagreement detect unseen robot--terrain interactions?\\
+MBPO & Short model branches for online control learning & How should trusted horizon change at new contacts?\\
+Dreamer & Visual control from latent imagination & Does a source representation preserve new support geometry?\\
+ContactNets & Contact identification from real transitions & Does structure lower humanoid target-data cost?\\
+SHAC & Differentiable locomotion/control benchmarks & What remains when learned-model bias is removed?\\
+PWM & Regularized model-based policy extraction & Does source-model optimization structure survive a geometry shift?\\
+DMO & Simulation benchmarks and Go2 locomotion deployment & Is target failure caused by forward drift or local sensitivities?\\
+RWM-U & Offline robotic policy learning and deployment & When does caution need to become new-data collection?\\
+SuperMimic & Broad motion tracking and G1 deployment & How much dynamics knowledge transfers beyond source contacts?\\
+$\nabla$Mimic & Simulator-gradient G1 tracking & Do finite contact-changing updates remain useful on new terrain?\\
+WM-LOCO & Visual humanoid traversal of constrained footholds & Does motion pretraining improve data-to-success or model gradients?\\
+\bottomrule
+\end{longtable}
+These questions are review interpretations, not claims that every paper attempted
+and failed the same experiment. The cited tasks, observations, rewards, hardware,
+seed counts, and clocks differ. No common sample-efficiency leaderboard can be
+constructed from their headline scores alone.
+
+\subsection{Three axes that should remain independent}
+\begin{enumerate}
+\item \textbf{Information}: physical state, proprioceptive history, camera/depth,
+known geometry, and hidden material context.
+\item \textbf{Representation}: state residuals, recurrent latents, ensemble
+predictions, or mechanics/contact structure.
+\item \textbf{Optimization}: sampling-based planning, model-generated data,
+pathwise imagined return, decoupled gradients, or model-conditioned PPO.
+\end{enumerate}
+A new method changes a scientifically identifiable component only if the other
+axes are controlled or their effects are measured. A large recurrent vision
+policy with new foothold rewards is not a clean comparison to a small
+proprioceptive motion tracker on a different objective.
+
+\section{The precise research gap and what would count as an answer}\label{sec:gap}
+\subsection{Define the source and target distributions}
+Let $\mathcal D_S$ be source transitions collected during motion tracking on
+flat ground, and $\phi_0$ the resulting learned model. A target environment is
+sampled from a declared distribution $E\sim\mathcal E_T$, such as stairs with
+specified ranges of riser height, step depth, orientation, and approach pose.
+Material parameters $\xi$ are initially held fixed to isolate geometry.
+Motion pretraining here means fitting executed state--action--successor
+transitions collected during tracking. Reference poses alone do not identify
+the physical consequences of intervening with different motor commands.
+
+After $N$ additional executed target transitions,
+\begin{equation}
+\phi_N=\operatorname{Adapt}(\phi_0,\mathcal D_S,\mathcal D_T^{(N)}),\qquad
+\theta_N=\operatorname{Improve}(\theta_0,\phi_N,\mathcal D_T^{(N)}).
+\end{equation}
+This notation does not assume that model and policy adaptation happen in two
+separate phases. They can alternate. It does require that the counted target
+interaction includes all data collection induced by either process.
+
+For a fixed held-out target test distribution, define
+\begin{equation}
+\mathcal S(N)=\Pr[\text{successful task completion under }\pi_{\theta_N}],\qquad
+N_\tau=\inf\{N:\operatorname{LCB}(\mathcal S(N))\ge\tau\}.
+\end{equation}
+$\operatorname{LCB}$ is a declared confidence lower bound, and $\tau$ is a
+preselected success target. If the budget is exhausted first, $N_\tau$ is
+unreached/censored, not the final budget labeled as a success.
+
+\subsection{Why the literature does not give a universal interaction count}
+Changing the target geometry's range changes what has to be learned. Supplying
+an exact map removes a perception problem that a depth-only agent must solve.
+Initializing a competent policy can make data collection much easier. Reward
+shaping can turn a sparse task into a dense one. Different simulator integration
+rates also make a raw ``step'' count ambiguous.
+
+The defensible answer is therefore a curve $\mathcal S(N)$ plus its experimental
+conditions, not an unsupported prediction such as ``a few thousand samples
+should be enough.'' An interaction count without source coverage, target
+distribution, and a controller specification is not a transferable result.
+
+Report both adaptation and total data cost:
+\begin{equation}
+N_{\rm total}=N_{\rm pre}+\sum_{j=1}^{J}N_{\rm new}^{(j)},\qquad
+N_{\rm amortized}=N_{\rm pre}/J+\frac1J\sum_jN_{\rm new}^{(j)}.
+\end{equation}
+Amortization across $J$ target tasks is a legitimate motivation, but it should
+not hide pretraining cost when comparing with a from-scratch learner.
+
+\subsection{Separate geometry, material, and task transfer}
+\begin{tabularx}{\linewidth}{@{}lXX@{}}
+\toprule Shift & First controlled example & New information potentially needed\\
+\midrule
+Geometry & One step, then varying stairs & Surface locations, normals, feasible support\\
+Material & Same stair shape with varied friction & History-dependent material inference or supplied $\xi$\\
+Interaction & Hands on a rail or moving objects & New contact pairs and object state/constraints\\
+Task & Tracking versus climb-to-goal & Goals, reward, termination, and value adaptation\\
+\bottomrule
+\end{tabularx}
+This ordering is a proposed research progression. It is not a claim that a
+height map can represent every later interaction. A two-and-a-half-dimensional
+terrain map can be useful for stairs while failing to represent overhangs or a
+handrail's full geometry.
+
+\subsection{What would be a substantive contribution?}
+Possible findings include a reproducible reduction in target interaction for
+fixed success, an explanation of which source motions provide reusable contact
+coverage, or a structure/regularizer that improves actual update utility without
+simply increasing model size or privileged information.
+
+Adding an ensemble, residual adapter, or terrain encoder is not by itself a
+new scientific contribution. Those ingredients have precedents. The contribution
+would be the measured transfer behavior and a convincing explanation of why it
+occurs under new contact geometry. This focused selection also does not prove
+novelty against every adjacent paper; a final priority search remains necessary
+before making a publication claim.
+
+\section{Model structures worth comparing}\label{sec:structures}
+\subsection{Conditioned state model: the minimal baseline}
+The smallest informative extension is
+\begin{equation}
+\hat x_{t+1}=\operatorname{Integrate}\big(x_t,
+\delta_\phi(x_t,a_t,e_t,\xi)\big).
+\end{equation}
+The terrain query is evaluated consistently along the predicted pose. Start with
+known geometry and state measurements, so prediction errors cannot be blamed
+on a camera or state estimator. This baseline tests whether initialization and
+conditioning already deliver most of the transfer benefit.
+
+A zero-initialized new conditioning pathway can preserve the old model's initial
+behavior while exposing terrain information. Preservation of outputs is not
+evidence that those outputs are correct on stairs; it is a controlled starting
+condition for adaptation.
+
+\subsection{A residual adapter in the correct state coordinates}
+An alternative keeps a pretrained prediction and learns a correction:
+\begin{align}
+\delta_N(x,a,e)&=\delta_{\phi_0}(x,a)+\delta_{\phi_A}^{\rm corr}(x,a,e),\\
+\hat x'&=\operatorname{Integrate}(x,\delta_N).
+\end{align}
+The adapter has its own parameters $\phi_A$; they are trainable dynamics
+parameters, not a critic. Corrections should be applied in a valid residual or
+tangent representation rather than added directly to quaternion coordinates.
+
+The base already contains flat-ground contact responses. The adapter may need
+to \emph{cancel} an incorrect old collision prediction as well as add a new one.
+It is not automatically a clean decomposition into universal robot physics plus
+environment forces. Compare frozen-base adaptation, partial unfreezing, and
+full fine-tuning with explicit trainable-parameter and compute budgets.
+
+\subsection{Known mechanics with learned contact effects}
+Use known mass, actuation, and robot geometry with a terrain query, then learn
+contact quantities or unknown corrections:
+\begin{equation}
+v'=v+M^{-1}\left[\Delta t\,f_{\rm free}(x,\mathcal U(a))
++J(q,E)^Tj_\phi(x,a,e,\xi)\right].
+\end{equation}
+The function producing $j_\phi$ could be an implicit resolver, a constrained
+network, or a learned residual around a known solver. These are different
+models and must not be represented by the same vague label ``physics informed.''
+
+Potential advantages are reuse of known geometry and fewer physically impossible
+predictions. Potential disadvantages include wrong free dynamics, contact-set
+discovery, computational expense, and unstable derivatives of the resolver.
+Known structure can move the difficulty rather than eliminate it.
+
+\subsection{Recurrent or latent variants}
+If the target is partially observed, a recurrent state can represent hidden
+velocities, contact history, or material context. This adds a belief-estimation
+problem to dynamics adaptation. A strong first experiment should compare it
+with a fully observed geometry-conditioned model, not change observations and
+model class simultaneously.
+
+Stochastic latents and ensembles can describe ambiguity, but they do not supply
+missing geometric observations. A unimodal conditional mean can be physically
+implausible when unobserved contact outcomes are multimodal. A more expressive
+distribution may represent those alternatives without identifying which one is
+actually present; planning and data collection must then use that uncertainty.
+
+\section{What makes a gradient useful?}\label{sec:gradientutility}
+\subsection{Forward error and sensitivity error have different recurrences}
+On a region where a fixed-policy transition has Lipschitz constant $L$, a
+one-step forward error bound $\varepsilon_F$, with
+$\varepsilon_t^x=\norm{\hat x_t-x_t}$, gives
+\begin{equation}
+\varepsilon_{t+1}^x\le L\varepsilon_t^x+\varepsilon_F.
+\end{equation}
+This is a local smooth-region argument, not a contact-mode-independent theorem.
+For policy sensitivity $S_t=D_\theta x_t$, write
+$A_t=F_x+F_aA_x$ and $B_t=F_aA_\theta$. Along aligned evaluation points,
+\begin{align}
+S_{t+1}&=A_tS_t+B_t,\\
+\norm{\hat S_{t+1}-S_{t+1}}&\le\norm{\hat A_t}\norm{\hat S_t-S_t}
++\norm{\hat A_t-A_t}\norm{S_t}+\norm{\hat B_t-B_t}.
+\end{align}
+The second line is a direct norm inequality derived for this review. If the
+models visit different points, those distribution differences also enter the
+Jacobian mismatch. A state-fit bound alone does not bound the last two terms.
+
+\subsection{Local derivatives can miss contact-changing moves}
+Consider the synthetic one-dimensional unilateral template
+$x'=\max(0,a)$ with target reward $-(x'-x^*)^2$. For $a<0$, the local derivative
+is zero even though a large enough positive action change can improve the target.
+A softplus surrogate supplies a nonzero direction, but changes forward outcomes
+and can be optimistic. This is a toy constraint map, not a G1 stair simulation.
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{figures/contact_gradient.pdf}
+\caption{Synthetic review illustration. A useful finite change can cross a mode
+boundary even when a local derivative is zero. Smoothing can create a direction
+while introducing bias. Neither curve is an empirical contact benchmark.}
+\end{figure}
+
+Not every contact event produces an unbounded derivative. Some yield bounded
+but discontinuous derivatives, others a zero local sensitivity, and some
+geometric singularities produce extreme values. A method designed only to
+clip explosions does not address all three cases.
+
+\subsection{Finite-update utility should be measured directly}
+Let $d$ be a proposed policy update direction, normalized to a matched physical
+action change on a fixed probe distribution. Measure
+\begin{align}
+\Delta J_{\rm sim}(\epsilon,d)&=J_{\rm sim}(\theta+\epsilon d)-J_{\rm sim}(\theta),\\
+D_{\epsilon}(d)&=\frac{J_{\rm sim}(\theta+\epsilon d)-J_{\rm sim}(\theta-\epsilon d)}{2\epsilon}.
+\end{align}
+The second quantity is a finite-change score. At contact boundaries it should
+not be advertised as an exact derivative. Sweep $\epsilon$ over meaningful
+action scales and use matched starting states, noise realizations, and terrain
+instances to reduce comparison variance.
+
+Useful summaries include the fraction of predicted improvements that improve
+actual return, the gain at a fixed action-change budget, and agreement between
+predicted and observed improvement. Report these separately for contact events,
+free motion, and contact-mode changes. A cosine against a tiny finite difference
+alone is insufficient.
+
+\subsection{A critic is part of the optimization model}
+Poor value extrapolation can make an accurate dynamics model look bad, and a
+good critic can compensate for a short horizon. Freeze or standardize the critic
+where feasible in diagnostic comparisons, then test full joint learning.
+Separate failures caused by transition prediction, transition sensitivities,
+reward representation, continuation, and tail value.
+
+For example, compare an identical rollout with an analytic task reward and a
+learned reward head. If their gradients differ near a support transition, the
+problem may be reward prediction rather than the transition model. The same
+logic applies to differentiable termination surrogates.
+
+\section{A staged experimental program}\label{sec:experiments}
+\subsection{Stage 0: establish an auditable source baseline}
+Verify joint ordering, action units, state frames, geometry, reset behavior, and
+terminal successors. Evaluate the source tracker over full clips, not only short
+prefixes. Save exact model and policy checkpoints. Record source transitions,
+training compute, and evaluation settings before claiming transfer benefits.
+
+Our local motion model can be a source checkpoint for this study, but its
+existing five-second training evaluations and 20-second video prefixes do not
+establish a matched reproduction of published full-motion scores. That limitation
+should remain visible in any subsequent experiment report.
+
+\subsection{Stage 1: isolate prediction transfer on one known step}
+Use exact simulator geometry, fixed material parameters, and a single low step.
+Collect a declared set of approach, swing, touchdown, toe-strike, and recovery
+transitions. Keep a held-out set of contact situations, with entire trajectories
+separated from training rather than randomly splitting adjacent frames.
+
+Compare random initialization, full source-model fine-tuning, and a source model
+with a new terrain adapter. Train with the same target data at several budgets.
+Evaluate multistep state error, contact timing, surface penetration, support
+location, and sensitivity probes. Match normalization and input information.
+
+\subsection{Stage 2: separate world-model reuse from policy reuse}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule Condition & Dynamics initialization & Policy initialization\\\midrule
+A & Random & Random\\
+B & Motion pretrained & Random\\
+C & Random & Motion pretrained\\
+D & Motion pretrained & Motion pretrained\\
+\bottomrule
+\end{tabular}
+\end{center}
+Use the same target controller input, reward, geometry distribution, and reset
+curriculum. This factorial design distinguishes a better dynamics prior from
+a policy that simply collects better data. A frozen source model is an additional
+diagnostic, not necessarily a competitive final method.
+
+If an old policy is extended with new terrain inputs, specify how those inputs
+are initialized and which weights are trainable. Otherwise, an architecture
+change and a pretraining change are entangled.
+
+\subsection{Stage 3: cross structure with optimization route}
+For the most promising models, compare fully imagined BPTT, simulator-forward
+model-backward updates, and a model-generated-data or predictive-feature baseline.
+Use matched policy/value capacity when possible. A conventional terrain-aware
+PPO controller provides a model-free reference under the same task.
+
+Compare these routes within each model structure, rather than replacing both
+the controller and model simultaneously. A forward/backward comparison can
+identify rollout drift; a BPTT/PPO comparison can identify sensitivity dependence;
+a plain/structured comparison can identify representation effects.
+
+\subsection{Stage 4: introduce genuine distribution shifts}
+Expand from one step to held-out stair heights, step depths, orientations, and
+descent. Hold out combinations as well as individual parameter values. Then add
+depth-based terrain inference, occlusion, and material variation one at a time.
+Finally consider new contact bodies or moving objects.
+
+Always distinguish interpolation inside a randomized training range from
+extrapolation outside that range. A new terrain instance from the same generator
+is not the same transfer test as a new collision topology.
+
+\subsection{Measurement and accounting protocol}
+\begin{enumerate}
+\item Count transitions across all worlds. Include target warm-up, failures,
+resets that generate learning data, and simulator-forward gradient windows.
+Keep physics substeps and control transitions separate.
+Record evaluation interactions separately, including their cost when evaluation
+is used for selection or when reporting total robot interaction.
+\item Report data-to-success curves with multiple training seeds and separate
+terrain instances. Use a fixed evaluation protocol and confidence intervals.
+\item Report wall-clock time, model-update work, policy-update work, and
+pretraining cost alongside target interaction.
+\item Measure old-skill retention and new-task success, including failed runs.
+Do not select a favorable checkpoint using the final test set without reporting it.
+\item Report naturally distributed error and contact-balanced error. Average
+MSE can hide rare interactions that determine task success.
+\item Calibrate uncertainty and update-utility diagnostics on validation data;
+reserve separate tests for final claims.
+\end{enumerate}
+
+\subsection{What outcomes would change our beliefs?}
+If pretraining helps only when the policy is also pretrained, the evidence for
+reusable \emph{dynamics} knowledge is weaker than a combined-system gain suggests.
+If structure reduces physical violations but not data-to-success, it may be
+improving a secondary prediction metric rather than the controller's learning signal.
+
+If decoupled updates repair failures of imagined BPTT, prioritize forward model
+coverage and rollout trust. If neither works but model-conditioned PPO does,
+prioritize derivative quality or contact-mode exploration. If all methods fail
+with the same reference objective, first inspect the task specification.
+
+If a plain conditioned model fine-tunes as efficiently as a structured model,
+the additional structure has not justified its cost under that target distribution.
+Conversely, a benefit that persists across held-out contact geometries and matched
+data budgets is much stronger evidence than a single successful staircase video.

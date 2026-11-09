@@ -1,0 +1,320 @@
+\section{RWM-U: reuse offline robot data with uncertainty penalties}\label{sec:rwmu}
+\textbf{Li, Krause, and Hutter, 2025/2026.} Uncertainty-Aware Robotic World
+Model Makes Offline Model-Based Reinforcement Learning Work on Real Robots~\cite{rwmu}.
+\loc{Version 3, January 8, 2026; Sections 3.2 and 4; Equations 1--5}
+
+\subsection{Reported mechanism in common notation}
+RWM-U learns autoregressive observation dynamics from offline data. Gaussian
+prediction heads share recurrent features; disagreement estimates epistemic
+uncertainty. MOPO-PPO trains a policy on imagined rollouts with an uncertainty
+penalty. Its policy estimator is PPO, not BPTT through model Jacobians. The
+paper evaluates robotic manipulation and locomotion, including hardware.
+The latest reviewed version is a substantial revision of the 2025 preprint;
+the source version is important when checking claims.
+
+For a history $\Hhist_t$ containing observed or recursively predicted inputs,
+\begin{align}
+m_t&=f_\phi(\Hhist_t),\qquad
+\hat o_{t+1}^{(b)}\sim\mathcal N\big(\mu_{\phi_b}(m_t,a_t),\Sigma_{\phi_b}(m_t,a_t)\big),\\
+L_{\rm WM}&=\frac1{BK}\sum_b\sum_{k=1}^Kw_k
+\E_{\mathcal D}\left[-\log p_{\phi_b}(o_{t+k}\mid\widehat\Hhist_{t+k-1},a_{t+k-1})\right],\\
+\bar o_{t+1}&=\frac1B\sum_b\mu_b,\qquad
+\Sigma_{U,t+1}=\operatorname{Cov}_b(\mu_b),\\
+\tilde r_t&=r_t-\beta_U U_t.
+\end{align}
+$U_t$ denotes the scalar uncertainty score used by policy optimization; the
+paper's variance notation requires a scalar reduction in a practical reward.
+Its scaling and the observation normalization should be checked in code before
+reproduction. We do not invent an unreported component weighting here.
+
+Writing $\rho_t(\theta)=\policy(a_t\mid o_t)/\pi_{\theta_{\rm old}}(a_t\mid o_t)$,
+the normalized clipped PPO objective is
+\begin{equation}\label{eq:ppo}
+\max_\theta\E\left[\min\left(\rho_t(\theta)\widehat A_t,
+\operatorname{clip}(\rho_t(\theta),1-\epsilon,1+\epsilon)\widehat A_t\right)\right],
+\end{equation}
+where advantage targets use the penalized imagined reward. This explains the
+optimization route without reproducing all implementation coefficients.
+
+\subsection{The connection to pretrained-model reuse}
+An offline controller cannot correct its model by collecting new interaction
+while it improves. A penalty can discourage unsupported imagined behavior, but
+it cannot reveal a surface absent from both the data and inputs. If stair contact
+is not represented, the conservative solution may be to avoid the stair rather
+than learn to traverse it.
+
+For our question, this suggests separating two regimes. First, how far can a
+fixed model and fixed dataset support a new controller? Second, once additional
+contact data is allowed, which observations most efficiently expand that support?
+These should be measured as different experiments. A zero-additional-data
+result within an existing dataset is not equivalent to adaptation to a genuinely
+new contact distribution.
+
+Shared recurrent features can also induce correlated errors across prediction
+heads. Small disagreement does not rule out a common representation failure.
+Use independently initialized or independently trained models as a diagnostic
+comparison, and measure whether uncertainty predicts errors near new contacts.
+The purpose is to test calibration and coverage, not to assume that more ensemble
+members automatically provide a conservative bound.
+
+\subsection{A useful comparison with gradient-based methods}
+Use the same adapted dynamics and data with PPO in imagination and with pathwise
+actor optimization. This separates the value of more imagined data from the
+value of transition derivatives. Match the reward penalty and action coordinates;
+otherwise a difference may come from pessimism or exploration rather than the
+gradient estimator.
+
+An uncertainty penalty, an adaptive rollout horizon, and a request for new
+simulator data are three different responses to model ignorance. Their relative
+benefit is a research variable. RWM-U motivates the offline control baseline;
+it does not supply a measured data budget for our proposed source-to-target
+geometry shift.
+
+\section{SuperMimic: online dynamics shared across a motion library}\label{sec:supermimic}
+\textbf{Liao et al., 2026.} SuperMimic: Scaling Humanoid Whole-Body Control
+with One Differentiable World Model~\cite{supermimic}.
+\loc{Sections 3.1--3.3, Equations 1--3; Appendices A--B and D}
+
+\subsection{Reported mechanism in common notation}
+SuperMimic alternates simulator collection, autoregressive world-model fitting,
+and imagined policy/value updates. The deterministic model conditions on known
+simulation context $\xi$; sensor noise is added separately. The policy is goal
+conditioned. A motion encoder and shared decoder provide the control interface,
+while a critic bootstraps short imagined returns. Prediction heads can be
+learned or analytic. The original model weights $\omega$ become $\phi$ here.
+
+The reported general model interface becomes
+\begin{align}
+\hat x_{t+1}&=\Fhat(\hat x_t,a_t,\xi),\\
+\hat r_t&=\widehat R_\phi(\hat x_t,a_t,\Gtask_t),\qquad
+\bar{\hat o}_t=O_\phi(\hat x_t,\xi),\\
+\hat d_{t+1}&=D_\phi(\hat x_{t+1},\Gtask_t),\qquad
+a_t=\policy(\bar{\hat o}_t+\eta_t,g_t).
+\end{align}
+The reward index is shifted to our transition convention. With $K=8$ and logged
+executed actions, a normalized form of the fitting loss is
+\begin{equation}
+L_{\rm WM}=\E_{\mathcal D}\sum_{k=1}^{K}\left[
+\norm{\hat x_k-x_k}^2+(\hat r_{k-1}-r_{k-1})^2
++\norm{\bar{\hat o}_k-\bar o_k}^2+\operatorname{BCE}(\hat d_k,d_k)\right].
+\end{equation}
+Analytic heads have no trainable fitting term. State differences and scaling
+must be adapted to the chosen representation rather than interpreted as a
+universal quaternion-coordinate prescription.
+
+The actor uses $H=32$ and soft continuation,
+\begin{align}
+C_0&=1,\quad C_{t+1}=C_t(1-\hat d_{t+1}),\\
+\max_\theta\widehat J_H&=\E\left[\sum_{t<H}\gamma^tC_t\hat r_t
++\gamma^HC_HV_\psi(\hat x_H,g_H,\xi)\right].
+\end{align}
+Value targets are imagined lambda returns. Model parameters stay fixed during
+the actor backward pass, while their input Jacobians remain active.
+
+\subsection{What motion pretraining potentially buys}
+Many motion goals can share a physical transition function. This is the
+amortization opportunity: changing the desired motion changes actions and rewards,
+not the underlying fixed-scene mechanics. A source dataset containing diverse
+velocities, configurations, falls, and recoveries may therefore initialize a
+useful portion of target dynamics learning.
+
+That statement is a hypothesis about coverage, not an explicit factorization of
+network weights. A state MLP can mix actuator dynamics, flat-plane contact, and
+source-scene correlations. Neither motion diversity nor long rollout stability
+establishes correct behavior when a foot encounters an unseen vertical riser.
+
+Context $\xi$ is also not the same as spatial geometry. Friction, calibration,
+and center-of-mass variation can be supplied as episode parameters without telling
+the model where a step is. A model that conditions on physical randomization
+does not thereby become a terrain-aware model.
+
+\subsection{The actor interface is a second transfer problem}
+The normalized encoder--decoder form is
+\begin{equation}
+\zeta_t=E_\theta(g_t),\qquad
+a_t=D_\theta(\Hhist_t,\zeta_t).
+\end{equation}
+Here $\zeta_t$ is a goal embedding, while $u_t=\mathcal U(a_t)$ continues to mean
+the physical actuator command from Section~\ref{sec:notation}.
+An extension to new terrain might give the decoder an additional $e_t$ input.
+Whether to preserve, adapt, or expand the old goal representation is then an
+ablation, not something solved merely by fine-tuning $\phi$.
+
+Reference-consistent rewards matter too. A rigidly timed flat-ground reference
+may oppose valid stair motion, particularly root-height change or contact timing.
+One can use terrain-compatible references, or retain motion tracking as a soft
+prior while optimizing a new task reward. These alternatives should be compared
+with the same transition data.
+
+\subsection{Distinguish the paper from our implementation}
+Our local project is an implementation of the central training idea, not the
+authors' code. It uses a fixed-physics state model with analytic task calculations,
+and its world model has no terrain input. The paper's general context-conditioned
+formulation is broader than that local baseline. Our recorded short-prefix
+evaluations also do not reproduce a full-motion benchmark. This review does not
+use those local scores as evidence of published-method parity.
+
+\section{\texorpdfstring{$\nabla$Mimic}{NablaMimic}: stabilize simulator-derived policy updates}\label{sec:nablamimic}
+\textbf{Lu and Chen, 2026.} $\nabla$Mimic: Ultra-Efficient Humanoid Control
+with Differentiable Simulation~\cite{nablamimic}.
+\loc{Sections 4--6; Algorithm 1, Equations 4--5, and Section 8 limitations}
+
+\subsection{Reported mechanism in common notation}
+$\nabla$Mimic combines simulator adjoints with median-relative per-sample action
+cotangent clipping and repeated regression onto gradient-improved action targets.
+NablaEngine specializes the forward and adjoint computation to the G1. Training
+modifies problematic geometric derivatives and actuator sensitivities. The
+published engine supports flat ground; new terrain requires additional collision
+support. The method does not train a world model. Its main recipe uses a
+64-step window; the source clipping factor is $\kappa=3$.
+
+The forward window uses $x_{t+1}=\Fsim(x_t,a_t)$ and a value tail. To compare
+updates in physical units, let $u_i$ denote the commanded joint setpoint and
+$b_i=\partial J_H/\partial u_i$ its action cotangent. The normalized clipping and
+target construction is
+\begin{align}
+\nu_b&=\operatorname{median}_j\norm{b_j},\\
+\tilde b_i&=b_i\min\left(1,\frac{\kappa\nu_b}{\norm{b_i}}\right),\\
+s_b&=\left(\frac1{Nd_a}\sum_i\norm{\tilde b_i}^2\right)^{1/2},\\
+u_i^{\rm target}&=\sg\left(u_i+\delta\,\frac{\tilde b_i}{s_b}\right),\\
+L_{\rm regress}(\theta)&=\frac1N\sum_i
+\norm{\pi_\theta^u(\Hhist_i,g_i)-u_i^{\rm target}}^2,
+\quad\pi_\theta^u=\mathcal U\circ\policy.
+\end{align}
+Zero norms require the usual numerical convention. The source algorithm clips
+inside backward propagation and again on window action gradients; clipping only
+the final parameter gradient is not the same operation.
+
+\subsection{Why the update parameterization matters}
+Repeated regression reuses a window's gradient information without repeatedly
+re-evaluating an increasingly stale physical derivative. Targets stop pulling
+once the policy reaches them. The target step $\delta$ is a physical setpoint
+scale, rather than an unconstrained scalar multiplier of a potentially enormous
+gradient.
+
+For one batch using a common positive median and $\kappa\ge1$, at least half its
+clipped action-gradient norms are at least $\nu_b$. Thus
+\begin{equation}
+s_b\ge\frac{\nu_b}{\sqrt{2d_a}},\qquad
+\frac{\norm{u_i^{\rm target}-u_i}}{\sqrt{d_a}}
+\le\delta\kappa\sqrt2.
+\end{equation}
+This normalized bound assumes that common clipping scale; it should not be
+blindly applied across batches using different medians. It bounds targets, not
+the final nonlinear policy change after arbitrary optimizer steps.
+
+Rescaling coordinates changes gradient norms. If a normalized action maps to
+$u=Da+u_0$, then $\nabla_aJ=D^T\nabla_uJ$. Comparing raw action-gradient norms
+across controllers with different joint scales can therefore be meaningless.
+For our research, evaluate updates in common physical command units or matched
+physical effects.
+
+\subsection{What exactness does and does not mean}
+The relevant reference is the selected discrete simulator, with contact decisions
+held locally fixed where differentiated. It is not an exact derivative of a
+physical robot, and the practical training rules intentionally alter some
+sensitivities. Clipping also biases the update. These choices may improve
+control despite reducing formal derivative fidelity.
+
+The research implication is to measure useful update directions at the scale
+actually applied, not simply declare simulator gradients superior or learned
+gradients smoother. A terrain adaptation could improve a model's local derivative
+while making finite action changes across a contact boundary worse.
+
+\subsection{The open comparison for new geometry}
+Use the same target geometry, rewards, policy interface, and reset distribution
+when comparing simulator derivatives and model derivatives. First verify that
+the simulator supports the required contacts. Otherwise, an apparent failure of
+a gradient method is a forward collision-model limitation.
+
+For new stairs, clipping may manage extreme samples but cannot supply missing
+terrain observations or discover which new supports exist. Geometry, data
+coverage, and gradient conditioning remain separate requirements. The paper
+motivates a strong gradient-handling baseline; it does not settle the proposed
+motion-pretraining adaptation experiment.
+
+\section{WM-LOCO: predictive terrain context with a PPO controller}\label{sec:wmloco}
+\textbf{Liu et al., 2026.} World-Model-Augmented Visual Locomotion for
+Humanoids on Foothold-Constrained Terrain~\cite{wmloco}.
+\loc{Version 2, November 3, 2026; Section II, Equations 1--11; Sections III--V}
+
+\subsection{Reported mechanism in common notation}
+WM-LOCO jointly trains an RSSM from depth, proprioception, actions, and rewards,
+then feeds predictive recurrent features to a PPO actor--critic. Its prior
+supports action-conditioned rollouts, but the policy estimator is PPO rather
+than policy BPTT through those rollouts. Version 2 evaluates stairs, gaps,
+stepping stones, and balance beams in simulation and on G1 hardware. It starts
+joint training without world-model pretraining.
+
+The paper's deterministic memory becomes $m$, discrete stochastic state becomes $\ell$,
+and commanded velocity becomes part of $g_t$. To keep the clocks explicit,
+let $t$ index 50 Hz control and $n$ index 10 Hz model updates at $\tau_n=5n$.
+Let $\mathbf a_{n-1}$ denote the executed-action information between model updates:
+\begin{align}
+f_n^o&=\mathcal E_\phi(o_{\tau_n}^{\rm prop},o_{\tau_n}^{\rm depth}),\\
+m_n&=f_\phi(m_{n-1},\ell_{n-1},\mathbf a_{n-1}),\\
+\ell_n&\sim\mathsf q_\phi(\cdot\mid m_n,f_n^o),\quad
+\hat\ell_n\sim\mathsf p_\phi(\cdot\mid m_n),\\
+(\hat o_{\tau_n}^{\rm prop},\hat o_{\tau_n}^{\rm depth},\hat r_{\tau_n})&=D_\phi(m_n,\ell_n).
+\end{align}
+The representation of the intervening action information is an implementation
+detail, not an assumption that one control action lasts 100 ms.
+Let $\mathsf Q_n$ and $\mathsf P_n$ denote the posterior and prior distributions
+from the preceding display. The normalized model objective includes
+\begin{align}
+L_{\rm WM}&=\E\sum_n\left[L_{\rm prop}+L_{\rm depth}+L_r+L_{\rm KL}\right],\\
+L_{\rm KL}&=\beta_d\max\big(\KL(\sg(\mathsf Q_n)\|\mathsf P_n),1\big)
++\beta_r\max\big(\KL(\mathsf Q_n\|\sg(\mathsf P_n)),1\big).
+\end{align}
+Proprioception reconstruction uses a symlog transform. A policy projection
+of the most recent memory supplies
+\begin{equation}
+f_t^{\rm pred}=\mathcal P_\theta(m_{\lfloor t/5\rfloor}),\qquad
+a_t\sim\policy(\cdot\mid o_t^{\rm prop},\Hhist_t,g_t,f_t^{\rm pred}).
+\end{equation}
+A mixture-of-experts actor--critic and the clipped estimator in
+Equation~\eqref{eq:ppo} complete the control path. The model updates at 10 Hz;
+the actor runs at 50 Hz and reuses the latest predictive feature between updates.
+
+\subsection{Prediction and policy training are different claims}
+Being able to propagate the prior for several steps demonstrates a generative
+dynamics capability. Feeding its memory to PPO can improve actions without
+differentiating future policy return through that dynamics. Consequently,
+success on terrain does not show that the transition Jacobians are adequate
+for policy BPTT. The recurrent representation may be useful even when those
+Jacobians are poor.
+
+Likewise, successful posterior reconstruction and open-loop prior prediction
+are different tests. For a terrain-conditioned policy, evaluate whether memory
+preserves support geometry as the viewpoint changes and whether unseen edges
+remain distinguishable after propagation. This connects the representation
+question to Dreamer's posterior/prior distinction without assuming identical
+training algorithms.
+
+\subsection{Task design contributes to terrain success}
+The source includes task-specific contact-region rewards alongside locomotion
+terms. Their normalized structure can be written
+\begin{equation}
+r_t=r_t^{\rm loco}-w_b\mathcal C^{\rm boundary}(x_t,E)-w_r\mathcal C^{\rm riser}(x_t,E)
++w_f R_t^{\rm support}.
+\end{equation}
+The symbols here summarize reward categories, not a replacement for the source's
+terrain-specific gating and contact-region definitions. This is important for
+comparison: a generic tracking reward and a carefully shaped foothold reward
+do not define the same learning problem.
+
+To isolate a world model's contribution, hold those rewards fixed while removing
+predictive features, replacing them with a similarly sized non-predictive
+encoder, or changing the model pretraining. Otherwise, a better reward or larger
+recurrent controller can masquerade as a better dynamics model.
+
+\subsection{Its implication for our research question}
+Terrain-aware humanoid world models are already an active research direction.
+Simply adding depth or an RSSM to a stair controller is therefore an insufficient
+novelty claim. The narrower question is whether motion pretraining reduces new
+interaction, and whether model structure improves the utility of its gradients.
+
+WM-LOCO provides a strong predictive-feature baseline for that question. Give it
+the same target observations and task specification, and compare data-to-success
+with imagined BPTT and decoupled updates. This separates perception, recurrence,
+and control-gradient choices instead of conflating them in one success number.

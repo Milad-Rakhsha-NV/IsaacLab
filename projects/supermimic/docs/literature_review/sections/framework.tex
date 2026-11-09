@@ -1,0 +1,292 @@
+\section{Scope, evidence, and how to read the review}
+The central object is a model that predicts how a controlled robot evolves. The
+proposed transfer problem changes the contact geometry after pretraining that
+model on a motion library. A successful research result would explain both the
+additional data needed and the reliability of the policy updates obtained from
+the adapted model.
+
+The eleven papers were selected because each isolates a necessary part of that
+question. PETS concerns uncertainty and planning; MBPO concerns how much model
+rollout to trust; Dreamer concerns learned latent dynamics and imagination;
+ContactNets concerns contact structure; SHAC concerns short simulator-gradient
+windows. PWM, DMO, RWM-U, SuperMimic, $\nabla$Mimic, and WM-LOCO make the more direct
+connections to learned gradients, humanoid motion, and terrain-aware control.
+
+This is a question-driven selection, not an exhaustive survey. General video
+generation, language-conditioned robot foundation models, and broad motion
+retargeting surveys are outside its scope. A model that predicts photorealistic
+video is not automatically a model with adequate action sensitivity for motor control.
+
+Each paper is treated using the same sequence: its role, a concise account of
+the reported method, a normalized mathematical skeleton, an analysis of what
+that skeleton means, and a test or limitation relevant to contact transfer.
+The analysis is original to this review; it should not be mistaken for an
+experiment performed by the cited authors.
+
+\begin{limitation}{Evidence discipline}
+No reviewed result establishes the number of interactions required for our exact
+flat-motion-to-new-stair-geometry experiment. That quantity depends on the
+source data, target distribution, observations, controller, model class, and
+success criterion. A reported wall-clock speedup on motion tracking cannot
+substitute for this missing measurement.
+\end{limitation}
+
+Read Sections~\ref{sec:notation}--\ref{sec:contactproblem} first. For the most
+direct path, continue with PWM, DMO, SuperMimic, $\nabla$Mimic, and WM-LOCO.
+The earlier papers explain the model-usage and representation choices behind
+them. Sections~\ref{sec:comparison}--\ref{sec:experiments} turn the review into
+an experimental question.
+
+\section{One notation for all methods}\label{sec:notation}
+\subsection{Physical state, environment, task, and observations}
+Let $x_t$ be the physical state of the robot and any moving objects included in
+the system. Static environmental geometry is $E$; material, calibration, and
+other physical parameters are $\xi$. The transition is
+\begin{equation}\label{eq:true}
+x_{t+1}\sim P_{E,\xi}(\cdot\mid x_t,a_t),\qquad
+x_{t+1}=\Fsim(x_t,a_t;E,\xi)\quad\text{when deterministic}.
+\end{equation}
+Here $a_t$ is the action actually executed, after any exploration noise and
+clipping. An explicit actuation map $u_t=\mathcal U(a_t)$ converts it to a physical
+setpoint or torque when needed. Numerical comparisons must specify whether
+action coordinates are normalized values, radians, or torques.
+If an implementation predicts an offset relative to a reference, we include
+the reference addition inside the policy and call its resulting executed command
+$a_t$. The model must receive the command that actually determines actuation;
+an offset alone is insufficient when its reference-dependent baseline is unknown.
+$\mathcal U$ is an actuator map, while $M(q)$ below always denotes a mass matrix.
+
+Write $\Gtask_t$ for the complete task/reference specification, including its
+phase where relevant. The supplied policy-goal vector is
+$g_t=G(x_t,\Gtask_t)$. This distinction matters: a compact actor goal can omit
+reference quantities still used by the training reward. We associate reward
+$r_t$ with the transition $t\rightarrow t+1$:
+\begin{equation}
+r_t=R(x_t,a_t,x_{t+1};\Gtask_t,E),\qquad
+o_t\sim O(\cdot\mid x_t,E,\xi).
+\end{equation}
+Papers that call this reward $r_{t+1}$ have simply shifted the label in this review.
+The observation/action history is $\Hhist_t$. A geometry query or perceptual
+encoder supplies local environment information $e_t$:
+\begin{equation}
+e_t=\mathcal Q(E,x_t)\ \text{with known geometry},\qquad
+e_t=\mathcal E_\phi(\Hhist_t)\ \text{when inferred}.
+\end{equation}
+The same terrain map must be queried at the predicted pose during imagination.
+Using future simulator observations inside a learned rollout would change the
+information available to the algorithm.
+
+\subsection{Network roles and probability conventions}
+\begin{longtable}{@{}L{0.22\linewidth}L{0.73\linewidth}@{}}
+\toprule Symbol & Meaning throughout this review\\\midrule\endhead
+$\theta$ & Policy parameters, including task encoders/projections assigned to the policy.\\
+$\phi$ & Learned dynamics, observation encoders, and predictive heads.\\
+$\psi$ & Value-function parameters; $\bar\psi$ denotes a target copy.\\
+$\policy$ & Policy, deterministic or reparameterized stochastic as specified.\\
+$\Fhat$ & Learned physical-state transition or transition mean.\\
+$\widehat P_\phi$ & Learned transition distribution.\\
+$z_t=(m_t,\ell_t)$ & Learned latent state: deterministic memory and stochastic component when present.\\
+$\mathsf q_\phi$ & Observation-conditioned posterior over a latent state.\\
+$\mathsf p_\phi$ & Latent transition prior, propagated without the next observation.\\
+$\widehat R_\phi$ & Learned reward predictor, when the algorithm uses one.\\
+$\zeta_t$ & Learned motion-goal embedding, distinct from actuator command $u_t$.\\
+$V_\psi,Q_\psi$ & State-value and action-value functions.\\
+$\gamma,\lambda$ & Discount and lambda-return mixing coefficient.\\
+$c_t,C_t$ & One-step continuation and cumulative continuation, $C_t=\prod_{i<t}c_i$.\\
+$\sg(\cdot)$ & Stop-gradient: preserve a value but suppress that derivative path.\\
+$H,K$ & Policy-optimization horizon and model-fitting horizon, respectively.\\
+$N_{\rm pre},N_{\rm new}$ & Pretraining and additional target-environment transitions.\\
+\bottomrule
+\end{longtable}
+Parameter labels denote roles, not a requirement that implementations have
+three disjoint optimizers. An actor and critic may share a trunk. The policy's
+input may be $x_t$, a history, or $z_t$; using the same $\theta$ does not erase
+those architectural differences.
+
+We always call an observation-conditioned latent distribution a posterior
+$\mathsf q_\phi$ and a prediction-only distribution a prior $\mathsf p_\phi$.
+This reverses the letters used by the original Dreamer paper, intentionally;
+the distinction is stated again in its method section. Contact impulses are
+$j$, not $\lambda$, so they cannot be confused with the return coefficient.
+
+\subsection{State models versus latent models}
+A physical-state model uses
+\begin{equation}
+\hat x_{t+1}=\Fhat(\hat x_t,a_t,e_t,\xi).
+\end{equation}
+A latent model instead infers a posterior from observations and rolls a prior:
+\begin{align}
+z_t&\sim\mathsf q_\phi(z_t\mid z_{t-1},a_{t-1},o_t),\\
+\hat z_{t+1}&\sim\mathsf p_\phi(z_{t+1}\mid\hat z_t,a_t).
+\end{align}
+Some inputs are absent in a particular paper. We never infer that a method uses
+terrain conditioning merely because $e_t$ appears in this general template.
+A task embedding, an environment encoding, and a belief over unobserved
+physical parameters are three different kinds of conditioning.
+
+\section{A common mathematical lens for learning and control}\label{sec:common}
+\subsection{Fitting dynamics}
+A physical model can be trained by negative log likelihood,
+\begin{equation}\label{eq:nll}
+L_{\rm dyn}(\phi)=-\E_{\mathcal D}\log\widehat P_\phi(x_{t+1}\mid x_t,a_t,e_t,\xi),
+\end{equation}
+or a multistep residual loss. With $\hat x_0=x_0$ and logged actions,
+\begin{equation}\label{eq:multistep}
+L_{\rm dyn}^{(K)}=\E_{\mathcal D}\sum_{k=0}^{K-1}w_k
+\norm{\Delta(x_{k+1},\hat x_{k+1})}_{W}^{2},\quad
+\hat x_{k+1}=\Fhat(\hat x_k,a_k,e_k,\xi).
+\end{equation}
+$\Delta$ must respect the state representation: quaternion coordinates should
+not be treated as unconstrained Euclidean angles. A latent model may instead
+learn observation/reward likelihoods and a prior--posterior consistency term.
+
+These objectives measure predictions on a data distribution. They do not
+directly certify errors at policy-chosen states outside that distribution or
+derivatives of those predictions.
+
+\subsection{Short-horizon actor--critic as the common backbone}
+Let $y_t$ temporarily mean the optimization state: $x_t$ for a physical-state
+model and $z_t$ for a latent model. This is a placeholder, not an extra latent.
+Many methods use a variant of
+\begin{equation}\label{eq:shortobjective}
+J_H=\E\left[\sum_{t=0}^{H-1}\gamma^t C_t\widetilde r_t
++\gamma^H C_HV_\psi(y_H,g_H)\right],
+\end{equation}
+where $\widetilde r_t$ can be an analytic reward or a learned prediction.
+Continuation can be hard termination or a soft surrogate. Reference-end masks
+are an additional implementation detail, not implied by this notation.
+
+One useful normalized value target is
+\begin{align}\label{eq:lambda}
+Y_H&=V_\psi(y_H,g_H),\\
+Y_t&=\widetilde r_t+\gamma c_t\big[(1-\lambda)V_\psi(y_{t+1},g_{t+1})+\lambda Y_{t+1}\big],\\
+L_V&=\E\big[V_\psi(y_t,g_t)-\sg(Y_t)\big]^2.
+\end{align}
+This template does not claim identical target networks, reward normalization,
+discount indexing, or terminal handling in every method. Such differences are
+identified in the paper analyses.
+
+\subsection{Four different ways a model can enter control}
+\begin{enumerate}
+\item \textbf{Planning}: score candidate actions under model rollouts and select
+one, without differentiating a neural policy through the model.
+\item \textbf{Imagined policy optimization}: generate predicted trajectories and
+differentiate their return with respect to policy parameters.
+\item \textbf{Decoupled forward/backward}: use physical-simulator states in the
+forward pass and learned local Jacobians in the backward pass.
+\item \textbf{Predictive features}: feed a learned recurrent representation to
+a policy trained by another estimator, such as PPO.
+\end{enumerate}
+These choices should be compared separately from the choice of state versus
+latent representation. ``Uses a world model'' is not a complete algorithm description.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\node[box,text width=33mm] (a) at (0,0) {Policy\\action};
+\node[box,text width=33mm] (b) at (4.8,0) {Learned transition\\predicted state};
+\node[box,text width=33mm] (c) at (9.6,0) {Predicted return\\plus value tail};
+\draw[arr](a)--(b);\draw[arr](b)--(c);
+\draw[grad](c.south)--++(0,-0.6)-|node[pos=0.25,below,font=\scriptsize]{Model derivatives through imagined states}(a.south);
+\node[box,text width=33mm] (d) at (0,-2.4) {Policy\\action};
+\node[box,text width=33mm] (e) at (4.8,-2.4) {Simulator\\actual state};
+\node[box,text width=33mm] (f) at (9.6,-2.4) {Simulator return\\plus value tail};
+\draw[arr](d)--(e);\draw[arr](e)--(f);
+\draw[grad](f.south)--++(0,-0.6)-|node[pos=0.25,below,font=\scriptsize]{Learned derivatives evaluated at actual states}(d.south);
+\node[box,text width=33mm] (g) at (0,-4.8) {Policy\\action};
+\node[box,text width=33mm] (h) at (4.8,-4.8) {Differentiable\\simulator};
+\node[box,text width=33mm] (i) at (9.6,-4.8) {Simulator return\\plus value tail};
+\draw[arr](g)--(h);\draw[arr](h)--(i);
+\draw[grad](i.south)--++(0,-0.6)-|node[pos=0.25,below,font=\scriptsize]{Simulator adjoint with its stated derivative rules}(g.south);
+\node[box,text width=33mm] (j) at (0,-7.2) {Learned predictive\\memory};
+\node[box,text width=33mm] (k) at (4.8,-7.2) {Policy\\action};
+\node[box,text width=33mm] (l) at (9.6,-7.2) {Simulator rewards\\and advantages};
+\draw[arr](j)--(k);\draw[arr](k)--(l);
+\draw[grad](l.south)--++(0,-0.6)-|node[pos=0.25,below,font=\scriptsize]{PPO score-function update}(k.south);
+\end{tikzpicture}
+\caption{Four policy-learning routes. Solid arrows show forward information;
+dashed arrows label the update estimator. The final row uses advantages and
+action log probabilities, not differentiation of simulator reward through the
+dynamics. Inputs and repeated rollout steps are omitted for readability.}
+\end{figure}
+
+\subsection{A derivative is an additional modeling requirement}
+For a deterministic policy at a fixed task schedule, suppress other inputs and
+write $a_t=A_\theta(x_t)$. The pathwise sensitivity is
+\begin{equation}\label{eq:sensitivity}
+D_\theta x_{t+1}=(F_x+F_aA_x)D_\theta x_t+F_aA_\theta.
+\end{equation}
+The matrices $F_x,F_a$ come from a simulator or a learned function. History,
+latent memory, and state-dependent goal construction can be included by
+augmenting the optimization state. Freezing $\phi$ during the actor update
+does not remove $\partial\Fhat/\partial a$ or $\partial\Fhat/\partial x$.
+When $e=\mathcal Q(E,x)$, the total state derivative also includes the geometry
+query path where that path is differentiable. A discrete query requires a
+declared piecewise derivative or surrogate; silently dropping it changes the update.
+
+This equation identifies two independent failure paths: the forward states can
+be wrong, or the local sensitivities can be wrong even at good forward states.
+Products of sensitivities can amplify errors as $H$ grows.
+
+\begin{interpretation}{Original illustration: small prediction error, large derivative error}
+Consider $F(a)=a$ and $\widehat F(a)=a+\epsilon\sin(\omega a)$. Prediction error
+is at most $\epsilon$, yet derivative error can reach $\epsilon\omega$. Taking
+$\epsilon=0.01$ and $\omega=200$ gives at most 0.01 state error and derivative
+error as large as two. The predicted derivative can even point in the opposite
+direction. This elementary construction is not an empirical result from a
+reviewed paper; it explains why a trajectory-fit metric alone cannot certify
+useful policy gradients.
+\end{interpretation}
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{figures/prediction_and_gradient.pdf}
+\caption{Synthetic review illustration of the distinction between prediction
+and derivative errors. No paper measurements are plotted.}
+\end{figure}
+
+\section{What changes when the contact geometry changes?}\label{sec:contactproblem}
+\subsection{The missing-input problem}
+For two environments $E_1,E_2$, identical $(x,a)$ can yield
+\begin{equation}
+\Fsim(x,a;E_1,\xi)\ne\Fsim(x,a;E_2,\xi).
+\end{equation}
+A model with no environment information cannot distinguish those outcomes in
+general. A larger network cannot recover information that its inputs omit.
+With one fixed known map and suitable global coordinates, location can encode
+geometry implicitly; that is not generalization to arbitrary unseen maps.
+
+Flat-ground motion already involves impacts, support changes, slipping, and
+body contacts. The proposed transfer changes \emph{which surfaces exist and
+where they are}, potentially also which body parts touch them. Later tasks may
+change friction, compliance, object motion, or contact laws as well. Those are
+distinct axes and should not be changed simultaneously in the first experiment.
+
+\subsection{An idealized contact template}
+For configuration $q$ and generalized velocity $v$, a rigid-contact template is
+\begin{align}\label{eq:mechanics}
+M(q)(v_{t+1}-v_t)&=\Delta t\,f_{\rm free}(x_t,u_t)+J(q,E)^Tj_t,\\
+q_{t+1}&\approx q_t+\Delta t\,\Gamma(q_t)v_{t+1},\\
+d_i(q_{t+1},E)&\ge0,\quad j_i^n\ge0,\quad d_i(q_{t+1},E)j_i^n=0,\\
+\norm{j_i^\tau}&\le\mu_i j_i^n.
+\end{align}
+$d_i$ is signed distance, $J$ maps generalized to contact-frame velocity, and
+$j$ is impulse. $\Gamma$ handles configuration representations such as floating-base
+quaternions. Complementarity says contact pushes only at an active surface.
+This is an explanatory rigid-contact template, not a claim that every reviewed
+simulator uses exactly this forward law; compliant contact models differ.
+
+When contact identities or modes change, a derivative taken with the current
+active set may not explain the effect of a finite action change that creates a
+different contact. Simulator exactness, hardware fidelity, and usefulness for
+optimization are consequently separate questions.
+
+\subsection{What a terrain-aware imagined rollout must maintain}
+If $e_t$ is an egocentric map, advancing $\hat x_t$ requires advancing the map
+query or predicting the relevant latent scene. Holding an arbitrary local
+encoding constant while the robot moves can give inconsistent predictions.
+For moving objects, their states must be modeled too. For hidden materials or
+occluded geometry, a history-dependent belief may be necessary.
+
+The task must also remain coherent. Tracking a world-aligned flat-ground
+reference while climbing may penalize the correct height increase. Terrain-aware
+dynamics alone does not repair a mismatched goal, reward, critic input, or
+termination rule. These distinctions guide the paper selection that follows.
