@@ -58,8 +58,7 @@ cfg.scene.num_envs = args.num_envs
 cfg.randomize_material = args.randomize and args.field == "rft"
 cfg.randomize_commands = args.randomize and not args.stand
 cfg.surface_relative_height = True
-cfg.material_difficulty = min(args.difficulty / 0.7, 1.0)
-cfg.command_difficulty = max((args.difficulty - 0.3) / 0.7, 0.0)
+cfg.material_difficulty = args.difficulty
 cfg.observation_noise = False
 cfg.command_speed = 0.0 if args.stand else args.speed
 if args.field == "rft":
@@ -268,7 +267,8 @@ with launch_simulation(cfg):
             output_params=["-crf", "21", "-movflags", "+faststart"],
         )
         writer.send(None)
-    rows, force_rows, joint_rows, pose_rows = [], [], [], []
+    rows, force_rows, joint_rows, pose_rows, metric_rows = [], [], [], [], []
+    max_rigid_overflow = 0
     previous_impulse = solver.body_impulse.numpy().copy() if args.field == "rft" else None
     start = time.monotonic()
     command_manifest = env.commands.cpu().tolist()
@@ -291,7 +291,12 @@ with launch_simulation(cfg):
             p = env.robot.data.root_pos_w.torch.cpu().numpy()
             v = env.robot.data.root_lin_vel_b.torch.cpu().numpy()
             g = env.robot.data.projected_gravity_b.torch.cpu().numpy()
-            if mpm is None:
+            overflow = rigid.mjw_data.overflow.numpy()
+            max_rigid_overflow |= int(np.bitwise_or.reduce(overflow.reshape(-1)))
+            effort = env.robot.actuators.applied_effort.torch.cpu().numpy()
+            joint_velocity = env.robot.data.joint_vel.torch.cpu().numpy()
+            limits = env.robot.data.joint_effort_limits.torch.cpu().numpy()
+            if args.field == "rft":
                 impulse = solver.body_impulse.numpy()
                 force = (impulse - previous_impulse) / env.step_dt
                 previous_impulse = impulse.copy()
@@ -328,6 +333,18 @@ with launch_simulation(cfg):
             force_rows.append(force)
             pose_rows.append(env.sim.backend_manager.backend.state_0.body_q.numpy().copy())
             joint_rows.append(env.robot.data.joint_pos.torch.cpu().numpy())
+            metric_rows.append(
+                np.column_stack(
+                    (
+                        np.abs(
+                            env.robot.data.root_ang_vel_b.torch[:, 2].cpu().numpy() - env.commands[:, 2].cpu().numpy()
+                        ),
+                        np.abs(effort * joint_velocity).sum(-1),
+                        (np.abs(effort) >= 0.95 * limits).mean(-1),
+                        np.arccos(np.clip(-g[:, 2], -1, 1)),
+                    )
+                )
+            )
             if args.video and np.isfinite(p).all():
                 from PIL import Image, ImageDraw
 
@@ -379,10 +396,12 @@ with launch_simulation(cfg):
             body_wrench=np.array(force_rows),
             joint_pos=np.array(joint_rows),
             body_pose=np.array(pose_rows),
+            metrics=np.array(metric_rows),
         )
         summary = dict(
             field=args.field,
             ambient_fluid_density=ambient_density,
+            max_rigid_overflow=max_rigid_overflow,
             surface_relative_height=True,
             validation_difficulty=args.difficulty,
             substrate_depth=args.substrate_depth,
@@ -430,13 +449,17 @@ with launch_simulation(cfg):
                 mean_velocity_error=float(np.array(rows)[:, :, 8].mean()),
                 final_position=p.tolist(),
                 final_height=height.tolist(),
+                mean_yaw_error=float(np.array(metric_rows)[:, :, 0].mean()),
+                mean_absolute_joint_power_W=float(np.array(metric_rows)[:, :, 1].mean()),
+                motor_saturation_fraction=float(np.array(metric_rows)[:, :, 2].mean()),
+                max_tilt_radians=float(np.array(metric_rows)[:, :, 3].max()),
             )
         (args.output / "summary.json").write_text(json.dumps(summary, indent=2))
         env.close()
         print(
             json.dumps(
                 {
-                    key: summary[key]
+                    key: summary.get(key)
                     for key in ("field", "steps", "first_failure_seconds", "particles_finite", "mean_velocity_error")
                 }
             )

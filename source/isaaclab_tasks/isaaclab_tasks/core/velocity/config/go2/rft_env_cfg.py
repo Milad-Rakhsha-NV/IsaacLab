@@ -24,12 +24,10 @@ def rigid_substrate_cfg(height: float) -> AssetBaseCfg:
     """Use identical substrate geometry in rigid controls and finite-layer experiments."""
     return AssetBaseCfg(
         prim_path="/World/Substrate",
-        spawn=sim_utils.CuboidCfg(
-            size=(100.0, 100.0, 0.1),
-            collision_props=sim_utils.UsdPhysicsCollisionCfg(collision_enabled=True),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.3, 0.3, 0.3)),
-        ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0, 0, height - 0.05)),
+        # The rendered mesh has finite size; the collision Plane is infinite.
+        # A finite box misses outer clones once a 4096-world grid exceeds 100 m.
+        spawn=sim_utils.GroundPlaneCfg(size=(100.0, 100.0)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0, 0, height)),
     )
 
 
@@ -77,7 +75,6 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     bed_depth: float | None = None
     """Optional finite-layer depth [m]; creates a labeled rigid substrate. None keeps a half-space."""
     material_difficulty = 1.0
-    command_difficulty = 1.0
     surface_relative_height = False
     """Use the sampled surface for spawning, height reward and termination in new experiments."""
     curriculum_enabled = False
@@ -110,7 +107,7 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
 
 @configclass
 class Go2RFTCurriculumEnvCfg(Go2RFTEnvCfg):
-    """Success-driven reset randomization, with consistent surface-relative height."""
+    """Success-driven material randomization with full commands from the first reset."""
 
     curriculum_enabled = True
     surface_relative_height = True

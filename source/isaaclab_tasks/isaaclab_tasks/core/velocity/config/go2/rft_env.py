@@ -33,7 +33,7 @@ class Go2RFTEnv(DirectRLEnv):
         from isaaclab_newton.physics.mjwarp_solver_cfg import MJWarpSolverCfg
         from isaaclab_newton.physics.rft_solver_cfg import RFTSolverCfg
 
-        for name in ("material_difficulty", "command_difficulty", "curriculum_initial_difficulty"):
+        for name in ("material_difficulty", "curriculum_initial_difficulty"):
             if not 0 <= getattr(cfg, name) <= 1:
                 raise ValueError(f"{name} must lie in [0, 1]")
         if cfg.curriculum_enabled and (
@@ -207,19 +207,15 @@ class Go2RFTEnv(DirectRLEnv):
             self.episode_difficulty[env_ids] = difficulty
             self.episode_anchor[env_ids] = anchors
             level = torch.where(anchors, 0.0, difficulty)
-            material_level = (level / 0.7).clamp(0, 1)
-            command_level = ((level - 0.3) / 0.7).clamp(0, 1)
+            material_level = level
         else:
             material_level = self.cfg.material_difficulty
-            command_level = self.cfg.command_difficulty
         self.commands[env_ids, 0] = self.cfg.command_speed
         self.commands[env_ids, 1:] = 0
         if self.cfg.randomize_commands:
-            self.commands[env_ids, 0] = (
-                0.2 - 0.1 * command_level + (0.1 + 0.3 * command_level) * torch.rand(count, device=self.device)
-            )
-            self.commands[env_ids, 1] = command_level * torch.empty(count, device=self.device).uniform_(-0.1, 0.1)
-            self.commands[env_ids, 2] = command_level * torch.empty(count, device=self.device).uniform_(-0.3, 0.3)
+            self.commands[env_ids, 0] = torch.empty(count, device=self.device).uniform_(0.1, 0.5)
+            self.commands[env_ids, 1] = torch.empty(count, device=self.device).uniform_(-0.1, 0.1)
+            self.commands[env_ids, 2] = torch.empty(count, device=self.device).uniform_(-0.3, 0.3)
             stand = torch.rand(count, device=self.device) < 0.1
             self.commands[env_ids[stand]] = 0
         world = self.world_ids[env_ids]

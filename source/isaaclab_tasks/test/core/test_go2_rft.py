@@ -81,6 +81,21 @@ def test_go2_rft_articulation_and_masked_material_reset():
             env.scene.write_data_to_sim()
             env.sim.forward()
             torch.testing.assert_close(env.relative_base_height()[ids], env.robot.data.default_root_pose.torch[ids, 2])
+
+            # The material curriculum must leave the full command distribution
+            # unchanged, including lateral and yaw commands at nominal material.
+            all_ids = torch.arange(4, device=env.device)
+            env.curriculum_difficulty.zero_()
+            torch.manual_seed(71)
+            env._reset_idx(all_ids)
+            initial_commands = env.commands.clone()
+            assert initial_commands[:, 1].abs().max() > 0.01
+            assert initial_commands[:, 2].abs().max() > 0.03
+            env.curriculum_difficulty.fill_(0.8)
+            torch.manual_seed(71)
+            env._reset_idx(all_ids)
+            torch.testing.assert_close(env.commands, initial_commands, rtol=0, atol=0)
+
             env.curriculum_difficulty.fill_(1)
             env._reset_idx(torch.arange(4, device=env.device))
             assert not env.episode_anchor.any()
@@ -124,6 +139,7 @@ def test_zero_layer_recovers_rigid_articulation():
     for cfg in (Go2RigidEnvCfg(), Go2RFTEnvCfg()):
         cfg.seed = 17
         cfg.scene.num_envs = 2
+        cfg.scene.env_spacing = 240.0  # Exercise clones beyond the original 100 m visual bed.
         cfg.sim.visualizer_cfgs = []
         cfg.observation_noise = False
         cfg.randomize_commands = False

@@ -314,8 +314,87 @@ if convergence:
     fig.suptitle("Randomized policy: fixed 16-trial validation bank, seed 123, 10 s; convergence not established")
     save(fig, "08-checkpoint-validation.png")
 
+corrected_training = []
+fig, axes = plt.subplots(2, 3, figsize=(14, 7))
+for family, label, color in (
+    ("go2_rigid_infinite", "Rigid control (infinite plane)", "tab:orange"),
+    ("go2_rft_material_curriculum", "RFT material curriculum (full commands)", "tab:blue"),
+):
+    runs = sorted(Path("logs/rsl_rl", family).glob("20*"))
+    if not runs:
+        continue
+    events = EventAccumulator(str(runs[-1])).Reload()
+    available = events.Tags()["scalars"]
+    for ax, tag, title in zip(
+        axes.flat,
+        (
+            "Train/mean_reward",
+            "Train/mean_episode_length",
+            "Metrics/velocity_error",
+            "Curriculum/difficulty",
+            "Curriculum/window_success",
+            "Perf/total_fps",
+        ),
+        (
+            "Training return",
+            "Episode length [control steps]",
+            "Training tracking error [m/s]",
+            "Randomization difficulty",
+            "Curriculum window completion",
+            "Training transitions/s",
+        ),
+        strict=True,
+    ):
+        if tag not in available:
+            continue
+        data = events.Scalars(tag)
+        x = np.array([event.step for event in data]) * 4096 * 24 / 1e6
+        y = np.array([event.value for event in data])
+        ax.plot(x, y, color=color, alpha=0.15)
+        window = min(20, len(y))
+        ax.plot(x[window - 1 :], np.convolve(y, np.ones(window) / window, mode="valid"), color=color, label=label)
+        ax.set(title=title, xlabel="Million transitions")
+        ax.grid(alpha=0.2)
+    last = events.Scalars("Perf/total_fps")[-1]
+    corrected_training.append(
+        dict(
+            family=family,
+            directory=str(runs[-1]),
+            last_iteration=last.step,
+            transitions=(last.step + 1) * 4096 * 24,
+            ambient_fluid_density=0,
+        )
+    )
+axes[0, 0].legend(fontsize=8)
+fig.suptitle("Corrected coupling, 4,096 worlds: full commands; only material randomization has a curriculum", y=1.02)
+save(fig, "09-corrected-training.png")
+
+corrected_cases = []
+for name in (
+    "corrected_stance",
+    "corrected_rigid_final",
+    "corrected_rft_curriculum_nominal",
+    "corrected_rft_curriculum_mpm",
+    "corrected_zero_layer_policy",
+    "corrected_thin_layer_005",
+    "corrected_thin_layer_020",
+    "corrected_thin_layer_050",
+):
+    if (ROOT / name / "summary.json").exists():
+        summary, _ = read_case(name)
+        corrected_cases.append(dict(case=name, **summary))
+
 (OUT / "results.json").write_text(
-    json.dumps(dict(training=training, inference=cases, convergence_validation=convergence), indent=2)
+    json.dumps(
+        dict(
+            training=training,
+            inference=cases,
+            convergence_validation=convergence,
+            corrected_training=corrected_training,
+            corrected_inference=corrected_cases,
+        ),
+        indent=2,
+    )
 )
 cards = []
 case_labels = {
@@ -347,15 +426,28 @@ if (stock / "rollout.mp4").exists():
         "<p>Separate pretrained 48-value policy; rigid-supported 8 cm strip. Integration showcase only.</p></article>"
     )
 images = "".join(f'<img src="{p.name}" alt="{p.stem}">' for p in sorted(OUT.glob("*.png")))
+corrected_cards = []
+for case in corrected_cases:
+    name = case["case"]
+    if (ROOT / name / "rollout.mp4").exists():
+        corrected_cards.append(
+            f"<article><h2>Corrected coupling: {html.escape(name)}</h2>"
+            f'<video controls preload="metadata" src="../{name}/rollout.mp4"></video>'
+            f"<p>Failure: {case.get('first_failure_seconds')}; "
+            f"tracking error: {case.get('mean_velocity_error', 0):.3f} m/s. "
+            f"Ambient fluid density: {case.get('ambient_fluid_density')} kg/m³.</p></article>"
+        )
 (OUT / "index.html").write_text(
     """<!doctype html><meta charset="utf-8"><title>Go2 RFT / MPM investigation</title>
 <style>body{font:16px system-ui;max-width:1200px;margin:30px auto;padding:20px;background:#f1f5f9;color:#0f172a}
 video,img{width:100%}article{background:white;padding:16px;margin:20px 0;border-radius:10px}</style>
-<h1>Go2 RFT training and MPM inference</h1><p>Actual Newton physics and frozen-policy recordings.
+<h1>Go2 RFT training and MPM inference</h1><p><a href="../live/">Live training status and curves (refreshes every 30 seconds)</a></p>
+<p>Actual Newton physics and frozen-policy recordings.
 Historical RFT policies below were trained with unintended MuJoCo fluid drag due to a density-parameter collision.
 These recordings are retained for audit. Corrected training and validation are in progress.
 RFT also uses an experimental bearing extension. MPM convergence and transfer accuracy are not established.
 Low posture and transfer failures are retained.</p>"""
+    + "".join(corrected_cards)
     + "".join(cards)
     + images
 )
