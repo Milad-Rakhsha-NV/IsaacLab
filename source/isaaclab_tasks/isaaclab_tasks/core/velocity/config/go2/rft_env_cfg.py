@@ -74,4 +74,4 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
         ),
         visualizer_cfgs=VisualizerCfg(eye=(1.8, -2.3, 1.0), lookat=(0.0, 0.0, 0.25)),
     )
-    scene: Go2RFTSceneCfg = Go2RFTSceneCfg(num_envs=1024, env_spacing=3.0)
+    scene: Go2RFTSceneCfg = Go2RFTSceneCfg(num_envs=4096, env_spacing=3.0)

@@ -1,6 +1,6 @@
 # Go2 RFT training and MPM inference study
 
-Updated November 10, 2026 (UTC). **Implementation and one-seed pilot training are complete. Physical validation and successful RFT-to-MPM transfer are not complete.** Both evaluated policies fail in the current finite-bed MPM reference. The static-support gate also fails. These results support further solver investigation, not a robust locomotion or real-robot deployment claim.
+Updated November 9, 2026 (Pacific). **Implementation and one-seed pilot training are complete. Physical validation and successful RFT-to-MPM transfer are not complete.** Both evaluated policies fail in the current finite-bed MPM reference. The static-support gate also fails. These results support further solver investigation, not a robust locomotion or real-robot deployment claim.
 
 ## Code and experiment status
 
@@ -59,7 +59,7 @@ Finite velocity regularization and the near-rest blend introduce speed dependenc
 
 The task is implemented in `source/isaaclab_tasks/isaaclab_tasks/core/velocity/config/go2/rft_env*.py`. It uses the stock Go2 asset, joint order and DC motor model, with 12 position-offset actions scaled by 0.25 rad. Actor input has 45 values: base angular velocity, projected gravity, velocity command, joint-position offsets, joint velocities and previous actions. The critic adds the three true base linear-velocity components. Material identity and true base linear velocity are absent from the actor.
 
-Control is 50 Hz. Isaac Lab physics steps at 200 Hz with four Newton substeps, giving an 800 Hz articulation/field update. The RFT scene has a visual bed but **no collidable support plane and no MPM particles**. The default configuration has 1,024 worlds; actual pilot training used 512 to keep the experiment inexpensive.
+Control is 50 Hz. Isaac Lab physics steps at 200 Hz with four Newton substeps, giving an 800 Hz articulation/field update. The RFT scene has a visual bed but **no collidable support plane and no MPM particles**. The default configuration now has **4,096 worlds**; the historical pilot training below used 512. A separate 4,096-world smoke run verifies that scale without replacing the original results.
 
 | Reset parameter | Randomized training distribution |
 |---|---|
@@ -93,6 +93,66 @@ GPU: NVIDIA RTX PRO 4500 Blackwell Server Edition, approximately 32 GB. Python 3
 The matched nominal run is the primary comparison. The fixed-forward policy has an easier command distribution and is only a demonstration. The earlier development pilot predates internal-patch suppression and is excluded from the controlled comparison. Training wall times exclude first setup/compilation; nominal runs shared the GPU with inference work and do not establish an isolated throughput comparison. The main randomized run averaged about 28,250 transitions/s over its recorded training duration.
 
 These runs are exploratory pilots, not gate-qualified final training. Static/reference gates did not pass, so no five-seed training sweep or deployment study was launched. The final iteration was used without selecting a checkpoint on MPM outcomes. RFT surface reductions use floating-point atomics, so repeated CUDA rollouts are not guaranteed to be bitwise identical; the values below refer to the saved recordings.
+
+### Command-matched baseline and convergence audit
+
+The fixed-material, command-matched baseline holds density at 1,600 kg/m³, internal and surface friction at 0.4, strength multiplier at 1, and bed elevation at zero. It retains the randomized policy's forward/lateral/yaw command distribution, 10% stand probability, observation noise, network and PPO settings. "Matched commands" means the **same training distribution**, not identical commands or trajectories at every training step. The separately labeled fixed-forward demonstration has an easier command distribution and is not this controlled baseline.
+
+TensorBoard averages over the final 100 iterations are:
+
+| Training metric | Fully randomized material | Fixed material, same command distribution |
+|---|---:|---:|
+| Mean return | 4.904 | 20.203 |
+| Mean episode length | 5.662 s | 9.875 s |
+| Logged episode velocity error | 0.253 m/s | 0.158 m/s |
+
+The randomized return changes from 5.002 in the preceding 100 iterations to 4.904 in the final 100. A nearly flat return is not evidence of acceptable convergence: episodes remain short and tracking error remains high. Returns from different material distributions are not a controlled measure of policy quality; use the same validation bank to compare policies or checkpoints.
+
+Three randomized-policy checkpoints were replayed on an identical **new 16-case validation bank, seed 123, 10 s per case**, with no observation noise or autoreset. Sampled commands, material tables and surface heights were checked for exact equality across the three runs.
+
+| Checkpoint iteration | Mean planar tracking error | Trials with failure |
+|---|---:|---:|
+| 500 | 0.250 m/s | 10/16 |
+| 750 | 0.201 m/s | 6/16 |
+| 999 | 0.169 m/s | 5/16 |
+
+This bank shows continued improvement but substantial residual failure. It does not establish convergence, and 16 trials from one training seed do not establish statistical robustness. These are validation scenarios used for diagnosis, not an untouched final test set. The original seed-42 bank and its poorer failure counts remain in the frozen-policy results section; neither bank is discarded.
+
+The new scaling smoke used the existing training entry point:
+
+```bash
+uv run isaaclab train --rl_library rsl_rl \
+  --task Isaac-Velocity-Flat-UnitreeGo2-RFT-Direct \
+  --num_envs 4096 --max_iterations 2 --seed 42 \
+  agent.experiment_name=go2_rft_4096_profile
+```
+
+It completed 196,608 transitions. Solver construction took 140.13 s; measured PPO update times were 2.80 s and 1.42 s, with approximately 69,153 transitions/s on the second update. This is a two-update smoke measurement, not a sustained throughput benchmark or a trained policy. At 24 steps per world, 4,096 worlds collect 98,304 transitions per PPO update versus 12,288 at 512 worlds. Equal iteration counts therefore use eight times as much experience; compare runs by transitions and wall time as well as iteration count. The startup cost is separate and still needs optimization.
+
+### Height and the rigid-ground limit
+
+The current RFT domain is the occupied half-space below its free-surface coordinate `z_surface`. Local depth is `max(z_surface - z_point, 0)`. Lowering `z_surface` at a fixed robot pose reduces immersion and granular load; it does not create a rigid contact constraint. Once the robot is above the lowered surface, it receives no granular support until it falls into the bed.
+
+A different construction is needed for a thin-layer limit: a rigid substrate at `z_bottom` with a finite sand layer of thickness `H`, where `z_surface = z_bottom + H`. As `H` tends to zero, granular volume should vanish while substrate contact remains. Identical initial states and imposed actions should then recover the rigid-flat baseline within numerical tolerances. That finite-layer/substrate model and limit check are **not implemented** in the present half-space task. Finite-thickness RFT away from the limit would also need boundary/confinement validation.
+
+The current height reward and failure threshold reference the nominal environment origin, rather than the randomized free surface. A large surface shift would therefore change the task's height criterion as well as the granular forces. Any larger-height or thickness experiment must define and consistently use its surface/substrate reference frame.
+
+Recovering rigid-flat dynamics does not make a fixed sand-trained neural policy become the existing flat-terrain policy. Policy parameters and training objectives remain distinct. A controlled flat-ground baseline should use this direct task's same 45-value actor input, actions, actuators and rewards. The stock runway showcase uses a different 48-value policy interface and does not supply that baseline.
+
+### Proposed next training protocol
+
+The current combined randomization is wider than its individual intervals suggest. With `S = density * 9.81 * (894*mu³ - 386*mu² + 89*mu) * multiplier`, the corner-to-corner strength ratio is approximately **7.16**, ranging from about 0.36 to 2.60 times nominal. Surface friction varies as well. Weak corners may expose support-model limitations rather than merely harder learning problems.
+
+The next training protocol should use one shared policy and 4,096 environments, with a performance-gated curriculum:
+
+1. Establish the rigid-ground control and nominal-material support checks. Learn standing and modest forward commands before introducing large material variation.
+2. Expand material ranges gradually. Each reset still samples independent parameters per environment; a difficulty value `a` in `[0,1]` controls the distribution width, not a separate policy or training run.
+3. Expand lateral/yaw and speed commands after forward locomotion is reliable. Retain easy nominal samples while expanding, and validate both the current difficulty and the full target range.
+4. Once the full target distribution is reached, freeze its ranges and continue training. Accept a result based on a sufficiently large fixed validation bank, failure/timeout counts, tracking, posture/sinkage and actuator use over several checkpoints; a rising or flat training return alone is insufficient.
+
+For example, `density = 1600 + a*U(-200,200)`, `mu = 0.4 + a*U(-0.1,0.1)`, `roughness = 1 - a*U(0,0.4)`, `log(multiplier) = a*U(log(0.8),log(1.2))`, and `height = a*U(-0.02,0.02)` recover nominal material at `a=0` and the original full distributions at `a=1`. Advance only after sustained success at the current difficulty, rather than after a fixed number of iterations. Performance-driven distribution expansion follows the principle of [automatic domain randomization](https://arxiv.org/abs/1910.07113); it is a proposed application here, not an implemented scheduler.
+
+Provisional progression targets could be at least 95% completion of 10 s episodes and mean planar tracking error below 0.1 m/s on a larger fixed validation bank, with posture and motor-use limits established by the nominal baseline. These are proposed targets, not passed gates. Do not declare full-randomization convergence if the curriculum stalls before the target range, or use the curriculum to hide fields that the physical support model cannot sustain. **No full curriculum training run has been launched.**
 
 ## Frozen-policy results
 
@@ -164,7 +224,7 @@ Next physics work is a loaded-foot and fixed-base-leg investigation with a conve
 
 ## Visual evidence and raw data
 
-Open the [local video/graph gallery](logs/go2_granular/report/index.html). It includes the nominal RFT walking clips, MPM transfer failures, weaker/stronger material comparisons and the separate stock Go2 runway showcase. Green arrows show granular force on each body, scaled at **200 N per displayed metre**. They exclude actuator and conventional contact forces. All ten videos were decoded and their frame counts checked against the saved step counts. Seven PNG figures were generated. All clips use actual Newton stepping and a headless renderer.
+Open the [local video/graph gallery](logs/go2_granular/report/index.html). It includes the nominal RFT walking clips, MPM transfer failures, weaker/stronger material comparisons and the separate stock Go2 runway showcase. Green arrows show granular force on each body, scaled at **200 N per displayed metre**. They exclude actuator and conventional contact forces. All ten videos were decoded and their frame counts checked against the saved step counts. Eight PNG figures were generated, including the subsequent checkpoint-validation audit. All clips use actual Newton stepping and a headless renderer.
 
 | Figure | Content |
 |---|---|
@@ -175,6 +235,7 @@ Open the [local video/graph gallery](logs/go2_granular/report/index.html). It in
 | [Surfaces](logs/go2_granular/report/05-surfaces.png) | Actual full-robot triangular surface overlay and free surface |
 | [Surface convergence](logs/go2_granular/report/06-surface-convergence.png) | Angular-only versus angular plus edge refinement |
 | [Material transfer](logs/go2_granular/report/07-material-transfer.png) | Nominal and weaker/stronger material height histories |
+| [Checkpoint validation](logs/go2_granular/report/08-checkpoint-validation.png) | Three training checkpoints on the same new seed-123 validation bank |
 
 Raw trajectories, wrenches, body poses, summaries, binding manifests and videos are in `logs/go2_granular/<case>/`. `rollout.npz` state columns are time, world position xyz, body velocity xyz, nominal-relative height, planar tracking error, and failure flag. Wrenches use world force xyz followed by COM torque xyz. Training parameters, TensorBoard records and checkpoints are in the training directories listed above. `report/results.json` gathers training/inference metadata; `report/verification/` contains local test logs and Newton benchmark JSON.
 
@@ -211,7 +272,7 @@ The primary videos use the same frozen randomized-training checkpoint:
 
 ### Download and watch offline
 
-`logs/go2_granular/go2-rft-results.zip` contains the ten primary videos, seven figures, gallery, summaries and this report (about 24 MiB). With the tunnel active, download it at **http://localhost:18010/go2-rft-results.zip**. Alternatively, run this on the browser machine without starting a tunnel:
+`logs/go2_granular/go2-rft-results.zip` contains the ten primary videos, eight figures, gallery, summaries and this report (about 24 MiB). With the tunnel active, download it at **http://localhost:18010/go2-rft-results.zip**. Alternatively, run this on the browser machine without starting a tunnel:
 
 ```bash
 scp horde@mrakhsha-41eslp:/home/horde/Documents/Repos/IsaacLab/logs/go2_granular/go2-rft-results.zip .

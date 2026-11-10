@@ -39,7 +39,7 @@ training = []
 fig, axes = plt.subplots(2, 2, figsize=(12, 7))
 for family, label, color in (
     ("go2_rft", "Randomized RFT", "tab:blue"),
-    ("go2_rft_nominal_matched", "Nominal material, matched commands", "tab:orange"),
+    ("go2_rft_nominal_matched", "Fixed material, same command distribution", "tab:orange"),
 ):
     runs = sorted(Path("logs/rsl_rl", family).glob("20*"))
     if not runs:
@@ -272,13 +272,57 @@ axes[0].set_ylabel("Base height above initial bed [m]")
 fig.suptitle("Frozen randomized policy across matched material inputs; MPM reference is not converged")
 save(fig, "07-material-transfer.png")
 
-(OUT / "results.json").write_text(json.dumps(dict(training=training, inference=cases), indent=2))
+convergence = []
+manifest = None
+for iteration in (500, 750, 999):
+    name = f"convergence_dr_{iteration}"
+    if not (ROOT / name / "summary.json").exists():
+        continue
+    summary, data = read_case(name)
+    current = {key: summary[key] for key in ("commands", "material_parameters", "surface_heights")}
+    if manifest is not None:
+        assert current == manifest, "Checkpoint validation must use identical field/command samples"
+    manifest = current
+    failed = np.any(data["state"][:, :, 9], axis=0)
+    convergence.append(
+        dict(
+            iteration=iteration,
+            case=name,
+            seed=summary["seed"],
+            trials=len(failed),
+            failures=int(failed.sum()),
+            mean_velocity_error=summary["mean_velocity_error"],
+        )
+    )
+if convergence:
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    x = [row["iteration"] for row in convergence]
+    axes[0].plot(x, [row["mean_velocity_error"] for row in convergence], "o-")
+    axes[0].set(xlabel="Training checkpoint iteration", ylabel="Mean tracking error [m/s]")
+    axes[1].plot(x, [100 * row["failures"] / row["trials"] for row in convergence], "o-", color="firebrick")
+    axes[1].set(xlabel="Training checkpoint iteration", ylabel="Trials with failure [%]", ylim=(0, 100))
+    for row in convergence:
+        axes[1].annotate(
+            f"{row['failures']}/{row['trials']}",
+            (row["iteration"], 100 * row["failures"] / row["trials"]),
+            xytext=(0, 8),
+            textcoords="offset points",
+            ha="center",
+        )
+    for ax in axes:
+        ax.grid(alpha=0.2)
+    fig.suptitle("Randomized policy: fixed 16-trial validation bank, seed 123, 10 s; convergence not established")
+    save(fig, "08-checkpoint-validation.png")
+
+(OUT / "results.json").write_text(
+    json.dumps(dict(training=training, inference=cases, convergence_validation=convergence), indent=2)
+)
 cards = []
 case_labels = {
     "dr_rft_nominal": "Randomized policy — nominal RFT",
     "dr_mpm_deep": "Same randomized policy — nominal MPM",
     "nominal_rft_nominal": "Fixed-forward demonstration policy — RFT",
-    "matched_rft_nominal": "Command-matched nominal policy — RFT",
+    "matched_rft_nominal": "Fixed-material / varied-command policy — RFT",
     "matched_mpm_deep": "Same nominal policy — MPM",
     "dr_rft_weak": "Randomized policy — weaker RFT material",
     "dr_mpm_weak": "Same randomized policy — weaker MPM material",
