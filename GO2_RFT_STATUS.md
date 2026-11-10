@@ -20,7 +20,7 @@ No training process remains active. The dashboard continues to serve the final c
 
 The rigid policy's rear-foot left/right order is reversed in 98.2% of the recorded frames. Its mean signed lateral separation is −4.0 cm, measured in the robot base frame. The first 0.02 s sample has the correct order; the reversal begins at 0.12 s, indicating learned motion rather than an initially crossed reset pose. The zero-layer RFT control reproduces the same trajectory and crossing, so the defect is also present without granular forces.
 
-The early RFT checkpoint has no rear-foot order reversal and a mean rear stance width of 29.3 cm. The final RFT checkpoint also has no reversal in its nominal clip, but its mean width is only 9.4 cm. Foot ordering alone does not certify a natural or collision-free gait.
+The final RFT checkpoint has no rear-foot order reversal in its nominal clip, but its mean stance width is only 9.4 cm. Foot ordering alone does not certify a natural or collision-free gait.
 
 The shared Go2 asset disables self-collision. This direct task rewards command tracking, body orientation/height, effort and action smoothness, but has no leg-crossing, stance-width or joint-posture objective. Its failure check covers low base height, excessive tilt and nonfinite root position. Consequently, the previous label `First failure: None` meant no fall/termination, not acceptable gait. Dashboard/video labels now make this distinction explicit. These runs cannot be accepted as a physically credible rigid locomotion baseline based on tracking error alone.
 
@@ -53,7 +53,7 @@ ssh -o ExitOnForwardFailure=yes -N -L 18010:127.0.0.1:8010 horde@mrakhsha-41eslp
 
 Open [live status and curves](http://localhost:18010/live/), which refreshes every 30 seconds. It shows actual service state, iteration counts, checkpoint names, tracking error, material difficulty, episode completion, and throughput. [Raw live metrics](http://localhost:18010/live/status.json) include snapshot time and event age so stale logging is visible.
 
-The [video gallery](http://localhost:18010/report/) labels historical recordings affected by the fluid-density bug. New-policy recordings must be identified by checkpoint and evaluated field. On the server itself, use port 8010 instead of the tunnel port 18010.
+The [study report](http://localhost:18010/report/) presents three final-policy videos with explicit training/evaluation descriptions: the RFT-trained policy in RFT, the same policy in MPM, and the separately trained rigid-ground control. Early checkpoints, historical runs and extra layer videos are excluded from the main report and dashboard. Provenance is available under each video's recording details. On the server itself, use port 8010 instead of the tunnel port 18010.
 
 The gallery, monitor, and training jobs run as independent user services. A chat interruption does not terminate them:
 
@@ -64,7 +64,7 @@ journalctl --user -u go2-granular-monitor -n 20
 
 Training stdout is served at `/training/rft.log` and `/training/rigid.log`. Actual artifacts live under `logs/`; checkpoints and videos are excluded from Git.
 
-The `go2-granular-validation` service recorded the early RFT checkpoint preview, waited for both training jobs, and completed the held-out achieved/full material banks, rigid and finite-layer controls, and nominal MPM evaluation. It rebuilt the figures/gallery. MPM ran only after training ended. The completed recordings and stage appear on the live page.
+The `go2-granular-validation` service completed the held-out achieved/full material banks, rigid and finite-layer controls, and nominal MPM evaluation after both training jobs finished. It rebuilt the figures/report. Future runs record final-policy evaluations only; the earlier development preview is not presented. MPM runs only after training ends.
 
 ## Corrections and verification
 

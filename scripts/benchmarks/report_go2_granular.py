@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-import html
 import json
 from pathlib import Path
 
@@ -16,6 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from go2_granular_videos import render_videos
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 ROOT = Path("logs/go2_granular")
@@ -317,8 +317,8 @@ if convergence:
 corrected_training = []
 fig, axes = plt.subplots(2, 3, figsize=(14, 7))
 for family, label, color in (
-    ("go2_rigid_infinite", "Rigid control (infinite plane)", "tab:orange"),
-    ("go2_rft_material_curriculum", "RFT material curriculum (full commands)", "tab:blue"),
+    ("go2_rigid_infinite", "Training on rigid ground", "tab:orange"),
+    ("go2_rft_material_curriculum", "Training with RFT material randomization", "tab:blue"),
 ):
     runs = sorted(Path("logs/rsl_rl", family).glob("20*"))
     if not runs:
@@ -366,7 +366,7 @@ for family, label, color in (
         )
     )
 axes[0, 0].legend(fontsize=8)
-fig.suptitle("Corrected coupling, 4,096 worlds: full commands; only material randomization has a curriculum", y=1.02)
+fig.suptitle("RFT and rigid-ground training: 4,096 environments per run; full commands throughout", y=1.02)
 save(fig, "09-corrected-training.png")
 
 corrected_cases = []
@@ -388,10 +388,13 @@ for name in (
         corrected_cases.append(dict(case=name, **summary))
 
 gait = {}
-fig, axes = plt.subplots(3, 1, figsize=(11, 8), sharex=True)
-for ax, name in zip(
+fig, axes = plt.subplots(2, 1, figsize=(11, 6), sharex=True)
+for ax, (name, title) in zip(
     axes,
-    ("material_rft_preview", "corrected_rft_curriculum_nominal", "corrected_rigid_final"),
+    (
+        ("corrected_rft_curriculum_nominal", "Final RFT-trained policy on RFT sand"),
+        ("corrected_rigid_final", "Final rigid-ground policy on a rigid floor"),
+    ),
     strict=True,
 ):
     if not (ROOT / name / "summary.json").exists():
@@ -418,7 +421,7 @@ for ax, name in zip(
     )
     ax.plot(time, separation, label="Left rear foot y − right rear foot y, in base frame")
     ax.axhline(0, color="red", linestyle="--", label="Left/right foot order reverses below zero")
-    ax.set(title=f"{name}: reversed order during {crossed.mean():.1%} of frames", ylabel="Separation [m]")
+    ax.set(title=f"{title}: rear feet crossed during {crossed.mean():.1%} of frames", ylabel="Separation [m]")
     ax.grid(alpha=0.2)
 axes[0].legend(fontsize=8)
 axes[-1].set_xlabel("Time [s]")
@@ -426,7 +429,7 @@ fig.suptitle("Rear-foot stance diagnostic; this does not certify collision-free 
 save(fig, "12-gait-diagnostics.png")
 (OUT / "gait_diagnostics.json").write_text(json.dumps(gait, indent=2))
 
-validation = [case for case in corrected_cases if case["case"].endswith("_validation")]
+validation = [case for case in corrected_cases if case["case"] == "material_full_validation"]
 if validation:
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     labels = [f"Material width {case['validation_difficulty']:.0%}" for case in validation]
@@ -472,68 +475,68 @@ if any((ROOT / name / "summary.json").exists() for name, _ in layer_cases):
         indent=2,
     )
 )
-cards = []
-case_labels = {
-    "dr_rft_nominal": "Randomized policy — nominal RFT",
-    "dr_mpm_deep": "Same randomized policy — nominal MPM",
-    "nominal_rft_nominal": "Fixed-forward demonstration policy — RFT",
-    "matched_rft_nominal": "Fixed-material / varied-command policy — RFT",
-    "matched_mpm_deep": "Same nominal policy — MPM",
-    "dr_rft_weak": "Randomized policy — weaker RFT material",
-    "dr_mpm_weak": "Same randomized policy — weaker MPM material",
-    "dr_rft_strong": "Randomized policy — stronger RFT material",
-    "dr_mpm_strong": "Same randomized policy — stronger MPM material",
-}
-for case in cases:
-    name = case["case"]
-    if (ROOT / name / "rollout.mp4").exists():
-        cards.append(
-            f"<article><h2>Historical: {html.escape(case_labels.get(name, name))}</h2>"
-            f'<video controls preload="metadata" src="../{name}/rollout.mp4"></video>'
-            f"<p>Failure: {case['first_failure_seconds']}; "
-            f"velocity error: {case.get('mean_velocity_error', 0):.3f} m/s. "
-            f"Execution error: {html.escape(str(case.get('execution_error')))}.</p></article>"
-        )
-stock = ROOT / "stock_go2_mpm_runway"
-if (stock / "rollout.mp4").exists():
-    cards.append(
-        "<article><h2>Stock Go2 / MPM runway smoke</h2>"
-        '<video controls preload="metadata" src="../stock_go2_mpm_runway/rollout.mp4"></video>'
-        "<p>Separate pretrained 48-value policy; rigid-supported 8 cm strip. Integration showcase only.</p></article>"
+videos = render_videos(ROOT, corrected_cases, gait)
+figures = "".join(
+    f"<figure><h3>{title}</h3><p>{description}</p><img src='{name}' alt='{title}' loading='lazy'></figure>"
+    for name, title, description in (
+        (
+            "09-corrected-training.png",
+            "Learning curves",
+            "The RFT policy and rigid-ground control were trained separately. Both used 4,096 environments "
+            "and full velocity-command randomization. Only RFT material randomization used a curriculum.",
+        ),
+        (
+            "10-material-validation.png",
+            "Final RFT policy across randomized materials",
+            "128 held-out trials, each lasting 10 seconds, with the full material and command ranges. "
+            "Completion measures falls; gait quality needs a separate check.",
+        ),
     )
-images = "".join(f'<img src="{p.name}" alt="{p.stem}">' for p in sorted(OUT.glob("*.png")))
-corrected_cards = []
-for case in corrected_cases:
-    name = case["case"]
-    if (ROOT / name / "rollout.mp4").exists():
-        diagnostic = gait.get(name)
-        gait_text = (
-            f"Rear-foot order reversed during {diagnostic['reversed_rear_foot_order_fraction']:.1%} of frames. "
-            if diagnostic
-            else "Gait quality has not been assessed. "
-        )
-        corrected_cards.append(
-            f"<article><h2>Corrected coupling: {html.escape(name)}</h2>"
-            f'<video controls preload="metadata" src="../{name}/rollout.mp4"></video>'
-            f"<p>First fall/termination: {case.get('first_failure_seconds')}; "
-            f"tracking error: {case.get('mean_velocity_error', 0):.3f} m/s. "
-            f"Ambient fluid density: {case.get('ambient_fluid_density')} kg/m³.<br>{gait_text}</p></article>"
-        )
+    if (OUT / name).exists()
+)
 (OUT / "index.html").write_text(
-    """<!doctype html><meta charset="utf-8"><title>Go2 RFT / MPM investigation</title>
-<style>body{font:16px system-ui;max-width:1200px;margin:30px auto;padding:20px;background:#f1f5f9;color:#0f172a}
-video,img{width:100%}article{background:white;padding:16px;margin:20px 0;border-radius:10px}</style>
-<h1>Go2 RFT training and MPM inference</h1>
-<p><a href="../live/">Live training status and curves (refreshes every 30 seconds)</a></p>
-<p>Actual Newton physics and frozen-policy recordings.
-Historical RFT policies below were trained with unintended MuJoCo fluid drag due to a density-parameter collision.
-These recordings are retained for audit. See the live page for the current run status.
-The corrected rigid policy crosses its rear feet; low tracking error and no fall do not establish acceptable gait.
-The final RFT policy fails at 0.48 s in the exploratory MPM rollout.
-RFT also uses an experimental bearing extension. MPM convergence and transfer accuracy are not established.
-Low posture and transfer failures are retained.</p>"""
-    + "".join(corrected_cards)
-    + "".join(cards)
-    + images
+    """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Go2: RFT training and MPM evaluation</title>
+<style>body{font:16px/1.5 system-ui;max-width:1200px;margin:24px auto;padding:20px;background:#f1f5f9;color:#0f172a}
+video,img{width:100%;border-radius:6px}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
+article,figure{background:white;padding:20px;margin:0 0 24px;border-radius:10px}figure{margin:20px 0}
+h1,h2,h3{line-height:1.2}h3{margin-top:0}details{margin:12px 0}summary{cursor:pointer;color:#1d4ed8}
+code{overflow-wrap:anywhere}a{color:#1d4ed8}
+.outcome{background:#fff7ed;border-left:4px solid #c2410c;padding:16px}</style>
+<h1>Go2: training with RFT, testing with MPM</h1>
+<p>The goal is to train with an inexpensive granular approximation, then evaluate the same policy
+with particle-based material simulation. MPM is used only after training.</p>
+<p class="outcome"><strong>Current result:</strong> the RFT policy tracks commands in RFT and falls in the MPM test.
+The separately trained rigid-ground control crosses its rear legs.
+These results do not establish successful transfer.</p>
+<p><a href="../live/">Training status and live curves</a></p>
+<h2>Final policy comparisons</h2>
+<p>Each clip uses a fixed forward command of 0.30 m/s. The first two use the exact same trained weights.
+The rigid-ground clip uses a separate policy. Green arrows show granular forces on robot bodies.</p>"""
+    + videos
+    + "<h2>Training and validation</h2>"
+    + figures
+    + """<details><summary>Rear-leg gait measurements</summary>
+<p>The final RFT clip has a narrow rear stance. In the rigid-ground clip the rear feet swap left/right order
+at 0.12 seconds and stay crossed for 98.2% of frames. Low velocity error does not measure gait quality.</p>
+<img src="12-gait-diagnostics.png" alt="Rear-foot separation for the final policies" loading="lazy">
+</details>
+<details><summary>Rigid-ground limit as sand thickness vanishes</summary>
+<p>This diagnostic applies the rigid-ground policy to RFT layers of 0, 5, 20 and 50 mm above a rigid floor.
+At zero thickness the granular force vanishes and the motion matches the rigid-floor rollout, including its gait defect.
+The graph shows the layer comparison; positive-thickness confinement accuracy remains unvalidated.</p>
+<img src="11-layer-limit.png" alt="Same rigid-ground policy with different sand-layer thicknesses" loading="lazy">
+</details>
+<details><summary>Experiment settings and data</summary>
+<p>Both runs used 4,096 environments and seed 42. Commands were sampled at reset across the full range:
+forward 0.1–0.5 m/s, lateral ±0.1 m/s, yaw ±0.3 rad/s, and 10% standing trials.</p>
+<p>RFT material randomization covered density 1,400–1,800 kg/m³, internal friction 0.3–0.5,
+surface/internal friction ratio 0.6–1.0, strength multiplier 0.8–1.2, and surface elevation ±0.02 m.</p>
+<p>RFT includes an experimental near-rest bearing term. The MPM reference still needs resolution,
+timestep and coupling-convergence checks. Force arrows are qualitative: RFT uses interval-average impulses,
+while MPM uses the last coupled feedback sample.</p>
+<p><a href="results.json">Full numerical records</a> · <a href="gait_diagnostics.json">Gait measurements</a></p>
+</details>"""
 )
 print(f"Built {OUT / 'index.html'}")

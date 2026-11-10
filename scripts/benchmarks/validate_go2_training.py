@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Record an early Go2 preview, then evaluate the frozen policies when training finishes.
+"""Evaluate the final frozen Go2 policies when training finishes.
 
 Uses the two training services and run families from ``monitor_go2_granular.py``.
 MPM runs only after both training jobs have exited successfully. Progress is
@@ -43,7 +43,7 @@ def latest_checkpoint(family: str) -> Path | None:
 
 
 def main() -> None:
-    progress = dict(stage="Waiting for checkpoint 100 preview", cases=[])
+    progress = dict(stage="Waiting for training to finish", cases=[])
 
     def publish(stage: str) -> None:
         progress["stage"] = stage
@@ -76,16 +76,10 @@ def main() -> None:
 
     publish(progress["stage"])
     try:
-        preview_done = False
         while True:
             states = [job_state(row[3]) for row in RUNS]
             if any(state["ActiveState"] == "failed" for state in states):
                 raise RuntimeError(f"Training job failed: {states}")
-            checkpoint = latest_checkpoint(RUNS[0][2])
-            if not preview_done and checkpoint and int(checkpoint.stem.split("_")[-1]) >= 100:
-                evaluate("material_rft_preview", checkpoint, "--field", "rft", "--steps", "500", "--video")
-                preview_done = True
-                publish("Training continues; waiting to run final frozen-policy evaluations")
             if all(state["ActiveState"] == "inactive" for state in states):
                 if any(state["Result"] != "success" or state["ExecMainStatus"] != "0" for state in states):
                     raise RuntimeError(f"Training did not finish successfully: {states}")

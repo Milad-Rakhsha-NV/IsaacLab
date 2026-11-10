@@ -24,6 +24,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from go2_granular_videos import render_videos
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 ROOT = Path("logs/go2_granular")
@@ -121,6 +122,7 @@ def refresh() -> None:
                 "case",
                 "checkpoint",
                 "field",
+                "simulated_seconds",
                 "first_failure_seconds",
                 "failure_fraction",
                 "mean_velocity_error",
@@ -152,34 +154,20 @@ def refresh() -> None:
             f"{row['completed_iterations']:,} / {row['target_iterations']:,} iterations</p>"
             f"<progress value='{row['completed_iterations']}' max='{row['target_iterations']}'></progress>"
             f"<p>{row['transitions'] / 1e6:.1f} million transitions · {error_text}<br>{material}<br>"
-            f"Last checkpoint: {row['checkpoint']} · Event age: {row['event_age_seconds']} s</p>"
-            f"<a href='../training/{row['key']}.log'>Training log</a></article>"
+            "</p><details><summary>Run details</summary>"
+            f"<p>Last checkpoint: {row['checkpoint']} · Event age: {row['event_age_seconds']} s</p>"
+            f"<a href='../training/{row['key']}.log'>Training log</a></details></article>"
         )
-    previews = []
-    for case in evaluation.get("cases", []):
-        name = case["case"]
-        video = ROOT / name / "rollout.mp4"
-        if video.exists():
-            diagnostic = gait.get(name)
-            gait_text = (
-                f"Rear-foot order reversed during {diagnostic['reversed_rear_foot_order_fraction']:.1%} of frames."
-                if diagnostic
-                else "Gait quality has not been assessed."
-            )
-            previews.append(
-                f"<article><h2>{html.escape(name)}</h2>"
-                f"<video controls preload='metadata' src='../{name}/rollout.mp4'></video>"
-                f"<p>Checkpoint: {html.escape(str(case['checkpoint']))}<br>"
-                f"First fall/termination: {case['first_failure_seconds']} s · "
-                f"Tracking error: {case['mean_velocity_error']:.3f} m/s<br>{gait_text}</p></article>"
-            )
+    videos = render_videos(ROOT, evaluation.get("cases", []), gait)
     evaluation_text = html.escape(evaluation.get("stage", "Validation pipeline has not started"))
     page = (
         '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="30">'
         '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Go2 live training</title>'
         "<style>body{font:16px system-ui;background:#f1f5f9;color:#0f172a;max-width:1200px;margin:24px auto;"
         "padding:16px}section{display:flex;gap:20px;flex-wrap:wrap}article{background:white;padding:20px;"
-        "border-radius:12px;flex:1;min-width:280px}progress,img,video{width:100%}a{color:#1d4ed8}</style>"
+        "border-radius:12px;flex:1;min-width:280px}progress,img,video{width:100%}a{color:#1d4ed8}"
+        ".video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}"
+        ".video-grid article{min-width:0}code{overflow-wrap:anywhere}summary{cursor:pointer;color:#1d4ed8}</style>"
         f"<h1>Go2 live training</h1><p>Updates every 30 seconds. Snapshot: {now:%Y-%m-%d %H:%M:%S} UTC.</p>"
         "<p>Both runs: 4,096 environments, seed 42, full commands from the first reset. "
         "Only RFT material randomization has a curriculum. MPM is used after training for inference.</p>"
@@ -187,13 +175,14 @@ def refresh() -> None:
         "The trained rigid policy crosses its rear feet. Its training asset disables self-collision, "
         "and rewards/terminations do not check leg crossing.</p>"
         f"<section>{''.join(cards)}</section><img src='curves.png?t={int(time.time())}' alt='Live learning curves'>"
-        f"<h2>Policy recordings and evaluation</h2><p>{evaluation_text}</p>{''.join(previews)}"
+        f"<h2>Final policy comparisons</h2>{videos}"
+        f"<details><summary>Evaluation progress</summary><p>{evaluation_text}</p></details>"
         "<p>Material progression requires ≥95% episode completion and ≤0.10 m/s mean tracking error in "
         "two consecutive windows of at least 4,096 qualifying episodes. Training curves do not establish "
         "held-out convergence or MPM transfer.</p><p>Full target: density 1,400–1,800 kg/m³; friction 0.3–0.5; "
         "roughness 0.6–1.0; strength multiplier 0.8–1.2; surface elevation ±0.02 m. "
         "Commands: forward 0.1–0.5 m/s, lateral ±0.1 m/s, yaw ±0.3 rad/s; 10% standing.</p>"
-        '<p><a href="../report/">Videos and study report</a> · <a href="status.json">Raw live metrics</a></p>'
+        '<p><a href="../report/">Study report and graphs</a></p>'
     )
     (OUT / "index.tmp").write_text(page)
     (OUT / "index.tmp").replace(OUT / "index.html")
