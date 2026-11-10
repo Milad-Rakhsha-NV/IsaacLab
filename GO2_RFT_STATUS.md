@@ -73,6 +73,10 @@ Control is 50 Hz. Isaac Lab physics steps at 200 Hz with four Newton substeps, g
 
 The nominal-material baseline keeps the same command distribution and training settings. Only field randomization changes. Commands are sampled at reset; start/stop command schedules and final held-out test seeds remain future work. These ranges are experimental distributions, not measured sand-property intervals.
 
+The randomized policy is trained in **one run with one shared policy across 512 parallel environments**. `_reset_idx(env_ids)` resamples the fields and commands independently for just the environments being reset; other environments retain their samples. The other runs in the training table are baselines or development pilots, not separate runs for individual material settings. Observation noise is sampled on every observation rather than only at reset.
+
+Here, randomized height means the flat granular free-surface elevation in each environment, not the robot's target base height or a spatially varying height map. Randomized velocity means the commanded robot forward/lateral/yaw velocity. The granular field is stationary; its bulk velocity and the robot's initial velocity are not randomized. The near-rest transition speed (0.04 m/s), bearing coefficient (0.87574), and inertial coefficient (zero) remain fixed.
+
 Rewards combine planar/yaw tracking, survival, orientation/height penalties, motor effort and action changes. Target height is 0.32 m. Failure occurs below 0.16 m relative to the nominal environment origin, with excessive tilt, or with nonfinite root position. Height thresholds do not track the randomized ±2 cm bed elevation. Episodes time out at 10 s. Recorded inference disables autoreset and retains failed trajectories; errors include the post-failure interval.
 
 ## Training completed
@@ -178,7 +182,14 @@ Large media, model checkpoints and generated experiment artifacts remain local u
 
 ### View from another machine
 
-On `mrakhsha-41eslp`, serve the artifact root:
+The gallery is served on `mrakhsha-41eslp` by the detached user service `go2-granular-gallery.service`, bound to loopback port 8010. This keeps it separate from the chat's temporary shell. Check or restart it on that host with:
+
+```bash
+systemctl --user status go2-granular-gallery.service
+systemctl --user restart go2-granular-gallery.service
+```
+
+For a manual server on another checkout, keep this command running in a terminal instead of starting the service:
 
 ```bash
 cd /home/horde/Documents/Repos/IsaacLab
@@ -188,10 +199,25 @@ uv run --no-project python -m http.server 8010 --bind 127.0.0.1 --directory logs
 On the machine running the browser:
 
 ```bash
-ssh -N -L 8010:127.0.0.1:8010 horde@mrakhsha-41eslp
+ssh -o ExitOnForwardFailure=yes -N -L 18010:127.0.0.1:8010 horde@mrakhsha-41eslp
 ```
 
-Open **http://localhost:8010/report/**. HTTP links, rather than remote filesystem paths, make the videos and figures accessible through the tunnel.
+Keep that SSH terminal open, then open **http://localhost:18010/report/** in the browser on that same machine. `localhost` refers to the browser's machine; it does not automatically refer to the SSH server. A browser running directly on `mrakhsha-41eslp` can use **http://127.0.0.1:8010/report/** without a tunnel.
+
+The primary videos use the same frozen randomized-training checkpoint:
+
+- RFT: `http://localhost:18010/dr_rft_nominal/rollout.mp4` (10 s).
+- MPM: `http://localhost:18010/dr_mpm_deep/rollout.mp4` (2 s, retaining the early failure).
+
+### Download and watch offline
+
+`logs/go2_granular/go2-rft-results.zip` contains the ten primary videos, seven figures, gallery, summaries and this report (about 24 MiB). With the tunnel active, download it at **http://localhost:18010/go2-rft-results.zip**. Alternatively, run this on the browser machine without starting a tunnel:
+
+```bash
+scp horde@mrakhsha-41eslp:/home/horde/Documents/Repos/IsaacLab/logs/go2_granular/go2-rft-results.zip .
+```
+
+Extract the entire archive and open `go2-rft-results/report/index.html` in a browser, or open any `rollout.mp4` directly in a video player. The extracted gallery does not need Python or a web server. The bundle excludes checkpoints and raw trajectory arrays; those remain at the paths listed above.
 
 ## Reproduce
 
