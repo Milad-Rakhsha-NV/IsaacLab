@@ -36,3 +36,15 @@ gym.register(
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_rough_ppo_cfg.yaml",
     },
 )
+
+
+gym.register(
+    id="Isaac-Velocity-Flat-UnitreeGo2-RFT-Direct",
+    entry_point=f"{__name__}.rft_env:Go2RFTEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.rft_env_cfg:Go2RFTEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_rft_ppo_cfg:Go2RFTPPORunnerCfg",
+        "default_agent": "rsl_rl",
+    },
+)
