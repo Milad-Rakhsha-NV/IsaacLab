@@ -387,6 +387,45 @@ for name in (
         summary, _ = read_case(name)
         corrected_cases.append(dict(case=name, **summary))
 
+gait = {}
+fig, axes = plt.subplots(3, 1, figsize=(11, 8), sharex=True)
+for ax, name in zip(
+    axes,
+    ("material_rft_preview", "corrected_rft_curriculum_nominal", "corrected_rigid_final"),
+    strict=True,
+):
+    if not (ROOT / name / "summary.json").exists():
+        continue
+    summary, data = read_case(name)
+    labels = summary["body_labels"]
+    poses = data["body_pose"]
+    base = poses[:, next(i for i, label in enumerate(labels) if label.endswith("/base"))]
+    local_feet = []
+    for leg in ("RL", "RR"):
+        foot = poses[:, next(i for i, label in enumerate(labels) if label.endswith(f"/{leg}_foot"))]
+        displacement = foot[:, :3] - base[:, :3]
+        xyz, scalar = -base[:, 3:6], base[:, 6:7]
+        local = displacement + 2 * np.cross(xyz, np.cross(xyz, displacement) + scalar * displacement)
+        local_feet.append(local[:, 1])
+    separation = local_feet[0] - local_feet[1]
+    crossed = separation < 0
+    time = data["state"][:, 0, 0]
+    gait[name] = dict(
+        first_rear_foot_order_reversal_s=float(time[np.flatnonzero(crossed)[0]]) if crossed.any() else None,
+        reversed_rear_foot_order_fraction=float(crossed.mean()),
+        min_rear_foot_separation_m=float(separation.min()),
+        mean_rear_foot_separation_m=float(separation.mean()),
+    )
+    ax.plot(time, separation, label="Left rear foot y − right rear foot y, in base frame")
+    ax.axhline(0, color="red", linestyle="--", label="Left/right foot order reverses below zero")
+    ax.set(title=f"{name}: reversed order during {crossed.mean():.1%} of frames", ylabel="Separation [m]")
+    ax.grid(alpha=0.2)
+axes[0].legend(fontsize=8)
+axes[-1].set_xlabel("Time [s]")
+fig.suptitle("Rear-foot stance diagnostic; this does not certify collision-free or natural gait")
+save(fig, "12-gait-diagnostics.png")
+(OUT / "gait_diagnostics.json").write_text(json.dumps(gait, indent=2))
+
 validation = [case for case in corrected_cases if case["case"].endswith("_validation")]
 if validation:
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
@@ -467,12 +506,18 @@ corrected_cards = []
 for case in corrected_cases:
     name = case["case"]
     if (ROOT / name / "rollout.mp4").exists():
+        diagnostic = gait.get(name)
+        gait_text = (
+            f"Rear-foot order reversed during {diagnostic['reversed_rear_foot_order_fraction']:.1%} of frames. "
+            if diagnostic
+            else "Gait quality has not been assessed. "
+        )
         corrected_cards.append(
             f"<article><h2>Corrected coupling: {html.escape(name)}</h2>"
             f'<video controls preload="metadata" src="../{name}/rollout.mp4"></video>'
-            f"<p>Failure: {case.get('first_failure_seconds')}; "
+            f"<p>First fall/termination: {case.get('first_failure_seconds')}; "
             f"tracking error: {case.get('mean_velocity_error', 0):.3f} m/s. "
-            f"Ambient fluid density: {case.get('ambient_fluid_density')} kg/m³.</p></article>"
+            f"Ambient fluid density: {case.get('ambient_fluid_density')} kg/m³.<br>{gait_text}</p></article>"
         )
 (OUT / "index.html").write_text(
     """<!doctype html><meta charset="utf-8"><title>Go2 RFT / MPM investigation</title>
@@ -482,7 +527,9 @@ video,img{width:100%}article{background:white;padding:16px;margin:20px 0;border-
 <p><a href="../live/">Live training status and curves (refreshes every 30 seconds)</a></p>
 <p>Actual Newton physics and frozen-policy recordings.
 Historical RFT policies below were trained with unintended MuJoCo fluid drag due to a density-parameter collision.
-These recordings are retained for audit. Corrected training and validation are in progress.
+These recordings are retained for audit. See the live page for the current run status.
+The corrected rigid policy crosses its rear feet; low tracking error and no fall do not establish acceptable gait.
+The final RFT policy fails at 0.48 s in the exploratory MPM rollout.
 RFT also uses an experimental bearing extension. MPM convergence and transfer accuracy are not established.
 Low posture and transfer failures are retained.</p>"""
     + "".join(corrected_cards)

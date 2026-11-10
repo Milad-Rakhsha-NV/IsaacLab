@@ -113,7 +113,24 @@ def refresh() -> None:
     (OUT / "curves.tmp").replace(OUT / "curves.png")
     evaluation_path = ROOT / "training/evaluation_status.json"
     evaluation = json.loads(evaluation_path.read_text()) if evaluation_path.exists() else {}
-    snapshot = dict(updated_utc=now.isoformat(), runs=rows, evaluation=evaluation)
+    # Keep the live snapshot compact; per-body/material manifests stay in the case summaries.
+    evaluation["cases"] = [
+        {
+            key: case[key]
+            for key in (
+                "case",
+                "checkpoint",
+                "field",
+                "first_failure_seconds",
+                "failure_fraction",
+                "mean_velocity_error",
+            )
+        }
+        for case in evaluation.get("cases", [])
+    ]
+    gait_path = ROOT / "report/gait_diagnostics.json"
+    gait = json.loads(gait_path.read_text()) if gait_path.exists() else {}
+    snapshot = dict(updated_utc=now.isoformat(), runs=rows, evaluation=evaluation, gait=gait)
     (OUT / "status.tmp").write_text(json.dumps(snapshot, indent=2))
     (OUT / "status.tmp").replace(OUT / "status.json")
     cards = []
@@ -123,6 +140,10 @@ def refresh() -> None:
         error = metrics.get("Metrics/velocity_error")
         error_text = f"{error:.3f} m/s" if error is not None else "Waiting for episodes"
         status = row["state"].get("ActiveState", "not started")
+        if status == "inactive" and row["state"].get("Result") == "success":
+            status = (
+                "Training budget completed" if row["completed_iterations"] >= row["target_iterations"] else "Stopped"
+            )
         if row["state"].get("Result") not in (None, "success"):
             status += f" ({row['state']['Result']})"
         material = f"{difficulty:.0%} of target randomization width" if row["key"] == "rft" else "Rigid plane"
@@ -139,12 +160,18 @@ def refresh() -> None:
         name = case["case"]
         video = ROOT / name / "rollout.mp4"
         if video.exists():
+            diagnostic = gait.get(name)
+            gait_text = (
+                f"Rear-foot order reversed during {diagnostic['reversed_rear_foot_order_fraction']:.1%} of frames."
+                if diagnostic
+                else "Gait quality has not been assessed."
+            )
             previews.append(
                 f"<article><h2>{html.escape(name)}</h2>"
                 f"<video controls preload='metadata' src='../{name}/rollout.mp4'></video>"
                 f"<p>Checkpoint: {html.escape(str(case['checkpoint']))}<br>"
-                f"First failure: {case['first_failure_seconds']} s · "
-                f"Tracking error: {case['mean_velocity_error']:.3f} m/s</p></article>"
+                f"First fall/termination: {case['first_failure_seconds']} s · "
+                f"Tracking error: {case['mean_velocity_error']:.3f} m/s<br>{gait_text}</p></article>"
             )
     evaluation_text = html.escape(evaluation.get("stage", "Validation pipeline has not started"))
     page = (
@@ -156,6 +183,9 @@ def refresh() -> None:
         f"<h1>Go2 live training</h1><p>Updates every 30 seconds. Snapshot: {now:%Y-%m-%d %H:%M:%S} UTC.</p>"
         "<p>Both runs: 4,096 environments, seed 42, full commands from the first reset. "
         "Only RFT material randomization has a curriculum. MPM is used after training for inference.</p>"
+        "<p><b>No fall/termination does not imply an acceptable gait.</b> "
+        "The trained rigid policy crosses its rear feet. Its training asset disables self-collision, "
+        "and rewards/terminations do not check leg crossing.</p>"
         f"<section>{''.join(cards)}</section><img src='curves.png?t={int(time.time())}' alt='Live learning curves'>"
         f"<h2>Policy recordings and evaluation</h2><p>{evaluation_text}</p>{''.join(previews)}"
         "<p>Material progression requires ≥95% episode completion and ≤0.10 m/s mean tracking error in "

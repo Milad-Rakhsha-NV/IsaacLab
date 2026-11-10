@@ -1,6 +1,30 @@
 # Go2 RFT training and MPM inference
 
-Updated November 10, 2026 (Pacific). Fresh training is running. **Convergence and RFT-to-MPM transfer are not yet established.**
+Updated November 10, 2026 (Pacific). Both training budgets and automatic evaluations have finished. **The rigid policy has a crossed rear-leg gait, and RFT-to-MPM inference fails. Successful locomotion transfer is not established.**
+
+## Completed run status
+
+| Run / evaluation | Result |
+|---|---|
+| RFT training | 1,500 iterations, 147.456 million transitions, 44.5 minutes |
+| Material curriculum | Full target reached at iteration 910; 590 iterations at full width |
+| Rigid training | 600 iterations, 58.9824 million transitions, 12.2 minutes |
+| Final RFT nominal clip | 10 s without fall termination; mean tracking error 0.078 m/s |
+| Full-material held-out bank | 128/128 trials completed 10 s; mean tracking error 0.073 m/s; one seed |
+| Final rigid clip | 10 s without fall termination; error 0.008 m/s; rear feet cross at 0.12 s |
+| Same final RFT weights in MPM | Failure at 0.48 s in the 2 s exploratory recording |
+
+No training process remains active. The dashboard continues to serve the final curves, recordings, and job exit state.
+
+### Gait defect
+
+The rigid policy's rear-foot left/right order is reversed in 98.2% of the recorded frames. Its mean signed lateral separation is −4.0 cm, measured in the robot base frame. The first 0.02 s sample has the correct order; the reversal begins at 0.12 s, indicating learned motion rather than an initially crossed reset pose. The zero-layer RFT control reproduces the same trajectory and crossing, so the defect is also present without granular forces.
+
+The early RFT checkpoint has no rear-foot order reversal and a mean rear stance width of 29.3 cm. The final RFT checkpoint also has no reversal in its nominal clip, but its mean width is only 9.4 cm. Foot ordering alone does not certify a natural or collision-free gait.
+
+The shared Go2 asset disables self-collision. This direct task rewards command tracking, body orientation/height, effort and action smoothness, but has no leg-crossing, stance-width or joint-posture objective. Its failure check covers low base height, excessive tilt and nonfinite root position. Consequently, the previous label `First failure: None` meant no fall/termination, not acceptable gait. Dashboard/video labels now make this distinction explicit. These runs cannot be accepted as a physically credible rigid locomotion baseline based on tracking error alone.
+
+The next corrective experiment should enable and verify self-collision, add measured leg-posture/foot-placement constraints, validate the rigid control's gait, and then repeat RFT training and transfer assessment. Existing checkpoint weights remain unchanged during this diagnosis. The [rear-foot diagnostic plot](http://localhost:18010/report/12-gait-diagnostics.png) shows the measured separation traces.
 
 ## Current experiment
 
@@ -10,7 +34,7 @@ Updated November 10, 2026 (Pacific). Fresh training is running. **Convergence an
 - A separate 4,096-environment rigid-flat control uses the same observation, action, reward, command, and PPO settings.
 - Both fresh runs use seed 42 and initial action standard deviation 1.0. They start from scratch.
 
-| Run | Task | Planned PPO iterations | Log directory under `logs/rsl_rl/` |
+| Run | Task | Completed PPO iterations | Log directory under `logs/rsl_rl/` |
 |---|---|---:|---|
 | RFT material curriculum | `Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct` | 1,500 | `go2_rft_material_curriculum/2026-11-10_19-05-34/` |
 | Rigid control | `Isaac-Velocity-Flat-UnitreeGo2-Rigid-Direct` | 600 | `go2_rigid_infinite/2026-11-10_19-05-34/` |
@@ -40,7 +64,7 @@ journalctl --user -u go2-granular-monitor -n 20
 
 Training stdout is served at `/training/rft.log` and `/training/rigid.log`. Actual artifacts live under `logs/`; checkpoints and videos are excluded from Git.
 
-The `go2-granular-validation` service records an early RFT checkpoint preview, then waits for both training jobs to finish successfully. It automatically evaluates frozen policies on held-out achieved/full material banks, the rigid and finite-layer controls, and nominal MPM, and rebuilds the figures/gallery. Its current stage and completed recordings appear on the live page. MPM evaluation starts only after training ends. These scheduled evaluations remain pending until their artifacts exist.
+The `go2-granular-validation` service recorded the early RFT checkpoint preview, waited for both training jobs, and completed the held-out achieved/full material banks, rigid and finite-layer controls, and nominal MPM evaluation. It rebuilt the figures/gallery. MPM ran only after training ended. The completed recordings and stage appear on the live page.
 
 ## Corrections and verification
 
