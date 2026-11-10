@@ -21,7 +21,7 @@ overrides = [
     { name = "mujoco", specifier = "~=3.15.0" },
     { name = "mujoco-usd-converter", specifier = "==0.7.0" },
     { name = "mujoco-warp", specifier = "~=3.15.0" },
-    { name = "newton", extras = ["sim"], git = "https://github.com/Milad-Rakhsha-NV/newton.git?rev=87457620c5fa8aedfe616c0ebdff1035c1b84afd" },
+    { name = "newton", extras = ["sim"], git = "https://github.com/Milad-Rakhsha-NV/newton.git?rev=cb4f57292ff8da2c7d422817ca9cdc539734b1f6" },
     { name = "newton-usd-schemas", specifier = ">=0.5.0" },
     { name = "numpy", specifier = ">=2" },
     { name = "packaging", specifier = ">=20,<27" },
@@ -2071,7 +2071,7 @@ requires-dist = [
     { name = "meshio", specifier = ">=5.3.5" },
     { name = "moviepy", marker = "extra == 'video'", specifier = ">=1.0.3,<2.0.0.dev0" },
     { name = "myst-parser", marker = "extra == 'dev'" },
-    { name = "newton", extras = ["sim"], git = "https://github.com/Milad-Rakhsha-NV/newton.git?rev=87457620c5fa8aedfe616c0ebdff1035c1b84afd" },
+    { name = "newton", extras = ["sim"], git = "https://github.com/Milad-Rakhsha-NV/newton.git?rev=cb4f57292ff8da2c7d422817ca9cdc539734b1f6" },
     { name = "newton-usd-schemas", specifier = ">=0.5.0" },
     { name = "numba", specifier = ">=0.63.1" },
     { name = "numpy", specifier = ">=2" },
@@ -3466,7 +3466,7 @@ wheels = [
 [[package]]
 name = "newton"
 version = "1.8.0.dev0"
-source = { git = "https://github.com/Milad-Rakhsha-NV/newton.git?rev=87457620c5fa8aedfe616c0ebdff1035c1b84afd#87457620c5fa8aedfe616c0ebdff1035c1b84afd" }
+source = { git = "https://github.com/Milad-Rakhsha-NV/newton.git?rev=cb4f57292ff8da2c7d422817ca9cdc539734b1f6#cb4f57292ff8da2c7d422817ca9cdc539734b1f6" }
 dependencies = [
     { name = "warp-lang" },
 ]

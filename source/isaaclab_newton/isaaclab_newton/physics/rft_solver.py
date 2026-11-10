@@ -111,7 +111,7 @@ class RFTSolver(MJWarpSolver):
         rigid = MJWarpSolver.build(cfg, model, mode, env_template)
         surfaces, inventory = collision_surfaces(model, cfg.body_pattern, cfg.segments)
         strength = (
-            cfg.density
+            cfg.bulk_density
             * 9.81
             * (894 * cfg.internal_friction**3 - 386 * cfg.internal_friction**2 + 89 * cfg.internal_friction)
         )
@@ -120,10 +120,11 @@ class RFTSolver(MJWarpSolver):
             surfaces,
             rigid_solver=rigid,
             surface_height=cfg.surface_height,
+            surface_bottom=cfg.surface_bottom,
             max_edge_length=cfg.max_edge_length,
             surface_shape_ids=[row["shape"] for row in inventory],
             config=SolverRFT.Config(
-                density=cfg.density,
+                density=cfg.bulk_density,
                 internal_friction=cfg.internal_friction,
                 surface_friction=cfg.surface_friction,
                 strength=strength * cfg.strength_multiplier,

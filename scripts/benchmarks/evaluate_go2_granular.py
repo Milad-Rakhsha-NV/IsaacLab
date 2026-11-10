@@ -22,7 +22,7 @@ from isaaclab.app import launch_simulation
 from isaaclab.app.logging_utils import configure_console_logging
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--field", choices=("rft", "mpm"), default="rft")
+parser.add_argument("--field", choices=("rft", "mpm", "rigid"), default="rft")
 parser.add_argument("--checkpoint", type=Path)
 parser.add_argument("--output", type=Path, default=Path("logs/go2_granular/stance"))
 parser.add_argument("--steps", type=int, default=1000)
@@ -42,24 +42,33 @@ parser.add_argument("--proxy_relaxation", type=float, default=0.1)
 parser.add_argument("--mpm_modulus", type=float, default=1e15)
 parser.add_argument("--substeps", type=int, default=4)
 parser.add_argument("--bed_depth", type=float, default=0.4)
+parser.add_argument(
+    "--substrate_depth", type=float, default=None, help="Optional RFT layer thickness; zero tests rigid limit."
+)
+parser.add_argument("--difficulty", type=float, default=1.0, help="Frozen curriculum level for randomized validation.")
 args = parser.parse_args()
 configure_console_logging()
 
-from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTEnvCfg
+from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTEnvCfg, Go2RigidEnvCfg
 
-cfg = Go2RFTEnvCfg()
+cfg = Go2RigidEnvCfg() if args.field == "rigid" else Go2RFTEnvCfg()
 cfg.sim.visualizer_cfgs = [cfg.sim.visualizer_cfgs]
 cfg.seed = args.seed
 cfg.scene.num_envs = args.num_envs
-cfg.randomize_material = args.randomize
-cfg.randomize_commands = args.randomize
+cfg.randomize_material = args.randomize and args.field == "rft"
+cfg.randomize_commands = args.randomize and not args.stand
+cfg.surface_relative_height = True
+cfg.material_difficulty = min(args.difficulty / 0.7, 1.0)
+cfg.command_difficulty = max((args.difficulty - 0.3) / 0.7, 0.0)
 cfg.observation_noise = False
 cfg.command_speed = 0.0 if args.stand else args.speed
-cfg.sim.physics.solver_cfg.bearing = 0.0 if args.no_bearing else 0.87574
-cfg.sim.physics.solver_cfg.segments = args.segments
-cfg.sim.physics.solver_cfg.density = args.density
-cfg.sim.physics.solver_cfg.internal_friction = args.friction
-cfg.sim.physics.solver_cfg.surface_friction = args.friction * args.roughness
+if args.field == "rft":
+    cfg.bed_depth = args.substrate_depth
+    cfg.sim.physics.solver_cfg.bearing = 0.0 if args.no_bearing else 0.87574
+    cfg.sim.physics.solver_cfg.segments = args.segments
+    cfg.sim.physics.solver_cfg.bulk_density = args.density
+    cfg.sim.physics.solver_cfg.internal_friction = args.friction
+    cfg.sim.physics.solver_cfg.surface_friction = args.friction * args.roughness
 cfg.episode_length_s = args.steps * 0.02 + 10
 cfg.sim.physics.num_substeps = args.substeps
 if args.video:
@@ -207,7 +216,7 @@ with launch_simulation(cfg):
         inventory = solver.surface_inventory
         (args.output / "surfaces.json").write_text(json.dumps(inventory, indent=2))
         mpm = None
-    else:
+    elif args.field == "mpm":
         mpm = solver.solver("mpm")
         # Asset-local material bindings can override a root USD material.
         # Set the actual MPM collider friction through its public setup API,
@@ -238,6 +247,14 @@ with launch_simulation(cfg):
                 ),
                 indent=2,
             )
+        )
+    else:
+        mpm = None
+    rigid = solver.rigid_solver if args.field == "rft" else solver.solver("rigid") if mpm is not None else solver
+    ambient_density = float(rigid.mj_model.opt.density)
+    if ambient_density != 0:
+        raise ValueError(
+            f"Unexpected ambient fluid density {ambient_density}; granular bulk density must remain separate"
         )
     writer = None
     if args.video:
@@ -278,10 +295,12 @@ with launch_simulation(cfg):
                 impulse = solver.body_impulse.numpy()
                 force = (impulse - previous_impulse) / env.step_dt
                 previous_impulse = impulse.copy()
-            else:
+            elif mpm is not None:
                 force = solver.get_proxy_body_wrenches("rigid", "mpm").numpy()
                 particles_finite = bool(torch.isfinite(env.scene["sand"].data.particle_pos_w.torch).all())
-            height = p[:, 2] - env.scene.env_origins.cpu().numpy()[:, 2]
+            else:
+                force = np.zeros((model.body_count, 6), dtype=np.float32)
+            height = env.relative_base_height().cpu().numpy()
             failed = (height < 0.16) | (g[:, 2] > -0.3) | ~np.isfinite(p).all(-1)
             local_p = p - env.scene.env_origins.cpu().numpy()
             if first_exit is None and (
@@ -363,6 +382,10 @@ with launch_simulation(cfg):
         )
         summary = dict(
             field=args.field,
+            ambient_fluid_density=ambient_density,
+            surface_relative_height=True,
+            validation_difficulty=args.difficulty,
+            substrate_depth=args.substrate_depth,
             checkpoint=checkpoint,
             steps=len(rows),
             seed=args.seed,
@@ -383,7 +406,7 @@ with launch_simulation(cfg):
             surface_heights=height_manifest,
             execution_error=execution_error,
             bearing=cfg.sim.physics.solver_cfg.bearing if args.field == "rft" else None,
-            rigid_support_plane=False,
+            rigid_support_plane=args.field == "rigid" or args.substrate_depth is not None,
             material_randomization=cfg.randomize_material,
             voxel_size=args.voxel_size if mpm is not None else None,
             mpm_floor_center_xy=[0.3, 0.0] if mpm is not None else None,
@@ -395,7 +418,9 @@ with launch_simulation(cfg):
             substeps=args.substeps,
             force_sampling="control-interval impulse average"
             if args.field == "rft"
-            else "last coupled proxy feedback, including relaxation; not an interval average",
+            else "last coupled proxy feedback, including relaxation; not an interval average"
+            if mpm is not None
+            else "zero granular load; rigid contact reactions are not included",
         )
         if rows:
             state_history = np.array(rows)

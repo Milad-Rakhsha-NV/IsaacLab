@@ -77,7 +77,7 @@ for family, label, color in (
         )
     )
 axes[0, 0].legend()
-fig.suptitle("Go2 RFT training — actual TensorBoard records; single training seed", y=1.02)
+fig.suptitle("Historical training with unintended ambient fluid drag; single seed", y=1.02)
 save(fig, "01-training.png")
 
 cases = []
@@ -125,7 +125,7 @@ axes[1, 1].set(xlabel="World x [m]", ylabel="World y [m]")
 for ax in axes.flat:
     ax.grid(alpha=0.2)
     ax.legend(fontsize=8)
-fig.suptitle("Frozen randomized-RFT policy: transfer discrepancy; MPM convergence not established", y=1.02)
+fig.suptitle("Historical policy with fluid-density bug: transfer comparison is confounded", y=1.02)
 save(fig, "02-transfer.png")
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
@@ -333,7 +333,7 @@ for case in cases:
     name = case["case"]
     if (ROOT / name / "rollout.mp4").exists():
         cards.append(
-            f"<article><h2>{html.escape(case_labels.get(name, name))}</h2>"
+            f"<article><h2>Historical: {html.escape(case_labels.get(name, name))}</h2>"
             f'<video controls preload="metadata" src="../{name}/rollout.mp4"></video>'
             f"<p>Failure: {case['first_failure_seconds']}; "
             f"velocity error: {case.get('mean_velocity_error', 0):.3f} m/s. "
@@ -352,7 +352,9 @@ images = "".join(f'<img src="{p.name}" alt="{p.stem}">' for p in sorted(OUT.glob
 <style>body{font:16px system-ui;max-width:1200px;margin:30px auto;padding:20px;background:#f1f5f9;color:#0f172a}
 video,img{width:100%}article{background:white;padding:16px;margin:20px 0;border-radius:10px}</style>
 <h1>Go2 RFT training and MPM inference</h1><p>Actual Newton physics and frozen-policy recordings.
-RFT uses an experimental bearing extension. MPM convergence and transfer accuracy are not established.
+Historical RFT policies below were trained with unintended MuJoCo fluid drag due to a density-parameter collision.
+These recordings are retained for audit. Corrected training and validation are in progress.
+RFT also uses an experimental bearing extension. MPM convergence and transfer accuracy are not established.
 Low posture and transfer failures are retained.</p>"""
     + "".join(cards)
     + images

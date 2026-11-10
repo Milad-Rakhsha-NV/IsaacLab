@@ -48,3 +48,18 @@ gym.register(
         "default_agent": "rsl_rl",
     },
 )
+
+for suffix, cfg_name, agent_name in (
+    ("Rigid", "Go2RigidEnvCfg", "Go2RigidPPORunnerCfg"),
+    ("RFT-Curriculum", "Go2RFTCurriculumEnvCfg", "Go2RFTCurriculumPPORunnerCfg"),
+):
+    gym.register(
+        id=f"Isaac-Velocity-Flat-UnitreeGo2-{suffix}-Direct",
+        entry_point=f"{__name__}.rft_env:Go2RFTEnv",
+        disable_env_checker=True,
+        kwargs={
+            "env_cfg_entry_point": f"{__name__}.rft_env_cfg:{cfg_name}",
+            "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_rft_ppo_cfg:{agent_name}",
+            "default_agent": "rsl_rl",
+        },
+    )

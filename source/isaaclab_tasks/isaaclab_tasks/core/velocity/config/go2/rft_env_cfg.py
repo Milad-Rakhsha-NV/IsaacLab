@@ -5,6 +5,7 @@
 
 """Direct Go2 locomotion in a particle-free, randomized granular field."""
 
+from isaaclab_newton.physics.mjwarp_solver_cfg import MJWarpSolverCfg
 from isaaclab_newton.physics.newton_manager_cfg import NewtonCfg
 from isaaclab_newton.physics.rft_solver_cfg import RFTSolverCfg
 
@@ -17,6 +18,19 @@ from isaaclab.utils import configclass, replace
 from isaaclab.visualizers import VisualizerCfg
 
 from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG
+
+
+def rigid_substrate_cfg(height: float) -> AssetBaseCfg:
+    """Use identical substrate geometry in rigid controls and finite-layer experiments."""
+    return AssetBaseCfg(
+        prim_path="/World/Substrate",
+        spawn=sim_utils.CuboidCfg(
+            size=(100.0, 100.0, 0.1),
+            collision_props=sim_utils.UsdPhysicsCollisionCfg(collision_enabled=True),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.3, 0.3, 0.3)),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0, 0, height - 0.05)),
+    )
 
 
 @configclass
@@ -32,13 +46,15 @@ class Go2RFTSceneCfg(InteractiveSceneCfg):
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -0.15)),
     )
     light = AssetBaseCfg(prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=2000.0))
+    substrate: AssetBaseCfg | None = None
 
 
 @configclass
 class Go2RFTEnvCfg(DirectRLEnvCfg):
     """Experimental RFT with a labeled near-rest normal-bearing extension.
 
-    No rigid support plane and no MPM asset exist in this training scene.
+    The default half-space has no rigid support plane or MPM asset.
+    ``bed_depth`` explicitly enables a finite layer with a rigid substrate.
     Material randomization changes persistent GPU world rows on reset.
     """
 
@@ -58,6 +74,21 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     roughness_range = (0.6, 1.0)
     strength_multiplier_range = (0.8, 1.2)
     bed_height_range = (-0.02, 0.02)
+    bed_depth: float | None = None
+    """Optional finite-layer depth [m]; creates a labeled rigid substrate. None keeps a half-space."""
+    material_difficulty = 1.0
+    command_difficulty = 1.0
+    surface_relative_height = False
+    """Use the sampled surface for spawning, height reward and termination in new experiments."""
+    curriculum_enabled = False
+    curriculum_initial_difficulty = 0.0
+    curriculum_step = 0.1
+    curriculum_min_episodes = 4096
+    curriculum_patience = 2
+    curriculum_success_threshold = 0.95
+    curriculum_error_threshold = 0.1
+    curriculum_retreat_threshold = 0.7
+    curriculum_anchor_fraction = 0.1
     sim: SimulationCfg = SimulationCfg(
         dt=0.005,
         render_interval=4,
@@ -75,3 +106,30 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
         visualizer_cfgs=VisualizerCfg(eye=(1.8, -2.3, 1.0), lookat=(0.0, 0.0, 0.25)),
     )
     scene: Go2RFTSceneCfg = Go2RFTSceneCfg(num_envs=4096, env_spacing=3.0)
+
+
+@configclass
+class Go2RFTCurriculumEnvCfg(Go2RFTEnvCfg):
+    """Success-driven reset randomization, with consistent surface-relative height."""
+
+    curriculum_enabled = True
+    surface_relative_height = True
+
+
+@configclass
+class Go2RigidEnvCfg(Go2RFTEnvCfg):
+    """Rigid-flat control with the same policy contract and rewards as the granular task."""
+
+    randomize_material = False
+    surface_relative_height = True
+    sim: SimulationCfg = replace(
+        Go2RFTEnvCfg().sim,
+        physics=NewtonCfg(
+            num_substeps=4,
+            solver_cfg=MJWarpSolverCfg(njmax=128, nconmax=64, use_mujoco_contacts=True),
+        ),
+    )
+    scene: Go2RFTSceneCfg = replace(
+        Go2RFTEnvCfg().scene,
+        substrate=rigid_substrate_cfg(0.0),
+    )

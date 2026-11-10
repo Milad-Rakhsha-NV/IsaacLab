@@ -1,6 +1,10 @@
 # Go2 RFT training and MPM inference study
 
-Updated November 9, 2026 (Pacific). **Implementation and one-seed pilot training are complete. Physical validation and successful RFT-to-MPM transfer are not complete.** Both evaluated policies fail in the current finite-bed MPM reference. The static-support gate also fails. These results support further solver investigation, not a robust locomotion or real-robot deployment claim.
+> **Coupling correction in progress.** The historical RFT training and playback results below were affected by a configuration collision: granular `density=1600` was also forwarded as MuJoCo ambient fluid density, adding unintended drag. The corrected configuration uses `bulk_density` and leaves ambient fluid density at zero. These old policy/transfer results are retained for audit and must not be interpreted as validation of RFT accuracy or curriculum performance. Standalone RFT analytic tests and the separate stock-Go2 MPM runway are unaffected.
+
+The finite-layer solver and zero-layer rigid-flat equivalence tests now pass. Fresh 4,096-environment rigid-control and curriculum runs are being prepared; their results will be reported separately. The curriculum is implemented, including per-reset sampling, performance gates, easy anchor trials, and freezing at the full target range.
+
+Updated November 10, 2026 (Pacific). **Implementation and one-seed pilot training are complete. Physical validation and successful RFT-to-MPM transfer are not complete.** Both evaluated policies fail in the current finite-bed MPM reference. The static-support gate also fails. These results support further solver investigation, not a robust locomotion or real-robot deployment claim.
 
 ## Code and experiment status
 
