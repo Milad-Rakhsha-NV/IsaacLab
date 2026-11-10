@@ -371,6 +371,9 @@ save(fig, "09-corrected-training.png")
 
 corrected_cases = []
 for name in (
+    "material_rft_preview",
+    "material_achieved_validation",
+    "material_full_validation",
     "corrected_stance",
     "corrected_rigid_final",
     "corrected_rft_curriculum_nominal",
@@ -383,6 +386,40 @@ for name in (
     if (ROOT / name / "summary.json").exists():
         summary, _ = read_case(name)
         corrected_cases.append(dict(case=name, **summary))
+
+validation = [case for case in corrected_cases if case["case"].endswith("_validation")]
+if validation:
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    labels = [f"Material width {case['validation_difficulty']:.0%}" for case in validation]
+    axes[0].bar(labels, [1 - case["failure_fraction"] for case in validation])
+    axes[0].set(title="Held-out 10 s episode completion", ylim=(0, 1.05))
+    axes[1].bar(labels, [case["mean_velocity_error"] for case in validation])
+    axes[1].axhline(0.1, color="grey", linestyle="--")
+    axes[1].set(title="Held-out mean tracking error [m/s]")
+    fig.suptitle("Frozen policy: 128 environments, full commands, seed 123")
+    save(fig, "10-material-validation.png")
+
+layer_cases = (
+    ("corrected_rigid_final", "Rigid"),
+    ("corrected_zero_layer_policy", "0 mm"),
+    ("corrected_thin_layer_005", "5 mm"),
+    ("corrected_thin_layer_020", "20 mm"),
+    ("corrected_thin_layer_050", "50 mm"),
+)
+if any((ROOT / name / "summary.json").exists() for name, _ in layer_cases):
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    for name, label in layer_cases:
+        if not (ROOT / name / "summary.json").exists():
+            continue
+        summary, data = read_case(name)
+        state = data["state"][:, 0]
+        axes[0].plot(state[:, 0], state[:, 7], label=label)
+        axes[1].plot(state[:, 0], state[:, 8], label=label)
+    axes[0].set(title="Base height above free surface [m]", xlabel="Time [s]")
+    axes[1].set(title="Tracking error [m/s]", xlabel="Time [s]")
+    axes[0].legend()
+    fig.suptitle("Same frozen rigid-ground policy: substrate and finite RFT layers")
+    save(fig, "11-layer-limit.png")
 
 (OUT / "results.json").write_text(
     json.dumps(
@@ -441,7 +478,8 @@ for case in corrected_cases:
     """<!doctype html><meta charset="utf-8"><title>Go2 RFT / MPM investigation</title>
 <style>body{font:16px system-ui;max-width:1200px;margin:30px auto;padding:20px;background:#f1f5f9;color:#0f172a}
 video,img{width:100%}article{background:white;padding:16px;margin:20px 0;border-radius:10px}</style>
-<h1>Go2 RFT training and MPM inference</h1><p><a href="../live/">Live training status and curves (refreshes every 30 seconds)</a></p>
+<h1>Go2 RFT training and MPM inference</h1>
+<p><a href="../live/">Live training status and curves (refreshes every 30 seconds)</a></p>
 <p>Actual Newton physics and frozen-policy recordings.
 Historical RFT policies below were trained with unintended MuJoCo fluid drag due to a density-parameter collision.
 These recordings are retained for audit. Corrected training and validation are in progress.

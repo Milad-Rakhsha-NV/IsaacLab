@@ -102,6 +102,7 @@ def refresh() -> None:
         ax.set(title=title, xlabel="PPO iteration")
         ax.grid(alpha=0.2)
     axes[0, 2].axhline(0.1, color="grey", linestyle="--", label="Material progression threshold")
+    axes[1, 0].set_ylim(0, 1)
     handles, _ = axes[0, 0].get_legend_handles_labels()
     if handles:
         axes[0, 0].legend(fontsize=8)
@@ -110,7 +111,9 @@ def refresh() -> None:
     fig.savefig(OUT / "curves.tmp", format="png", dpi=130)
     plt.close(fig)
     (OUT / "curves.tmp").replace(OUT / "curves.png")
-    snapshot = dict(updated_utc=now.isoformat(), runs=rows)
+    evaluation_path = ROOT / "training/evaluation_status.json"
+    evaluation = json.loads(evaluation_path.read_text()) if evaluation_path.exists() else {}
+    snapshot = dict(updated_utc=now.isoformat(), runs=rows, evaluation=evaluation)
     (OUT / "status.tmp").write_text(json.dumps(snapshot, indent=2))
     (OUT / "status.tmp").replace(OUT / "status.json")
     cards = []
@@ -131,16 +134,30 @@ def refresh() -> None:
             f"Last checkpoint: {row['checkpoint']} · Event age: {row['event_age_seconds']} s</p>"
             f"<a href='../training/{row['key']}.log'>Training log</a></article>"
         )
+    previews = []
+    for case in evaluation.get("cases", []):
+        name = case["case"]
+        video = ROOT / name / "rollout.mp4"
+        if video.exists():
+            previews.append(
+                f"<article><h2>{html.escape(name)}</h2>"
+                f"<video controls preload='metadata' src='../{name}/rollout.mp4'></video>"
+                f"<p>Checkpoint: {html.escape(str(case['checkpoint']))}<br>"
+                f"First failure: {case['first_failure_seconds']} s · "
+                f"Tracking error: {case['mean_velocity_error']:.3f} m/s</p></article>"
+            )
+    evaluation_text = html.escape(evaluation.get("stage", "Validation pipeline has not started"))
     page = (
         '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="30">'
         '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Go2 live training</title>'
         "<style>body{font:16px system-ui;background:#f1f5f9;color:#0f172a;max-width:1200px;margin:24px auto;"
         "padding:16px}section{display:flex;gap:20px;flex-wrap:wrap}article{background:white;padding:20px;"
-        "border-radius:12px;flex:1;min-width:280px}progress,img{width:100%}a{color:#1d4ed8}</style>"
+        "border-radius:12px;flex:1;min-width:280px}progress,img,video{width:100%}a{color:#1d4ed8}</style>"
         f"<h1>Go2 live training</h1><p>Updates every 30 seconds. Snapshot: {now:%Y-%m-%d %H:%M:%S} UTC.</p>"
         "<p>Both runs: 4,096 environments, seed 42, full commands from the first reset. "
         "Only RFT material randomization has a curriculum. MPM is used after training for inference.</p>"
         f"<section>{''.join(cards)}</section><img src='curves.png?t={int(time.time())}' alt='Live learning curves'>"
+        f"<h2>Policy recordings and evaluation</h2><p>{evaluation_text}</p>{''.join(previews)}"
         "<p>Material progression requires ≥95% episode completion and ≤0.10 m/s mean tracking error in "
         "two consecutive windows of at least 4,096 qualifying episodes. Training curves do not establish "
         "held-out convergence or MPM transfer.</p><p>Full target: density 1,400–1,800 kg/m³; friction 0.3–0.5; "
