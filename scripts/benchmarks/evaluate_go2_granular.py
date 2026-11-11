@@ -29,6 +29,9 @@ parser.add_argument("--steps", type=int, default=1000)
 parser.add_argument("--num_envs", type=int, default=1)
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--stand", action="store_true")
+parser.add_argument(
+    "--command_schedule", action="store_true", help="Rigid-floor stand/walk/max-speed/steering/stop test."
+)
 parser.add_argument("--video", action="store_true")
 parser.add_argument("--no-bearing", action="store_true")
 parser.add_argument("--randomize", action="store_true")
@@ -61,6 +64,20 @@ cfg.surface_relative_height = True
 cfg.material_difficulty = args.difficulty
 cfg.observation_noise = False
 cfg.command_speed = 0.0 if args.stand else args.speed
+schedule = (
+    (
+        (0.0, (0.0, 0.0, 0.0), "Stand"),
+        (3.0, (0.3, 0.0, 0.0), "Walk"),
+        (10.0, (0.5, 0.0, 0.0), "Maximum forward command"),
+        (17.0, (0.3, 0.1, 0.0), "Walk and move left"),
+        (23.0, (0.3, 0.0, 0.3), "Walk and turn"),
+        (29.0, (0.0, 0.0, 0.0), "Stop"),
+    )
+    if args.command_schedule
+    else ()
+)
+if schedule and (args.field != "rigid" or args.randomize or args.stand):
+    parser.error("The command schedule requires rigid inference without --randomize or --stand")
 if args.field == "rft":
     cfg.bed_depth = args.substrate_depth
     cfg.sim.physics.solver_cfg.bearing = 0.0 if args.no_bearing else 0.87574
@@ -267,7 +284,9 @@ with launch_simulation(cfg):
             output_params=["-crf", "21", "-movflags", "+faststart"],
         )
         writer.send(None)
-    rows, force_rows, joint_rows, pose_rows, metric_rows = [], [], [], [], []
+    rows, force_rows, joint_rows, pose_rows, metric_rows, gait_rows, command_rows = [], [], [], [], [], [], []
+    steps_per_foot = np.zeros((args.num_envs, 4), dtype=int)
+    phase = None
     max_rigid_overflow = 0
     previous_impulse = solver.body_impulse.numpy().copy() if args.field == "rft" else None
     start = time.monotonic()
@@ -283,6 +302,17 @@ with launch_simulation(cfg):
     try:
         for step in range(args.steps):
             with torch.inference_mode():
+                if schedule:
+                    current = max(entry for entry in schedule if entry[0] <= step * env.step_dt)
+                    if phase != current[2]:
+                        phase = current[2]
+                        env.commands[:] = torch.tensor(current[1], device=env.device)
+                        if args.checkpoint:
+                            from tensordict import TensorDict
+
+                            obs = TensorDict(env._get_observations(), batch_size=[args.num_envs])
+                        else:
+                            obs = env._get_observations()
                 action = policy(obs)
                 if args.checkpoint:
                     obs, reward, _, _ = wrapped.step(action)
@@ -296,6 +326,18 @@ with launch_simulation(cfg):
             effort = env.robot.actuators.applied_effort.torch.cpu().numpy()
             joint_velocity = env.robot.data.joint_vel.torch.cpu().numpy()
             limits = env.robot.data.joint_effort_limits.torch.cpu().numpy()
+            command_rows.append(env.commands.cpu().numpy().copy())
+            if cfg.gait is not None:
+                signed_y = env.signed_foot_y().cpu().numpy()
+                contact = env.contact_forces.data.net_normal_forces_w.torch[:, env.foot_sensor_ids].norm(dim=-1) > 1.0
+                slip = env.robot.data.body_lin_vel_w.torch[:, env.foot_ids, :2].norm(dim=-1)
+                mean_slip = ((slip * contact).sum(-1) / contact.sum(-1).clamp_min(1)).cpu().numpy()
+                gait_rows.append(np.column_stack((signed_y, contact.cpu().numpy(), mean_slip)))
+                first = env.contact_forces.compute_first_contact(env.step_dt).torch[:, env.foot_sensor_ids]
+                air = env.contact_forces.data.last_air_time.torch[:, env.foot_sensor_ids]
+                moving = env.commands.norm(dim=-1) > 0.05
+                if step * env.step_dt > 1.0:
+                    steps_per_foot += ((air > 0.04) & first & moving[:, None]).cpu().numpy()
             if args.field == "rft":
                 impulse = solver.body_impulse.numpy()
                 force = (impulse - previous_impulse) / env.step_dt
@@ -378,9 +420,15 @@ with launch_simulation(cfg):
                     ),
                     fill="white",
                 )
-                draw.text((15, 35), f"Body force arrows: 200 N/m | failure: {first_failure}", fill="white")
+                command = env.commands[0].cpu().tolist()
+                draw.text(
+                    (15, 35),
+                    f"Command vx={command[0]:.2f}, vy={command[1]:.2f} m/s, yaw={command[2]:.2f} rad/s"
+                    f" | {phase or 'Fixed command'} | fall: {first_failure}",
+                    fill="white",
+                )
                 writer.send(np.ascontiguousarray(np.asarray(im)))
-                if step == min(100, args.steps - 1):
+                if step == min(500 if schedule else 100, args.steps - 1):
                     im.save(args.output / "preview.jpg")
             if not np.isfinite(p).all() or not particles_finite:
                 break
@@ -397,6 +445,8 @@ with launch_simulation(cfg):
             joint_pos=np.array(joint_rows),
             body_pose=np.array(pose_rows),
             metrics=np.array(metric_rows),
+            gait=np.array(gait_rows),
+            commands=np.array(command_rows),
         )
         summary = dict(
             field=args.field,
@@ -421,6 +471,7 @@ with launch_simulation(cfg):
             internal_friction=args.friction,
             roughness=args.roughness,
             commands=command_manifest,
+            command_schedule=schedule,
             material_parameters=material_manifest,
             surface_heights=height_manifest,
             execution_error=execution_error,
@@ -454,6 +505,15 @@ with launch_simulation(cfg):
                 motor_saturation_fraction=float(np.array(metric_rows)[:, :, 2].mean()),
                 max_tilt_radians=float(np.array(metric_rows)[:, :, 3].max()),
             )
+            if gait_rows:
+                gait_history = np.array(gait_rows)
+                violations = (gait_history[:, :, :4] < cfg.gait.min_signed_foot_y).any(-1)
+                summary.update(
+                    gait_pass_fraction=float((~violations.any(axis=0)).mean()),
+                    min_signed_foot_y=float(gait_history[:, :, :4].min()),
+                    mean_contact_slip_m_s=float(gait_history[min(50, len(rows) - 1) :, :, 8].mean()),
+                    steps_per_foot=steps_per_foot.tolist(),
+                )
         (args.output / "summary.json").write_text(json.dumps(summary, indent=2))
         env.close()
         print(

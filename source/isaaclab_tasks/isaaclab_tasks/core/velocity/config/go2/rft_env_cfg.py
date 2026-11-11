@@ -8,11 +8,13 @@
 from isaaclab_newton.physics.mjwarp_solver_cfg import MJWarpSolverCfg
 from isaaclab_newton.physics.newton_manager_cfg import NewtonCfg
 from isaaclab_newton.physics.rft_solver_cfg import RFTSolverCfg
+from isaaclab_newton.sim.schemas import NewtonArticulationCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
+from isaaclab.sensors import ContactSensorCfg
 from isaaclab.sim import SimulationCfg
 from isaaclab.utils import configclass, replace
 from isaaclab.visualizers import VisualizerCfg
@@ -45,6 +47,27 @@ class Go2RFTSceneCfg(InteractiveSceneCfg):
     )
     light = AssetBaseCfg(prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=2000.0))
     substrate: AssetBaseCfg | None = None
+    contact_forces: ContactSensorCfg | None = None
+
+
+@configclass
+class Go2GaitCfg:
+    """Rigid-control posture and contact criteria, independent of material parameters."""
+
+    hip_deviation_weight = 1.0
+    joint_deviation_weight = 0.05
+    stand_deviation_weight = 0.5
+    joint_acceleration_weight = 2.5e-7
+    vertical_velocity_weight = 2.0
+    angular_velocity_weight = 0.05
+    soft_joint_limit_weight = 1.0
+    foot_sliding_weight = 0.1
+    air_time_weight = 0.25
+    air_time_target = 0.3
+    undesired_contact_weight = 1.0
+    stance_weight = 20.0
+    stance_half_width = 0.10
+    min_signed_foot_y = 0.01
 
 
 @configclass
@@ -75,6 +98,7 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     bed_depth: float | None = None
     """Optional finite-layer depth [m]; creates a labeled rigid substrate. None keeps a half-space."""
     material_difficulty = 1.0
+    gait: Go2GaitCfg | None = None
     surface_relative_height = False
     """Use the sampled surface for spawning, height reward and termination in new experiments."""
     curriculum_enabled = False
@@ -119,6 +143,7 @@ class Go2RigidEnvCfg(Go2RFTEnvCfg):
 
     randomize_material = False
     surface_relative_height = True
+    gait: Go2GaitCfg = Go2GaitCfg()
     sim: SimulationCfg = replace(
         Go2RFTEnvCfg().sim,
         physics=NewtonCfg(
@@ -128,5 +153,16 @@ class Go2RigidEnvCfg(Go2RFTEnvCfg):
     )
     scene: Go2RFTSceneCfg = replace(
         Go2RFTEnvCfg().scene,
+        bed=None,
+        robot=replace(
+            Go2RFTEnvCfg().scene.robot,
+            spawn=replace(
+                Go2RFTEnvCfg().scene.robot.spawn,
+                articulation_props=[NewtonArticulationCfg(self_collision_enabled=True)],
+            ),
+        ),
         substrate=rigid_substrate_cfg(0.0),
+        contact_forces=ContactSensorCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/[^/]*", history_length=3, track_air_time=True, update_period=0.005
+        ),
     )

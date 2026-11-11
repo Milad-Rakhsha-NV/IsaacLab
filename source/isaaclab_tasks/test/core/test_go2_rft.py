@@ -163,6 +163,24 @@ def test_zero_layer_recovers_rigid_articulation():
                 if env.material is not None:
                     np.testing.assert_array_equal(env.rft.body_impulse.numpy(), 0)
                 trajectories.append(np.array(history))
+                if isinstance(cfg, Go2RigidEnvCfg):
+                    # A deliberately crossed pose at a safe torso height must
+                    # terminate even with no fall, tilt, or nonfinite state.
+                    q = env.robot.data.default_joint_pos.torch.clone()
+                    q[:, env.robot.joint_names.index("RL_hip_joint")] = -0.8
+                    q[:, env.robot.joint_names.index("RR_hip_joint")] = 0.8
+                    pose = env.robot.data.default_root_pose.torch.clone()
+                    pose[:, :3] += env.scene.env_origins
+                    pose[:, 2] = 0.6
+                    ids = torch.arange(2, device=env.device)
+                    env.robot.write_root_pose_to_sim_index(root_pose=pose, env_ids=ids)
+                    env.robot.write_joint_position_to_sim_index(position=q, env_ids=ids)
+                    env.scene.write_data_to_sim()
+                    env.sim.forward()
+                    feet = env.robot.data.body_link_pos_w.torch[:, env.foot_ids]
+                    assert (feet[:, 2, 1] < feet[:, 3, 1]).all()
+                    _, _, crossed, _, _ = env.step(torch.zeros((2, 12), device=env.device))
+                    assert crossed.all()
             finally:
                 env.close()
     np.testing.assert_allclose(trajectories[0], trajectories[1], rtol=0, atol=5e-4)

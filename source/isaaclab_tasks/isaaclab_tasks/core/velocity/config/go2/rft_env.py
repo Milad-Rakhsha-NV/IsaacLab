@@ -16,6 +16,7 @@ import torch
 import warp as wp
 
 from isaaclab.envs import DirectRLEnv
+from isaaclab.utils.math import quat_apply_inverse
 
 from .rft_env_cfg import Go2RFTEnvCfg, rigid_substrate_cfg
 
@@ -70,6 +71,15 @@ class Go2RFTEnv(DirectRLEnv):
                 raise ValueError("Disable RFT material randomization for explicitly configured MPM inference")
         super().__init__(cfg, render_mode, **kwargs)
         self.robot = self.scene["robot"]
+        if cfg.gait is not None:
+            self.foot_ids, _ = self.robot.find_bodies(["FL_foot", "FR_foot", "RL_foot", "RR_foot"], preserve_order=True)
+            self.hip_ids, _ = self.robot.find_joints(".*_hip_joint")
+            self.contact_forces = self.scene["contact_forces"]
+            self.foot_sensor_ids, _ = self.contact_forces.find_sensors(
+                ["FL_foot", "FR_foot", "RL_foot", "RR_foot"], preserve_order=True
+            )
+            self.leg_sensor_ids, _ = self.contact_forces.find_sensors(".*_(hip|thigh|calf)|base")
+            self.foot_sides = torch.tensor([1.0, -1.0, 1.0, -1.0], device=self.device)
         self.actions = torch.zeros(self.num_envs, 12, device=self.device)
         self.previous_actions = torch.zeros_like(self.actions)
         self.commands = torch.zeros(self.num_envs, 3, device=self.device)
@@ -164,7 +174,7 @@ class Go2RFTEnv(DirectRLEnv):
         height = self.relative_base_height()
         effort = (self.robot.actuators.applied_effort.torch**2).sum(-1)
         smooth = ((self.actions - self.previous_actions) ** 2).sum(-1)
-        reward = (
+        reward_rate = (
             2.0 * torch.exp(-xy / 0.16)
             + 0.5 * torch.exp(-yaw / 0.25)
             + 0.2
@@ -172,7 +182,33 @@ class Go2RFTEnv(DirectRLEnv):
             - 30.0 * (height - self.cfg.target_height) ** 2
             - 0.0002 * effort
             - 0.005 * smooth
-        ) * self.step_dt
+        )
+        if self.cfg.gait is not None:
+            gait = self.cfg.gait
+            deviation = d.joint_pos.torch - d.default_joint_pos.torch
+            standing = self.commands.norm(dim=-1) < 0.05
+            contact = self.contact_forces.data.net_normal_forces_w_history.torch.norm(dim=-1).amax(dim=1) > 1.0
+            foot_slip = d.body_lin_vel_w.torch[:, self.foot_ids, :2].norm(dim=-1)
+            first_contact = self.contact_forces.compute_first_contact(self.step_dt).torch[:, self.foot_sensor_ids]
+            air_time = self.contact_forces.data.last_air_time.torch[:, self.foot_sensor_ids]
+            signed_y = self.signed_foot_y()
+            limits = d.soft_joint_pos_limits.torch
+            limit_error = (limits[..., 0] - d.joint_pos.torch).clamp_min(0)
+            limit_error += (d.joint_pos.torch - limits[..., 1]).clamp_min(0)
+            reward_rate -= gait.hip_deviation_weight * deviation[:, self.hip_ids].square().sum(-1)
+            reward_rate -= gait.joint_deviation_weight * deviation.square().sum(-1)
+            reward_rate -= gait.stand_deviation_weight * deviation.abs().sum(-1) * standing
+            reward_rate -= gait.joint_acceleration_weight * d.joint_acc.torch.square().sum(-1)
+            reward_rate -= gait.vertical_velocity_weight * d.root_lin_vel_b.torch[:, 2].square()
+            reward_rate -= gait.angular_velocity_weight * d.root_ang_vel_b.torch[:, :2].square().sum(-1)
+            reward_rate -= gait.soft_joint_limit_weight * limit_error.sum(-1)
+            reward_rate -= gait.foot_sliding_weight * (foot_slip * contact[:, self.foot_sensor_ids]).sum(-1)
+            reward_rate -= gait.undesired_contact_weight * contact[:, self.leg_sensor_ids].sum(-1)
+            reward_rate -= gait.stance_weight * (gait.stance_half_width - signed_y).clamp_min(0).square().sum(-1)
+            reward_rate += (
+                gait.air_time_weight * ((air_time - gait.air_time_target) * first_contact).sum(-1) * ~standing
+            )
+        reward = reward_rate * self.step_dt
         reward -= self.reset_terminated.float()
         self.error_sum += xy.sqrt()
         self.steps_sum += 1
@@ -183,7 +219,17 @@ class Go2RFTEnv(DirectRLEnv):
         height = self.relative_base_height()
         failed = (height < 0.16) | (d.projected_gravity_b.torch[:, 2] > -0.3)
         failed |= ~torch.isfinite(d.root_pos_w.torch).all(-1)
+        if self.cfg.gait is not None:
+            failed |= (self.signed_foot_y() < self.cfg.gait.min_signed_foot_y).any(-1)
+            failed |= ~torch.isfinite(d.joint_pos.torch).all(-1) | ~torch.isfinite(d.joint_vel.torch).all(-1)
         return failed, self.episode_length_buf >= self.max_episode_length - 1
+
+    def signed_foot_y(self) -> torch.Tensor:
+        """Lateral foot position on its assigned side of the base, ordered FL, FR, RL, RR."""
+        data = self.robot.data
+        offset = data.body_link_pos_w.torch[:, self.foot_ids] - data.root_pos_w.torch[:, None]
+        local = quat_apply_inverse(data.root_quat_w.torch[:, None], offset)
+        return local[..., 1] * self.foot_sides
 
     def _reset_idx(self, env_ids):
         if env_ids is None:
@@ -192,6 +238,12 @@ class Go2RFTEnv(DirectRLEnv):
             self.error_sum[env_ids] / self.steps_sum[env_ids].clamp_min(1)
         ).mean()
         self.extras["log"]["Metrics/timeout_fraction"] = self.reset_time_outs[env_ids].float().mean()
+        if self.cfg.gait is not None:
+            clearance = self.signed_foot_y()[env_ids].amin(dim=-1)
+            self.extras["log"]["Metrics/min_foot_clearance"] = clearance.mean()
+            self.extras["log"]["Metrics/gait_failure_fraction"] = (
+                (clearance < self.cfg.gait.min_signed_foot_y).float().mean()
+            )
         if self.cfg.curriculum_enabled:
             self._update_curriculum(env_ids)
         self.robot.reset(env_ids)
