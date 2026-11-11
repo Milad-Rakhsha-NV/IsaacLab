@@ -146,6 +146,7 @@ def test_go2_rft_articulation_and_masked_material_reset():
             env.step(torch.zeros(4, 12, device=env.device))
             assert env.contact_forces.data.net_normal_forces_w.torch.norm(dim=-1).max() < 1e-4
             assert env.gait_body_contact[:, env.foot_sensor_ids].all()
+            assert float(env.extras["log"]["Metrics/undesired_rigid_contacts"]) == 0
         finally:
             env.close()
 

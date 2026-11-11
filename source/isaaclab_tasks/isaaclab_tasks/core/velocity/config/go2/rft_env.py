@@ -248,7 +248,9 @@ class Go2RFTEnv(DirectRLEnv):
             reward_rate -= gait.angular_velocity_weight * d.root_ang_vel_b.torch[:, :2].square().sum(-1)
             reward_rate -= gait.soft_joint_limit_weight * limit_error.sum(-1)
             reward_rate -= gait.foot_sliding_weight * (foot_slip * contact[:, self.foot_sensor_ids]).sum(-1)
-            reward_rate -= gait.undesired_contact_weight * contact[:, self.leg_sensor_ids].sum(-1)
+            undesired = self.gait_rigid_body_contact[:, self.leg_sensor_ids].sum(-1)
+            reward_rate -= gait.undesired_contact_weight * undesired
+            self.extras.setdefault("log", {})["Metrics/undesired_rigid_contacts"] = undesired.float().mean()
             reward_rate -= gait.stance_weight * (gait.stance_half_width - signed_y).clamp_min(0).square().sum(-1)
             reward_rate += (
                 gait.air_time_weight * ((air_time - gait.air_time_target) * first_contact).sum(-1) * ~standing
@@ -267,6 +269,7 @@ class Go2RFTEnv(DirectRLEnv):
         the 50 Hz control rate. Rigid-only tasks retain native sensor timers.
         """
         native = self.contact_forces.data.net_normal_forces_w_history.torch.norm(dim=-1).amax(dim=1) > 1.0
+        self.gait_rigid_body_contact = native
         if self.material is None:
             self.gait_body_contact = native
             self.gait_first_contact = self.contact_forces.compute_first_contact(self.step_dt).torch > 0
