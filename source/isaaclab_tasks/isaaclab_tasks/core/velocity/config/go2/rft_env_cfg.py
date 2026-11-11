@@ -90,6 +90,8 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     randomize_commands = True
     observation_noise = True
     command_speed = 0.35
+    forward_command_range: tuple[float, float] = (0.1, 0.5)
+    """Forward velocity command bounds [m/s], sampled at reset without a command curriculum."""
     density_range = (1400.0, 1800.0)
     friction_range = (0.3, 0.5)
     roughness_range = (0.6, 1.0)

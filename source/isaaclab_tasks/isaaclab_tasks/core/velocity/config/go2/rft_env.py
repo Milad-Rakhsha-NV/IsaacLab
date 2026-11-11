@@ -347,7 +347,7 @@ class Go2RFTEnv(DirectRLEnv):
         self.commands[env_ids, 0] = self.cfg.command_speed
         self.commands[env_ids, 1:] = 0
         if self.cfg.randomize_commands:
-            self.commands[env_ids, 0] = torch.empty(count, device=self.device).uniform_(0.1, 0.5)
+            self.commands[env_ids, 0] = torch.empty(count, device=self.device).uniform_(*self.cfg.forward_command_range)
             self.commands[env_ids, 1] = torch.empty(count, device=self.device).uniform_(-0.1, 0.1)
             self.commands[env_ids, 2] = torch.empty(count, device=self.device).uniform_(-0.3, 0.3)
             stand = torch.rand(count, device=self.device) < 0.1

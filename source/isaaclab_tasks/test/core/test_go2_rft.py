@@ -92,11 +92,16 @@ def test_go2_rft_articulation_and_masked_material_reset():
 
             # The material curriculum must leave the full command distribution
             # unchanged, including lateral and yaw commands at nominal material.
+            cfg.forward_command_range = (0.8, 1.0)
             all_ids = torch.arange(4, device=env.device)
             env.curriculum_difficulty.zero_()
             torch.manual_seed(71)
             env._reset_idx(all_ids)
             initial_commands = env.commands.clone()
+            moving = initial_commands[:, 0] > 0
+            assert moving.any()
+            assert initial_commands[moving, 0].min() >= 0.8
+            assert initial_commands[moving, 0].max() <= 1.0
             assert initial_commands[:, 1].abs().max() > 0.01
             assert initial_commands[:, 2].abs().max() > 0.03
             env.curriculum_difficulty.fill_(0.8)
