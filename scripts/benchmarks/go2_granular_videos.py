@@ -65,6 +65,14 @@ def video_cases(speeds: tuple[float, ...] = (1.0,)) -> list[tuple[str, str, floa
     ]
 
 
+def describe_progress(stage: str, speeds: tuple[float, ...]) -> str:
+    """Use terrain roles and commands instead of internal recording identifiers."""
+    titles = {row[0]: row[1] for row in PRIMARY_VIDEOS}
+    for name, base, speed in sorted(video_cases(speeds), key=lambda row: len(row[0]), reverse=True):
+        stage = stage.replace(name.replace("_", " "), f"{titles[base]} ({speed:.2f} m/s)")
+    return stage
+
+
 def render_videos(
     root: Path,
     cases: list[dict],
@@ -99,15 +107,23 @@ def render_videos(
                 if failure is None
                 else f"First failure threshold: {failure:.2f} s"
             )
+            depth = case.get("substrate_depth") if case["field"] == "rft" else case.get("bed_depth")
+            material_text = (
+                f"Initial sand depth: {1000 * depth:g} mm. "
+                if case["field"] != "rigid" and depth is not None
+                else "This clip has no sand. "
+            )
+            domain = f"MPM bed: {case['bed_length']:g} × {case['bed_width']:g} m. " if case["field"] == "mpm" else ""
             clips.append(
                 f"<div><h4>Command: {command[0]:.2f} m/s forward</h4>"
                 f"<video controls preload='metadata' src='{url_prefix}{name}/rollout.mp4?v={version}' "
                 f"poster='{url_prefix}{name}/preview.jpg?v={version}' "
                 f"aria-label='{html.escape(title)} at {speed:g} m/s'></video>"
                 f"<p>Mean planar tracking error: <strong>{case['mean_velocity_error']:.3f} m/s</strong>. {outcome}.</p>"
+                f"<p>{domain}</p>"
                 "<details><summary>Recording details and numerical data</summary>"
                 f"<p>{duration:g} s; lateral command {command[1]:.2f} m/s; yaw {command[2]:.2f} rad/s. "
-                "Sand depth is 118 mm. Failure means low body clearance, excessive tilt or nonfinite position. "
+                f"{material_text}Failure means low body clearance, excessive tilt or nonfinite position. "
                 "The rollout continues without resets; metrics include time after failure. "
                 "Green arrows show granular body forces.</p>"
                 f"<p>Checkpoint: <code>{html.escape(str(case['checkpoint']))}</code></p>"

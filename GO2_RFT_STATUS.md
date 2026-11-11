@@ -1,78 +1,66 @@
 # Go2: rigid, RFT and MPM policy comparisons
 
-## Paired commands: recording refresh in progress
+Go2 complete: eight videos, both command plots, material comparisons and coupling checks
 
-The same policies trained with a 1.0 m/s maximum are being evaluated at **both 1.0 and 0.5 m/s**.
-Each of the four terrain panels will contain two regenerated 10 s videos, with matching tracking plots.
-Video banners retain the command, measured velocity, time and height; the failure field is removed.
-Failure checks remain in the numerical results and page captions.
+[Report](http://localhost:18010/report/)
 
-The new MPM recordings use a **12 × 3.2 × 0.118 m** bed at both commands. An initial 0.5 m/s trial in
-the narrower 1.6 m bed reached its interior margin at 7.2 s and crossed the body-clearance threshold at
-9.38 s after leaving the bed; that clip is excluded. The earlier 1.0 m/s failure occurred at 0.62 s,
-well before a boundary was reached. The saved traces show loss of clearance before the later rollover.
-Controlled 2 s tests vary substeps and coupling passes while holding the policy, material, bed and seed fixed.
-MPM convergence and equivalence remain unvalidated.
+Both policies trained with 4,096 environments for 1,500 iterations, seed 42, and forward commands 0.1–1.0 m/s.
+The same frozen checkpoints are evaluated at 1.0 and 0.5 m/s. Every video is 10 s and has 500 frames at 50 FPS.
+All eight recordings use evaluation seed 123 and fixed material parameters; these are single-seed comparisons.
+The 1.0 m/s videos were regenerated from saved trajectories with new banners; 0.5 m/s uses new rollouts.
 
-The [Go2 report](http://localhost:18010/report/) publishes each replacement after decoding, command,
-boundary and numerical-capacity checks. G1 implementation and smoke checks are documented in
-[G1_RFT_STATUS.md](G1_RFT_STATUS.md); its full study follows completion of these Go2 comparisons.
+| Training / evaluation terrain | Forward command | Tracking error | First failure threshold |
+|---|---:|---:|---|
+| Rigid-trained policy on a rigid floor | 1.00 m/s | 0.034 m/s | None in 10 s |
+| Rigid-trained policy on a rigid floor | 0.50 m/s | 0.018 m/s | None in 10 s |
+| RFT-trained policy on RFT sand | 1.00 m/s | 0.068 m/s | None in 10 s |
+| RFT-trained policy on RFT sand | 0.50 m/s | 0.051 m/s | None in 10 s |
+| RFT-trained policy on MPM sand | 1.00 m/s | 0.969 m/s | 0.62 s |
+| RFT-trained policy on MPM sand | 0.50 m/s | 0.166 m/s | None in 10 s |
+| Rigid-trained policy on MPM sand | 1.00 m/s | 0.972 m/s | 0.52 s |
+| Rigid-trained policy on MPM sand | 0.50 m/s | 0.478 m/s | 0.60 s |
 
-## Current study: forward commands up to 1.0 m/s
+MPM uses one coupling pass and feedback relaxation 0.1 in all main videos. The 1.0 m/s bed is 12 × 1.6 m;
+the 0.5 m/s bed is 12 × 3.2 m to avoid a boundary exit. Both policies share a bed at each command.
+The width difference limits a strict comparison across speeds. Sand depth, density and friction are unchanged.
 
-Both fresh training runs have completed **1,500 PPO iterations with 4,096 environments and seed 42**. RFT reached the full material curriculum. The rigid policy passed the specified acceptance checks; RFT still failed standing drift and loaded-foot slip. Forward commands are reset-uniform over **0.1–1.0 m/s** from the first episode, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing. There is no command curriculum. RFT retains its material curriculum and reset-randomized 0–118 mm layers. The previous policies used a maximum forward command of 0.5 m/s.
+An excluded narrow-bed 0.5 m/s trial reached the bed margin at 7.2 s before its 9.38 s clearance failure.
+That fall is not counted as a material-induced failure.
 
-- [Live training and evaluation status](http://localhost:18010/live/).
-- [Current report](http://localhost:18010/report/).
-- [Automatically updated Markdown status](http://localhost:18010/max1/STATUS.md).
-- [Previous 0.5 m/s report and four recordings](http://localhost:18010/previous_0p5_report/).
+The immediate 1.0 m/s collapse is sensitive to coupling numerics. Finer time steps did not remove it,
+but four coupling passes or full feedback avoided the failure threshold in 2 s tests. This is not a
+10 s convergence result. The video falls cannot be attributed solely to the RFT policy or material law.
 
-New training runs are `go2_rigid_max1/2026-11-11_08-33-41` and `go2_rft_max1/2026-11-11_08-33-41` under `logs/rsl_rl/`. Core training source is `66afe5d303`. The two native task tests pass; the command-range regression fails with the previous hard-coded sampler. A 16-environment, three-iteration PPO smoke confirms the new range in the saved configuration. The extended MPM bed also has a dedicated inference smoke test.
+MPM force convergence and material equivalence remain unvalidated. RFT standing and slip acceptance checks remain failed.
+G1 training is stopped while this Go2 report is reviewed.
 
-`run_go2_speed_comparison.py` completed checks at stand, 0.5 m/s and 1.0 m/s commands, plus three held-out reset-randomization banks per policy. All four 10 s videos are available at **1.0 m/s forward, zero lateral and zero yaw**: rigid policy / rigid floor, RFT policy / RFT field, RFT policy / MPM sand, and rigid policy / MPM sand. The MPM videos use a prepared **12 × 1.6 × 0.118 m** bed, PIC transfer, 20 mm grid, four substeps, 50 stress iterations and one coupling pass with relaxation 0.1. MPM remains inference-only. Both MPM policies use identical material and numerical settings.
+## Training and material settings
 
-The pipeline completed the three-material tracking and support-force comparison at 1.0 m/s using the new frozen checkpoints, including all six MPM trials and three RFT reference trials. The report includes the new training curves, four-video tracking plots and material comparison figure. Short material trials use a 5 × 1.6 m bed. The earlier standalone force-convergence checks are retained; **MPM material equivalence remains unvalidated**. Acceptance failures are reported independently of training-budget completion and video generation. All four videos passed file, command and decoded-frame checks. Physical failures remain visible.
+RFT reached material difficulty 1.0. Reset-based randomization covers density 1,400–1,800 kg/m³, internal friction 0.3–0.5, surface/internal friction ratio 0.6–1.0 and log-uniform strength 0.8–1.2. Layers span 0–118 mm from the first episode over a fixed substrate, half Go2's approximately 236 mm knee-to-sole length. Material distributions widen with performance; commands have no curriculum. Lateral commands span ±0.1 m/s, yaw rates ±0.3 rad/s, and 10% of resets request standing.
 
-The training and evaluation jobs run as durable services: `go2-max1-rigid-training`, `go2-max1-rft-training` and `go2-max1-evaluation`. Logs are `/training/rigid-max1.log`, `/training/rft-max1.log` and `/training/max1-evaluation.log`. Use the existing SSH tunnel described below. Generated artifacts stay under ignored `logs/go2_granular/max1/` paths.
+Both checkpoints are `model_1499.pt` in `logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41/` and `logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/`. MPM is excluded from training. The report includes training curves, two command-tracking figures, three-material plots at both commands, and the controlled MPM startup comparison. Material trials last 3 s and use 5 × 1.6 m beds; support includes contacts after failure. The older force-convergence investigation remains applicable and has not passed its acceptance gate.
 
-```bash
-uv run --no-sync isaaclab train --rl_library rsl_rl \
-  --task Isaac-Velocity-Flat-UnitreeGo2-Rigid-Direct \
-  --num_envs 4096 --max_iterations 1500 --seed 42 \
-  --experiment_name go2_rigid_max1 'env.forward_command_range=[0.1,1.0]'
+The rigid policy passed the held-out checks. RFT standing drift and loaded-foot slip still fail. A completed training budget does not establish policy convergence or material equivalence.
 
-uv run --no-sync isaaclab train --rl_library rsl_rl \
-  --task Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct \
-  --num_envs 4096 --max_iterations 1500 --seed 42 \
-  --experiment_name go2_rft_max1 'env.forward_command_range=[0.1,1.0]'
-```
+## Access and artifacts
 
-### Completed maximum-command recordings
+[Live report](http://localhost:18010/report/) · [Generated status](http://localhost:18010/max1/STATUS.md)
 
-All new recordings command **1.00 m/s forward**, zero lateral velocity and zero yaw. Each completed file contains 500 decoded frames at 50 FPS. Metrics cover all 10 s, including any interval after a failure threshold.
+Keep the existing SSH tunnel running: `ssh -o ExitOnForwardFailure=yes -N -L 18010:127.0.0.1:8010 horde@mrakhsha-41eslp`. Generated videos, state traces, summaries and figures remain under ignored `logs/go2_granular/` paths. The 1.0 m/s original movies are preserved beside their retitled copies; their numerical trajectories are unchanged.
 
-| Policy training | Evaluation terrain | Mean planar tracking error | First failure threshold |
-|---|---|---:|---|
-| Rigid ground | [Rigid floor](http://localhost:18010/max1/rigid_max_forward/rollout.mp4) | 0.034 m/s | None in 10 s |
-| RFT materials | [RFT field](http://localhost:18010/max1/rft_max_forward/rollout.mp4) | 0.068 m/s | None in 10 s |
-| RFT materials | [MPM sand](http://localhost:18010/max1/mpm_max_forward/rollout.mp4) | 0.969 m/s | 0.62 s |
-| Rigid ground | [MPM sand](http://localhost:18010/max1/rigid_mpm_max_forward/rollout.mp4) | 0.972 m/s | 0.52 s |
+## Controlled MPM startup check at 1.0 m/s
 
-The new RFT policy loses tracking and falls in the completed nominal MPM trial at 1.0 m/s. This is a failure in the current simulation comparison. RFT training still uses a zero inertial correction, and MPM has not passed its numerical reference gates; these runs do not isolate the cause of the transfer failure. The 0.5 m/s results below are historical and use the previous checkpoints.
+These 2 s trials use the same checkpoint, seed 123 and prepared 5 × 1.6 × 0.118 m bed. The physics frame is 5 ms. Only the listed numerical control changes.
 
-### Three-material MPM comparison at 1.0 m/s
+| Substeps | Coupling passes | Feedback factor | Tracking error | First failure threshold |
+|---:|---:|---:|---:|---|
+| 4 | 1 | 0.1 | 0.853 m/s | 0.58 s |
+| 8 | 1 | 0.1 | 0.845 m/s | 0.56 s |
+| 16 | 1 | 0.1 | 0.825 m/s | 0.56 s |
+| 4 | 4 | 0.1 | 0.467 m/s | None in 2 s |
+| 4 | 1 | 1 | 0.421 m/s | None in 2 s |
 
-These separate trials last **3 s**, use the same new checkpoints and seed 123, and do not reset after failure. Errors include the complete trial. The failure threshold detects low body clearance, severe tilt or nonfinite state; passing this short trial does not establish longer-duration stability.
-
-| Material inputs: density, internal friction, surface/internal ratio, depth | Rigid policy error / first failure | RFT policy error / first failure |
-|---|---|---|
-| 1,400 kg/m³, 0.3, 0.6, 60 mm | 0.820 m/s / 1.14 s | 0.091 m/s / none in 3 s |
-| 1,600 kg/m³, 0.4, 1.0, 118 mm | 0.909 m/s / 0.52 s | 0.732 m/s / 0.64 s |
-| 1,800 kg/m³, 0.5, 0.8, 100 mm | 0.898 m/s / 0.54 s | 0.853 m/s / 1.54 s |
-
-The RFT policy performs substantially better in the shallow, lower-density/lower-friction case. These inputs change together, so this comparison does not isolate a depth effect. Neither policy maintains walking in the other two cases. All six MPM trials remained finite and stayed inside the bed margin without rigid-contact overflow. Support plots include all rigid robot contacts, including contacts after collapse; backing-floor support alone does not indicate successful locomotion.
-
-The corresponding RFT reference trials had tracking errors of 0.087, 0.108 and 0.132 m/s, with no failure threshold reached in 3 s. The [tracking and support figure](http://localhost:18010/report/policy-and-support.png) and [MPM trial records](http://localhost:18010/max1/materials/materials.html) use these new 1.0 m/s checkpoints. Training, recordings and material comparisons all completed successfully as jobs; the policy and material-validation limitations above remain.
+These results demonstrate coupling sensitivity. They do not establish a converged MPM reference, accurate 1.0 m/s tracking, or 10 s stability for the alternative settings.
 
 ## Previous study: forward commands up to 0.5 m/s
 
@@ -80,7 +68,7 @@ Updated November 11, 2026 (Pacific). **RFT training finished 1,500 iterations wi
 
 The material investigation is documented in [GO2_MATERIAL_VALIDATION.md](GO2_MATERIAL_VALIDATION.md) and the [graphical report](http://localhost:18010/investigation/). It checks native MPM force convergence, RFT force matching, preparation and coupling history, and frozen-policy material sensitivity. The current MPM configuration has not passed the force-convergence gate. Matching density, friction and initial depth alone does not establish equivalent material response. No policy was retrained during this investigation.
 
-## Current RFT run
+### Current RFT run
 
 - Task: `Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct`.
 - Run: `logs/rsl_rl/go2_rft_knee_depth_curriculum/2026-11-11_02-42-39/`.
@@ -92,7 +80,7 @@ The material investigation is documented in [GO2_MATERIAL_VALIDATION.md](GO2_MAT
 
 The fixed nominal-material 20 s tests had tracking errors of 0.0761 m/s while standing, 0.0374 m/s at 0.30 m/s, and 0.0639 m/s at 0.50 m/s. Loaded-foot slip was 0.176–0.290 m/s, above the 0.10 m/s gate. At 0.30 m/s at least one foot did not register repeated swing/landing events. One of 384 held-out randomized trials violated foot placement; none fell. The policy therefore remains a diagnostic checkpoint.
 
-## Material height and reset randomization
+### Material height and reset randomization
 
 The relevant length is **knee to sole**, measured as **235.915 mm** in the Go2 USD visual geometry and rounded to **236 mm** in the task configuration. Half is **118 mm**. Layer thickness is sampled independently at reset over **0–118 mm**, from the first episode onward. The initial range is checked against half the configured knee-to-sole length. The separate collision sphere has a 22 mm radius; it does not define this depth limit.
 
@@ -120,7 +108,7 @@ The material curriculum advances by 0.1 after two qualifying windows of at least
 
 Each run saves `material_curriculum.json` with the knee-to-sole reference length, initial depth cap, separate collision diameter, initial/target depth ranges and substrate height. Difficulty changes are saved alongside checkpoints. A stopped run requires explicit difficulty restoration and fresh progression windows when resumed.
 
-## Shared locomotion fixes
+### Shared locomotion fixes
 
 The RFT curriculum inherits the validated rigid task's robot configuration, native DC motor model, self-collision, gait configuration, observations and action scaling. Both use 45 actor inputs, 48 critic inputs, 12 joint-position offsets scaled by 0.25 rad, and 50 Hz control.
 
@@ -130,7 +118,7 @@ Native contact sensors report rigid collisions, including the substrate and self
 
 All robot collision surfaces remain coupled, including hips, thighs, calves, feet and torso. The RFT adapter exports rigid collision contacts through its composed MJWarp solver and retains separate granular impulses.
 
-## Validated rigid reference
+### Validated rigid reference
 
 The rigid policy was trained with 4,096 environments for 600 iterations in 317.64 s. The fixed-command tests ran for 20 s; three held-out banks contained 128 randomized-command trials each, lasting 10 s. One 34 s recording tests standing, walking, the 0.50 m/s training maximum, lateral motion, turning and stopping.
 
@@ -146,7 +134,7 @@ The rigid policy was trained with 4,096 environments for 600 iterations in 317.6
 
 All seven specified acceptance gates passed. There were no falls or foot-placement violations. Each foot stepped repeatedly in both walking tests. States remained finite, maximum torso tilt was 0.097 rad, maximum joint-limit overshoot was 0.0018 rad, and no motor saturation or contact-buffer overflow was observed. This is a checked one-seed simulation baseline.
 
-## Verification and post-training evaluation
+### Verification and post-training evaluation
 
 - Both native Go2 integration tests pass in 13.80 s with the corrected 118 mm cap, masked depth/material resets, articulated momentum balance and the zero-layer rigid limit. Restoring the previous collider-radius guard makes the 118 mm configuration fail as expected.
 - A controlled granular-load test detects foot contact above the rigid floor while native collision forces are zero. Removing the granular-load cue makes this regression fail.
@@ -160,7 +148,7 @@ An exploratory MPM inference test completed with the same frozen RFT weights des
 
 The RFT configuration retains an experimental near-rest bearing term. Finite-layer clipping does not model confinement, compaction, evolving free surfaces or exact tangential sticking. The local numerical checks do not independently validate that material closure.
 
-## Current maximum-forward recordings
+### Current maximum-forward recordings
 
 All four recordings request **0.50 m/s forward**, zero lateral velocity and zero yaw, for **10 s**. Two frozen policies are compared: the validated rigid-ground checkpoint (`model_599.pt`) is tested on a rigid floor and in MPM sand; the final RFT checkpoint (`model_1499.pt`) is tested in RFT sand and MPM sand. Neither policy was trained in MPM, and neither receives fine-tuning for these recordings. Material parameters are fixed during recording. Training budgets were 600 iterations for the rigid policy and 1,500 for the RFT policy.
 
@@ -179,7 +167,7 @@ The rigid-trained policy in MPM crossed the 0.16 m height threshold at 0.66 s, w
 
 Each video has an embedded banner naming its training terrain, evaluation terrain and command. The report repeats these labels above each player and shows all four clips with explicit command/depth captions, green granular-force arrows, and speed/error/height curves relative to the initial free surface. Numerical summaries and state traces remain linked from each recording.
 
-## Report and live access
+### Report and live access
 
 - [Current report](http://localhost:18010/report/).
 - [Live status and learning curves](http://localhost:18010/live/), refreshed every 30 s.

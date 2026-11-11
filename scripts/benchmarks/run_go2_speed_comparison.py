@@ -40,6 +40,9 @@ def main() -> None:
     """Keep checkpoints, commands, validation and recording provenance consistent."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--recordings_only", action="store_true", help="Reuse completed policy acceptance checks.")
+    parser.add_argument(
+        "--video_case", action="append", help="Record selected final clips and retain completed rollouts."
+    )
     args = parser.parse_args()
     study = load_study()
     if not study:
@@ -215,6 +218,7 @@ def main() -> None:
         speeds = tuple(study.get("video_speeds", [maximum]))
         recordings = video_cases(speeds)
         recordings.sort(key=lambda row: 0 if row[1] == "mpm_max_forward" and row[2] == 0.5 else 1)
+        recordings = [row for row in recordings if not args.video_case or row[0] in args.video_case]
         for name, base, speed in recordings:
             field, policy = roles[base]
             options = ["--steps", "500", "--speed", str(speed), "--video", "--policy_training_terrain", policy]
@@ -251,6 +255,15 @@ def main() -> None:
             study["published_videos"] = list(dict.fromkeys([*study.get("published_videos", []), name]))
             write_json(ROOT / "current-study.json", study)
             publish(f"Verified recording: {name.replace('_', ' ')}", render=True)
+        if args.video_case:
+            study = load_study()
+            study["videos_ready"] = all(
+                name in study.get("published_videos", [])
+                for name, _, _ in video_cases(tuple(study.get("video_speeds", [maximum])))
+            )
+            write_json(ROOT / "current-study.json", study)
+            publish("Paired-speed recordings published; updating plots and numerical interpretation", render=True)
+            return
         study = load_study()
         study["videos_ready"] = True
         write_json(ROOT / "current-study.json", study)

@@ -24,7 +24,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from go2_granular_videos import render_videos, video_cases
+from go2_granular_videos import describe_progress, render_videos, video_cases
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 ROOT = Path("logs/go2_granular")
@@ -153,6 +153,8 @@ def refresh() -> None:
                 "training_forward_command_range",
                 "substrate_depth",
                 "bed_depth",
+                "bed_length",
+                "bed_width",
                 "first_bed_exit_seconds",
                 "first_failure_seconds",
                 "failure_fraction",
@@ -204,7 +206,12 @@ def refresh() -> None:
         url_prefix=url_prefix,
         speeds=tuple(study.get("video_speeds", [study.get("max_forward_command", 0.5)])),
     )
-    evaluation_text = html.escape(evaluation.get("stage", "Validation pipeline has not started"))
+    evaluation_text = html.escape(
+        describe_progress(
+            evaluation.get("stage", "Validation pipeline has not started"),
+            tuple(study.get("video_speeds", [study.get("max_forward_command", 0.5)])),
+        )
+    )
     verdict = ""
     if "rigid_control_accepted" in evaluation:
         verdict = (

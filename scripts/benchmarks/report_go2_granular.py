@@ -15,7 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from go2_granular_videos import render_videos, video_cases
+from go2_granular_videos import describe_progress, render_videos, video_cases
 from monitor_go2_granular import load_study
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
@@ -149,6 +149,13 @@ ready_cases = [
     if not STUDY or STUDY.get("videos_ready") or case["case"] in STUDY.get("published_videos", [])
 ]
 forward_cases = [case for case in ready_cases if case["case"] in VIDEO_NAMES]
+mpm_domains = {}
+for case in forward_cases:
+    if case["field"] == "mpm":
+        mpm_domains[case["commands"][0][0]] = (case["bed_length"], case["bed_width"])
+domain_description = "; ".join(
+    f"{speed:.2f} m/s: {length:g} × {width:g} m" for speed, (length, width) in sorted(mpm_domains.items(), reverse=True)
+)
 forward_figure = ""
 for speed in SPEEDS:
     names = {name: base for name, base, command in VARIANTS if command == speed}
@@ -175,7 +182,8 @@ for speed in SPEEDS:
     save(fig, filename)
     forward_figure += (
         f"<h2>Comparison at {speed:.2f} m/s</h2>"
-        "<p>The curves include initial acceleration and time after a fall.</p>"
+        "<p>Velocities and commands use the robot frame. The curves include initial acceleration "
+        "and time after a fall.</p>"
         f"<img src='{filename}' alt='Speed, tracking error and body height at {speed:g} m/s'>"
     )
 
@@ -203,7 +211,9 @@ figures = "".join(
     )
     if (rft if name == "rft-training.png" else rigid) is not None
 )
-new_status = rft_status.get("stage", "New RFT training is being prepared; final recordings follow training.")
+new_status = describe_progress(
+    rft_status.get("stage", "New RFT training is being prepared; final recordings follow training."), SPEEDS
+)
 previous_note = "<p><a href='../previous_0p5_report/'>Previous 0.5 m/s recordings and results</a></p>" if STUDY else ""
 material_comparison = (
     f"<h2>Material comparison at {MAX_COMMAND:.2f} m/s</h2>"
@@ -227,6 +237,11 @@ if STUDY.get("half_speed_material_comparison_ready"):
         "<img src='../max1/materials_cmd_0p5/policy-and-support.png' "
         "alt='Tracking and whole-robot support at 0.5 m/s'>"
     )
+elif len(SPEEDS) > 1:
+    material_comparison += (
+        "<h2>Material comparison at 0.50 m/s</h2>"
+        "<p>The material plots will be published after the final MPM recording completes.</p>"
+    )
 mpm_recheck = ""
 if STUDY.get("mpm_recheck_ready"):
     recheck = json.loads((CASE_ROOT / "mpm-recheck/results.json").read_text())
@@ -237,19 +252,27 @@ if STUDY.get("mpm_recheck_ready"):
         failure = "None in 2 s" if first is None else f"{first:.2f} s"
         recheck_rows.append(
             f"<tr><td>{row['substeps']}</td><td>{row['coupling_passes']}</td>"
+            f"<td>{result.get('proxy_relaxation', 0.1):g}</td>"
             f"<td>{result['mean_velocity_error']:.3f}</td><td>{failure}</td></tr>"
         )
     mpm_recheck = (
-        "<h2>MPM startup check at 1.0 m/s</h2>"
+        "<h2 id='mpm-numerics'>MPM startup check at 1.0 m/s</h2>"
         "<p>The frozen RFT policy is tested in the same prepared 5 × 1.6 × 0.118 m bed for 2 s. "
-        "Each row changes either the number of physics substeps or coupling passes. "
+        "Each row changes substeps, coupling passes or feedback relaxation. "
+        "The physics frame is 5 ms; 4, 8 and 16 substeps correspond to 1.25, 0.625 and 0.3125 ms. "
         "Grid, material, preparation, checkpoint and seed stay fixed. "
         "This is a numerical sensitivity check, not a completed MPM convergence study.</p>"
-        "<table><tr><th>Substeps</th><th>Coupling passes</th><th>Tracking error [m/s]</th>"
+        "<p><strong>The immediate collapse depends on coupling numerics.</strong> "
+        "Smaller time steps did not remove it; four coupling passes or full feedback avoided the threshold "
+        "during these short tests. This does not establish 10 s stability or MPM convergence. "
+        "The main videos retain the original one-pass, 0.1-feedback configuration for both policies and commands. "
+        "Their 1.0 m/s falls cannot be attributed solely to policy or RFT model error.</p>"
+        "<table><tr><th>Substeps</th><th>Coupling passes</th><th>Feedback factor</th><th>Tracking error [m/s]</th>"
         "<th>First failure threshold</th></tr>" + "".join(recheck_rows) + "</table>"
         "<img src='mpm-startup-recheck.png' alt='Startup height, velocity, tilt and support sensitivity'>"
     )
 recording_text = (
+    f"{len(forward_cases)} of {len(VARIANTS)} videos available. "
     f"Each terrain panel compares the same frozen policy at {' and '.join(f'{speed:.2f}' for speed in SPEEDS)} "
     "m/s forward for 10 s. "
     "The two policies share a 4,096-environment, 1,500-iteration training budget."
@@ -323,6 +346,14 @@ style="max-width:520px;display:block;margin:auto"></details>
     + "</p>"
     + previous_note
     + validation_note
+    + (
+        "<p class='status'><strong>The early 1.0 m/s MPM collapse is sensitive to coupling settings.</strong> "
+        "Additional coupling passes or full feedback avoided the failure threshold in short tests. "
+        "The main MPM videos retain the original numerical settings. "
+        "<a href='#mpm-numerics'>See the controlled comparison and its limits</a>.</p>"
+        if STUDY.get("mpm_recheck_ready")
+        else ""
+    )
     + material_note
     + (
         "<p><strong>Material-model investigation:</strong> "
@@ -331,7 +362,7 @@ style="max-width:520px;display:block;margin:auto"></details>
         else ""
     )
     + """
-<p><a href="../live/">Live status and learning curves</a> · <a href="../g1/report/">G1 study</a></p>
+<p><a href="../live/">Live status and learning curves</a></p>
 <h2>Current policy recordings</h2>
 <p>"""
     + recording_text
@@ -340,11 +371,19 @@ Neither was trained in MPM.
 Each policy is first shown in its training simulator and then in the same MPM sand bed, without fine-tuning.
 All sand beds start at 118 mm depth with density 1,600 kg/m³ and nominal friction 0.4.</p>"""
     + (
-        "<p>MPM recordings use a 12 × 3.2 m bed at both commands. "
+        f"<p>MPM bed dimensions are {domain_description}. "
+        "Both policies share the same bed dimensions at each command. "
         "An earlier narrow-bed 0.5 m/s clip reached the bed edge before falling and is excluded. "
         "Bed-boundary and numerical-capacity checks are required for publication. "
         "Failure times remain in the numerical results and captions; they are omitted from video banners.</p>"
         if STUDY.get("video_bed_width") == 3.2
+        else ""
+    )
+    + (
+        "<p>The 1.0 m/s videos were regenerated from their saved trajectories with new banners. "
+        "The 0.5 m/s videos use new rollouts of the same checkpoints. "
+        "The differing bed widths limit a strict comparison across commands.</p>"
+        if STUDY.get("reused_maximum_command_trajectories")
         else ""
     )
     + render_videos(CASE_ROOT, ready_cases, gait, url_prefix=MEDIA_PREFIX, speeds=SPEEDS)

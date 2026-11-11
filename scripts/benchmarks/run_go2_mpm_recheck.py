@@ -27,6 +27,50 @@ from run_go2_speed_comparison import write_json
 from validate_go2_training import job_state
 
 
+def plot_startup_cases(root: Path, results: list[dict]) -> None:
+    """Plot measured startup responses without repeating physics rollouts."""
+    out = root / "mpm-recheck"
+    fig, axes = plt.subplots(2, 2, figsize=(12, 7))
+    for case in results:
+        label = (
+            f"{case['substeps']} substeps, {case['coupling_passes']} coupling passes, "
+            f"feedback {case['summary'].get('proxy_relaxation', 0.1):g}"
+        )
+        with np.load(out / case["name"] / "rollout.npz") as data:
+            s = data["state"][:, 0]
+            metrics = data["metrics"][:, 0]
+            support = data["support_wrenches"]
+            for ax, values in zip(
+                axes.flat, (s[:, 7], s[:, 4], metrics[:, 3], support[:, 2] + support[:, 5]), strict=True
+            ):
+                ax.plot(s[:, 0], values, label=label)
+    reference = root / "rft_max_forward/rollout.npz"
+    if reference.exists():
+        with np.load(reference) as data:
+            state = data["state"][:100, 0]
+            tilt = data["metrics"][:100, 0, 3]
+            for ax, values in zip(axes.flat, (state[:, 7], state[:, 4], tilt), strict=False):
+                ax.plot(state[:, 0], values, "k--", label="RFT reference")
+    axes[0, 0].axhline(0.16, color="grey", linestyle=":")
+    for ax, label in zip(
+        axes.flat,
+        (
+            "Height above initial surface [m]",
+            "Forward speed [m/s]",
+            "Torso tilt [rad]",
+            "Whole-robot vertical support [N]",
+        ),
+        strict=True,
+    ):
+        ax.set(xlabel="Time [s]", ylabel=label)
+        ax.grid(alpha=0.2)
+    axes[0, 0].legend(fontsize=8)
+    fig.suptitle("Frozen RFT policy in MPM · 1.0 m/s · identical prepared 118 mm bed")
+    fig.tight_layout()
+    fig.savefig(ROOT / "report/mpm-startup-recheck.png", dpi=150)
+    plt.close(fig)
+
+
 def main() -> None:
     """Keep policy, bed and command fixed while changing one numerical control."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -50,11 +94,12 @@ def main() -> None:
     out = root / "mpm-recheck"
     out.mkdir(exist_ok=True)
     results = []
-    for name, substeps, passes in (
-        ("baseline", 4, 1),
-        ("substeps-8", 8, 1),
-        ("substeps-16", 16, 1),
-        ("coupling-passes-4", 4, 4),
+    for name, substeps, passes, relaxation in (
+        ("baseline", 4, 1, 0.1),
+        ("substeps-8", 8, 1, 0.1),
+        ("substeps-16", 16, 1, 0.1),
+        ("coupling-passes-4", 4, 4, 0.1),
+        ("relaxation-1", 4, 1, 1.0),
     ):
         folder = out / name
         folder.mkdir(exist_ok=True)
@@ -89,6 +134,8 @@ def main() -> None:
             str(substeps),
             "--proxy_iterations",
             str(passes),
+            "--proxy_relaxation",
+            str(relaxation),
             "--audit_forces",
         ]
         worker = Path("scripts/benchmarks/evaluate_go2_granular.py")
@@ -110,41 +157,7 @@ def main() -> None:
             raise RuntimeError(f"Invalid MPM recheck {name}: {summary['execution_error']}")
         results.append(dict(name=name, substeps=substeps, coupling_passes=passes, summary=summary))
         write_json(out / "results.json", dict(cases=results))
-    fig, axes = plt.subplots(2, 2, figsize=(12, 7))
-    for case in results:
-        with np.load(out / case["name"] / "rollout.npz") as data:
-            s = data["state"][:, 0]
-            metrics = data["metrics"][:, 0]
-            support = data["support_wrenches"]
-            for ax, values in zip(
-                axes.flat, (s[:, 7], s[:, 4], metrics[:, 3], support[:, 2] + support[:, 5]), strict=True
-            ):
-                ax.plot(s[:, 0], values, label=case["name"])
-    reference = root / "rft_max_forward/rollout.npz"
-    if reference.exists():
-        with np.load(reference) as data:
-            state = data["state"][:100, 0]
-            tilt = data["metrics"][:100, 0, 3]
-            for ax, values in zip(axes.flat, (state[:, 7], state[:, 4], tilt), strict=False):
-                ax.plot(state[:, 0], values, "k--", label="RFT reference")
-    axes[0, 0].axhline(0.16, color="grey", linestyle=":")
-    for ax, label in zip(
-        axes.flat,
-        (
-            "Height above initial surface [m]",
-            "Forward speed [m/s]",
-            "Torso tilt [rad]",
-            "Whole-robot vertical support [N]",
-        ),
-        strict=True,
-    ):
-        ax.set(xlabel="Time [s]", ylabel=label)
-        ax.grid(alpha=0.2)
-    axes[0, 0].legend(fontsize=8)
-    fig.suptitle("Frozen RFT policy in MPM · 1.0 m/s · identical prepared 118 mm bed")
-    fig.tight_layout()
-    fig.savefig(ROOT / "report/mpm-startup-recheck.png", dpi=150)
-    plt.close(fig)
+    plot_startup_cases(root, results)
     if args.startup_only:
         write_json(out / "startup-complete.json", dict(completed_unix=time.time()))
         return
