@@ -203,6 +203,17 @@ validation_note = (
     if failed_gates
     else ""
 )
+material_analysis_path = ROOT / "investigation/analysis.json"
+material_analysis = json.loads(material_analysis_path.read_text()) if material_analysis_path.exists() else None
+material_note = (
+    "<p class='status'><strong>Material validation: MPM has not passed the force-convergence gate.</strong> "
+    f"The {material_analysis['case_count']}-case investigation also finds that matching density, friction and depth "
+    "does not match the complete RFT/MPM force response. "
+    "<a href='../investigation/analysis.html'>See convergence plots, force calibration "
+    "and frozen-policy comparisons</a>.</p>"
+    if material_analysis and not material_analysis["mpm_reference_accepted"]
+    else ""
+)
 (OUT / "index.html").write_text(
     """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Go2: maximum-forward policy comparison</title>
@@ -226,6 +237,13 @@ style="max-width:520px;display:block;margin:auto"></details>
     + new_status
     + "</p>"
     + validation_note
+    + material_note
+    + (
+        "<p><strong>Material-model investigation:</strong> "
+        "<a href='../investigation/analysis.html'>Convergence checks, force measurements and material matching</a>.</p>"
+        if material_analysis is None and (ROOT / "investigation/status.json").exists()
+        else ""
+    )
     + """
 <p><a href="../live/">Live status and learning curves</a></p>
 <h2>Current policy recordings</h2>

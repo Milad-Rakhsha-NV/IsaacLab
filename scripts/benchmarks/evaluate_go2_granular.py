@@ -45,6 +45,16 @@ parser.add_argument("--density", type=float, default=1600.0)
 parser.add_argument("--friction", type=float, default=0.4)
 parser.add_argument("--roughness", type=float, default=1.0)
 parser.add_argument("--proxy_relaxation", type=float, default=0.1)
+parser.add_argument("--proxy_iterations", type=int, default=1)
+parser.add_argument("--mpm_iterations", type=int, default=50)
+parser.add_argument("--transfer_scheme", choices=("pic", "apic"), default="pic")
+parser.add_argument(
+    "--settle_seconds", type=float, default=0.0, help="Prepare MPM with the robot held fixed above the bed."
+)
+parser.add_argument(
+    "--audit_forces", action="store_true", help="Measure applied body loads and rigid-contact momentum changes."
+)
+parser.add_argument("--project_particles", action="store_true")
 parser.add_argument("--mpm_modulus", type=float, default=1e15)
 parser.add_argument("--substeps", type=int, default=4)
 parser.add_argument("--bed_depth", type=float, default=0.4)
@@ -102,6 +112,7 @@ if args.field == "rft":
     cfg.sim.physics.solver_cfg.surface_friction = args.friction * args.roughness
 cfg.episode_length_s = args.steps * 0.02 + 10
 cfg.sim.physics.num_substeps = args.substeps
+cfg.sim.physics.use_cuda_graph = not args.audit_forces
 if args.video:
     from isaaclab_visualizers.newton import NewtonGLBackendCfg
 
@@ -179,13 +190,13 @@ if args.field == "mpm":
                         max_leaf_node_count=1 << 15,
                         max_lower_node_count=1 << 11,
                         max_upper_node_count=1 << 9,
-                        max_iterations=50,
+                        max_iterations=args.mpm_iterations,
                         tolerance=1e-4,
                         collider_basis="pic27",
                         strain_basis="P0",
-                        transfer_scheme="pic",
+                        transfer_scheme=args.transfer_scheme,
                         air_drag=1.0,
-                        project_outside_colliders=False,
+                        project_outside_colliders=args.project_particles,
                     ),
                     all_particles=True,
                     include_child_joints=False,
@@ -205,8 +216,9 @@ if args.field == "mpm":
                     collision_pipeline=None,
                 )
             ],
-            iterations=1,
+            iterations=args.proxy_iterations,
         ),
+        use_cuda_graph=not args.audit_forces,
     )
 
 args.output.mkdir(parents=True, exist_ok=True)
@@ -286,7 +298,97 @@ with launch_simulation(cfg):
         )
     else:
         mpm = None
+    preparation = None
+    actual_mpm_material = None
+    if mpm is not None:
+        actual_mpm_material = {}
+        for key in (
+            "young_modulus",
+            "poisson_ratio",
+            "friction",
+            "yield_pressure",
+            "viscosity",
+            "dilatancy",
+            "hardening",
+        ):
+            values = getattr(mpm.model.mpm, key).numpy()
+            actual_mpm_material[key] = [float(values.min()), float(values.max())]
+        if args.settle_seconds > 0:
+            backend = env.sim.backend_manager.backend
+            before = backend.state_0.body_q.numpy().copy()
+            backend.state_0.body_qd.zero_()
+            solver.sync_entry_states(backend.state_0)
+            prepared = solver.entry_state("mpm", "input")
+            fixed_colliders = prepared.body_q.numpy().copy()
+            # This scene assigns all particles to MPM in their original order.
+            np.testing.assert_array_equal(prepared.particle_q.numpy(), backend.state_0.particle_q.numpy())
+            mpm.setup_collider(
+                collider_friction=collider_mu.numpy().tolist(),
+                body_mass=wp.zeros_like(mpm.model.body_mass),
+                body_inv_inertia=wp.zeros_like(mpm.model.body_inv_inertia),
+            )
+            dt = cfg.sim.dt / args.substeps
+            preparation_steps = int(np.ceil(args.settle_seconds / dt))
+            for _ in range(preparation_steps):
+                # Preserve APIC, elastic and plastic history in the entry that
+                # will advance the bed during coupled policy inference.
+                mpm.step(prepared, prepared, None, None, dt)
+                if args.project_particles:
+                    mpm.project_outside(prepared, prepared, dt)
+            np.testing.assert_array_equal(prepared.body_q.numpy(), fixed_colliders)
+            np.testing.assert_array_equal(backend.state_0.body_q.numpy(), before)
+            for parent in (backend.state_0, backend.state_1):
+                wp.copy(parent.particle_q, prepared.particle_q)
+                wp.copy(parent.particle_qd, prepared.particle_qd)
+            prepared_positions = prepared.particle_q.numpy()
+            prepared_velocities = prepared.particle_qd.numpy()
+            core = (np.abs(prepared_positions[:, 0]) < 0.4) & (np.abs(prepared_positions[:, 1]) < 0.35)
+            preparation = dict(
+                seconds=args.settle_seconds,
+                rms_particle_speed_m_s=float(np.sqrt(np.mean(np.sum(prepared_velocities**2, axis=1)))),
+                core_rms_particle_speed_m_s=float(np.sqrt(np.mean(np.sum(prepared_velocities[core] ** 2, axis=1)))),
+                minimum_particle_z_m=float(prepared_positions[:, 2].min()),
+                robot_fixed=True,
+                entry_history_preserved=True,
+                preparation_steps=preparation_steps,
+            )
+            mpm.setup_collider(
+                collider_friction=collider_mu.numpy().tolist(),
+                body_mass=mpm.model.body_mass,
+                body_inv_inertia=mpm.model.body_inv_inertia,
+            )
+            solver.sync_entry_states(backend.state_0)
+
     rigid = solver.rigid_solver if args.field == "rft" else solver.solver("rigid") if mpm is not None else solver
+    audit_impulses = np.zeros(6)
+    audit_last = np.zeros(6)
+    audit_calls = [0]
+    if args.audit_forces:
+        masses = rigid.model.body_mass.numpy()[:, None]
+        gravity_force = masses.sum() * rigid.model.gravity.numpy()[0]
+        native_rigid_step = rigid.step
+
+        def measured_rigid_step(state_in, state_out, control, contacts, dt, **kwargs):
+            before = (masses * state_in.body_qd.numpy()[:, :3]).sum(0)
+            applied = state_in.body_f.numpy()[:, :3].sum(0) * dt
+            native_rigid_step(state_in, state_out, control, contacts, dt, **kwargs)
+            after = (masses * state_out.body_qd.numpy()[:, :3]).sum(0)
+            audit_last[:] = np.r_[applied, after - before - gravity_force * dt - applied]
+            if args.field != "mpm":
+                audit_impulses[:] += audit_last
+                audit_calls[0] += 1
+
+        rigid.step = measured_rigid_step
+        if args.field == "mpm":
+            native_coupled_step = solver.step
+
+            def measured_coupled_step(*arguments, **kwargs):
+                native_coupled_step(*arguments, **kwargs)
+                # Inner passes re-solve the same interval. Only the final pass advances time.
+                audit_impulses[:] += audit_last
+                audit_calls[0] += 1
+
+            solver.step = measured_coupled_step
     ambient_density = float(rigid.mj_model.opt.density)
     if ambient_density != 0:
         raise ValueError(
@@ -310,6 +412,7 @@ with launch_simulation(cfg):
         )
         writer.send(None)
     rows, force_rows, joint_rows, pose_rows, metric_rows, gait_rows, command_rows = [], [], [], [], [], [], []
+    support_rows = []
     steps_per_foot = np.zeros((args.num_envs, 4), dtype=int)
     phase = None
     max_rigid_overflow = 0
@@ -329,6 +432,8 @@ with launch_simulation(cfg):
     particles_finite = True
     try:
         for step in range(args.steps):
+            audit_impulses[:] = 0
+            audit_calls[0] = 0
             with torch.inference_mode():
                 if schedule:
                     current = max(entry for entry in schedule if entry[0] <= step * env.step_dt)
@@ -346,6 +451,10 @@ with launch_simulation(cfg):
                     obs, reward, _, _ = wrapped.step(action)
                 else:
                     obs, reward, _, _, _ = env.step(action)
+            if args.audit_forces:
+                if not audit_calls[0]:
+                    raise RuntimeError("The force-audit callback did not execute")
+                support_rows.append(audit_impulses.copy() / env.step_dt)
             p = env.robot.data.root_pos_w.torch.cpu().numpy()
             v = env.robot.data.root_lin_vel_b.torch.cpu().numpy()
             g = env.robot.data.projected_gravity_b.torch.cpu().numpy()
@@ -488,6 +597,7 @@ with launch_simulation(cfg):
             metrics=np.array(metric_rows),
             gait=np.array(gait_rows),
             commands=np.array(command_rows),
+            support_wrenches=np.array(support_rows),
         )
         summary = dict(
             field=args.field,
@@ -529,6 +639,15 @@ with launch_simulation(cfg):
             if mpm is not None
             else None,
             proxy_relaxation=args.proxy_relaxation if mpm is not None else None,
+            proxy_iterations=args.proxy_iterations if mpm is not None else None,
+            mpm_iterations=args.mpm_iterations if mpm is not None else None,
+            transfer_scheme=args.transfer_scheme if mpm is not None else None,
+            mpm_preparation=preparation,
+            actual_mpm_material=actual_mpm_material,
+            force_audit=args.audit_forces,
+            support_force_sampling=(
+                "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance"
+            ),
             mpm_modulus=args.mpm_modulus if mpm is not None else None,
             substeps=args.substeps,
             force_sampling="control-interval impulse average"

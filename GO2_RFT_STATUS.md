@@ -1,6 +1,8 @@
 # Go2: maximum-forward rigid, RFT and MPM comparison
 
-Updated November 10, 2026 (Pacific). **RFT training finished 1,500 iterations with 4,096 environments and the full material curriculum.** The final checkpoint is not accepted as converged: standing drift, loaded-foot slip, foot placement and stepping criteria failed. The report now compares the current policies at the maximum forward command; previous RFT/MPM experiments remain excluded.
+Updated November 11, 2026 (Pacific). **RFT training finished 1,500 iterations with 4,096 environments and the full material curriculum.** The final checkpoint is not accepted as converged: standing drift, loaded-foot slip, foot placement and stepping criteria failed. The report now compares the current policies at the maximum forward command; previous RFT/MPM experiments remain excluded.
+
+The material investigation is documented in [GO2_MATERIAL_VALIDATION.md](GO2_MATERIAL_VALIDATION.md) and the [graphical report](http://localhost:18010/investigation/). It checks native MPM force convergence, RFT force matching, preparation and coupling history, and frozen-policy material sensitivity. The current MPM configuration has not passed the force-convergence gate. Matching density, friction and initial depth alone does not establish equivalent material response. No policy was retrained during this investigation.
 
 ## Current RFT run
 
