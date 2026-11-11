@@ -52,9 +52,10 @@ parser.add_argument("--difficulty", type=float, default=1.0, help="Frozen curric
 args = parser.parse_args()
 configure_console_logging()
 
-from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTEnvCfg, Go2RigidEnvCfg
+from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTCurriculumEnvCfg, Go2RFTEnvCfg, Go2RigidEnvCfg
 
-cfg = Go2RigidEnvCfg() if args.field == "rigid" else Go2RFTEnvCfg()
+cfg = Go2RigidEnvCfg() if args.field == "rigid" else Go2RFTCurriculumEnvCfg() if args.field == "rft" else Go2RFTEnvCfg()
+cfg.curriculum_enabled = False
 cfg.sim.visualizer_cfgs = [cfg.sim.visualizer_cfgs]
 cfg.seed = args.seed
 cfg.scene.num_envs = args.num_envs
@@ -76,10 +77,20 @@ schedule = (
     if args.command_schedule
     else ()
 )
-if schedule and (args.field != "rigid" or args.randomize or args.stand):
-    parser.error("The command schedule requires rigid inference without --randomize or --stand")
+if schedule and (args.field == "mpm" or args.randomize or args.stand):
+    parser.error("The command schedule requires rigid or RFT inference without --randomize or --stand")
 if args.field == "rft":
-    cfg.bed_depth = args.substrate_depth
+    depth = cfg.bed_depth if args.substrate_depth is None else args.substrate_depth
+    cfg.bed_depth = depth
+    cfg.sim.physics.solver_cfg.surface_height = depth
+    cfg.sim.physics.solver_cfg.surface_bottom = 0.0
+    if not args.randomize:
+        cfg.bed_depth_range = None
+    if depth == 0:
+        cfg.scene.bed = None
+    else:
+        cfg.scene.bed.spawn.size = (100.0, 100.0, depth)
+        cfg.scene.bed.init_state.pos = (0.0, 0.0, depth / 2)
     cfg.sim.physics.solver_cfg.bearing = 0.0 if args.no_bearing else 0.87574
     cfg.sim.physics.solver_cfg.segments = args.segments
     cfg.sim.physics.solver_cfg.bulk_density = args.density
@@ -110,12 +121,14 @@ if args.field == "mpm":
     from isaaclab_contrib.coupling import CouplerEntryCfg, CouplerProxyCfg, CouplerProxyMappingCfg
 
     cfg.randomize_material = False
+    cfg.scene.robot = Go2RigidEnvCfg().scene.robot
     cfg.scene.bed = None
     cfg.scene.floor = AssetBaseCfg(
         prim_path="/World/Floor",
         spawn=CuboidCfg(
             size=(2.4, 1.6, 0.1),
             collision_props=UsdPhysicsCollisionCfg(collision_enabled=True),
+            physics_material=Go2RigidEnvCfg().scene.substrate.spawn.physics_material,
             visual_material=PreviewSurfaceCfg(diffuse_color=(0.3, 0.3, 0.3)),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(pos=(0.3, 0, -args.bed_depth - 0.05)),
@@ -145,9 +158,9 @@ if args.field == "mpm":
             entries=[
                 CouplerEntryCfg(
                     name="rigid",
-                    solver_cfg=MJWarpSolverCfg(njmax=128, nconmax=64),
+                    solver_cfg=MJWarpSolverCfg(njmax=128, nconmax=64, use_mujoco_contacts=True),
                     bodies=[r"/World/envs/env_.*/Robot"],
-                    include_static_shapes=False,
+                    include_static_shapes=True,
                 ),
                 CouplerEntryCfg(
                     name="mpm",
@@ -171,7 +184,9 @@ if args.field == "mpm":
                     ),
                     all_particles=True,
                     include_child_joints=False,
-                    include_static_shapes=True,
+                    # The rigid entry owns the floor. An empty MPM shape selection
+                    # still exposes static colliders without a second owner.
+                    include_static_shapes=False,
                     in_place=True,
                 ),
             ],
@@ -291,8 +306,11 @@ with launch_simulation(cfg):
     previous_impulse = solver.body_impulse.numpy().copy() if args.field == "rft" else None
     start = time.monotonic()
     command_manifest = env.commands.cpu().tolist()
-    material_manifest = solver.material.numpy().tolist() if args.field == "rft" else None
-    height_manifest = solver.surface_height.numpy().tolist() if args.field == "rft" else [0.0]
+    world_ids = env.world_ids.cpu().numpy()
+    material_manifest = solver.material.numpy()[world_ids].tolist() if args.field == "rft" else None
+    height_manifest = (
+        solver.surface_height.numpy()[world_ids].tolist() if args.field == "rft" else [0.0] * args.num_envs
+    )
     body_com_manifest = model.body_com.numpy().tolist()
     execution_error = None
     first_failure = None
@@ -329,12 +347,12 @@ with launch_simulation(cfg):
             command_rows.append(env.commands.cpu().numpy().copy())
             if cfg.gait is not None:
                 signed_y = env.signed_foot_y().cpu().numpy()
-                contact = env.contact_forces.data.net_normal_forces_w.torch[:, env.foot_sensor_ids].norm(dim=-1) > 1.0
+                contact = env.gait_body_contact[:, env.foot_sensor_ids]
                 slip = env.robot.data.body_lin_vel_w.torch[:, env.foot_ids, :2].norm(dim=-1)
                 mean_slip = ((slip * contact).sum(-1) / contact.sum(-1).clamp_min(1)).cpu().numpy()
                 gait_rows.append(np.column_stack((signed_y, contact.cpu().numpy(), mean_slip)))
-                first = env.contact_forces.compute_first_contact(env.step_dt).torch[:, env.foot_sensor_ids] > 0
-                air = env.contact_forces.data.last_air_time.torch[:, env.foot_sensor_ids]
+                first = env.gait_first_contact[:, env.foot_sensor_ids]
+                air = env.gait_last_air_time[:, env.foot_sensor_ids]
                 moving = env.commands.norm(dim=-1) > 0.05
                 if step * env.step_dt > 1.0:
                     steps_per_foot += ((air > 0.04) & first & moving[:, None]).cpu().numpy()
@@ -350,13 +368,18 @@ with launch_simulation(cfg):
             height = env.relative_base_height().cpu().numpy()
             failed = (height < 0.16) | (g[:, 2] > -0.3) | ~np.isfinite(p).all(-1)
             local_p = p - env.scene.env_origins.cpu().numpy()
-            if first_exit is None and (
-                np.any(local_p[:, 0] > 1.0) or np.any(local_p[:, 0] < -0.4) or np.any(np.abs(local_p[:, 1]) > 0.35)
+            if (
+                args.field == "mpm"
+                and first_exit is None
+                and (
+                    np.any(local_p[:, 0] > 1.0) or np.any(local_p[:, 0] < -0.4) or np.any(np.abs(local_p[:, 1]) > 0.35)
+                )
             ):
                 first_exit = (step + 1) * env.step_dt
             poses_now = env.sim.backend_manager.backend.state_0.body_q.numpy()
             feet = [i for i, label in enumerate(labels) if label.endswith("_foot")]
-            if first_bottom is None and np.any(poses_now[feet, 2] - 0.022 < -args.bed_depth):
+            bottom = -args.bed_depth if args.field == "mpm" else 0.0
+            if first_bottom is None and np.any(poses_now[feet, 2] - 0.022 <= bottom + 0.001):
                 first_bottom = (step + 1) * env.step_dt
             if first_failure is None and failed.any():
                 first_failure = (step + 1) * env.step_dt
@@ -454,7 +477,7 @@ with launch_simulation(cfg):
             max_rigid_overflow=max_rigid_overflow,
             surface_relative_height=True,
             validation_difficulty=args.difficulty,
-            substrate_depth=args.substrate_depth,
+            substrate_depth=cfg.bed_depth if args.field == "rft" else None,
             checkpoint=checkpoint,
             steps=len(rows),
             seed=args.seed,
@@ -466,6 +489,7 @@ with launch_simulation(cfg):
             particles_finite=particles_finite,
             first_bed_exit_seconds=first_exit,
             first_bottom_contact_seconds=first_bottom,
+            bottom_contact_sampling="geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
             bed_depth=args.bed_depth,
             density=args.density,
             internal_friction=args.friction,
@@ -474,9 +498,10 @@ with launch_simulation(cfg):
             command_schedule=schedule,
             material_parameters=material_manifest,
             surface_heights=height_manifest,
+            world_ids=world_ids.tolist(),
             execution_error=execution_error,
             bearing=cfg.sim.physics.solver_cfg.bearing if args.field == "rft" else None,
-            rigid_support_plane=args.field == "rigid" or args.substrate_depth is not None,
+            rigid_support_plane=args.field in ("rigid", "mpm") or args.field == "rft" and cfg.bed_depth is not None,
             material_randomization=cfg.randomize_material,
             voxel_size=args.voxel_size if mpm is not None else None,
             mpm_floor_center_xy=[0.3, 0.0] if mpm is not None else None,

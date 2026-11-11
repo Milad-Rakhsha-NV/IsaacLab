@@ -1,168 +1,106 @@
-# Go2 RFT training and MPM inference
+# Go2: validated rigid control and shallow-layer RFT training
 
-Updated November 10, 2026 (Pacific). **The repaired rigid control passed the specified validation suite.** The previous rigid policy had crossed rear legs. Earlier RFT/MPM comparisons remain provisional and must be repeated with the validated task setup.
+Updated November 10, 2026 (Pacific). **The new RFT domain-randomization run is active with 4,096 environments.** The report contains the validated rigid control and this run only. Previous RFT/MPM results have been removed from the report and dashboard.
 
-## Rigid-control repair
+## Current RFT run
 
-The earlier rigid clip came from the custom direct environment using the stock Go2 asset and DC motor model. Its simplified reward omitted important posture and motion/contact criteria. This audit keeps the direct workflow and the 45-value actor / 48-value critic interface.
+- Task: `Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct`.
+- Run: `logs/rsl_rl/go2_rft_shallow_curriculum/2026-11-11_01-51-10/`.
+- Fresh initialization, seed 42, 1,500 PPO iterations planned; 24 steps per environment per iteration.
+- Isaac Lab source at launch: `9ed395d620`; Newton pin: `6528eb5e7bb823fe35f0d238b2571431bb55a811`.
+- Native task checks passed from the installed pinned Newton package. No dependency synchronization runs while training is active.
+- MPM is excluded from training. Final frozen-policy evaluation runs automatically after training finishes.
 
-Mechanical checks measured total mass 15.019 kg, positive-definite dynamic-body inertias (smallest eigenvalue 9.6e-6 kg·m²), zero ambient fluid density, frictional contacts, and no observed contact-buffer overflow. All twelve isolated positive joint commands produced positive motion in the corresponding joint, with the expected 0.05 rad target offsets. The action order matches the articulation order. Ten-second zero-action standing checks, with episode resets disabled, remain finite and settle near 0.249 m base height. This is a mechanical check rather than a learned-gait acceptance test.
+Training is not accepted as converged until the final material distribution and held-out gait/tracking checks pass. Current iteration counts, material difficulty, episode completion and tracking error are available on the live dashboard.
 
-Enabling self-collision reduced filtered shape pairs from 339 to 34. Replaying the old policy with self-collision alone did not repair its gait. The new rigid task therefore enables self-collision and contact sensing, removes the overlapping sand visual, and adds hip/joint posture, vertical/angular motion, joint-acceleration/limit, foot-slip, swing-time, non-foot contact and stance penalties. Feet crossing the base centerline terminate an episode independently of fall detection. The existing native integration file passes both tests; restoring the previous termination function makes the new crossed-foot regression fail for the intended reason. A three-iteration training smoke also passes.
+## Material height and reset randomization
 
-The fresh rigid-only run uses 4,096 environments, seed 42, 600 PPO iterations, full commands from reset, and source revision `f3b34c0fec`. Its directory is `logs/rsl_rl/go2_rigid_gait_control/2026-11-11_00-02-21/`. The live dashboard reads `go2-rigid-gait-training.service`. No new RFT or MPM training is launched.
+The Go2 foot collider is a sphere with radius **22 mm**, hence a **44 mm foot length/diameter**. Initial layer thickness is sampled independently for each resetting environment from **0–22 mm**, at most half that foot length. The limit is checked against the imported collision geometry.
 
-After this run, `go2-rigid-gait-validation.service` tests standing and fixed 0.30/0.50 m/s commands for 20 s, plus three 128-environment held-out command banks for 10 s. One 34 s video exercises stand → 0.30 m/s → 0.50 m/s → lateral motion → turning → stop. Acceptance requires no falls or foot-placement violations, tracking error below 0.10 m/s, standing drift below 0.03 m/s, mean contact slip below 0.10 m/s, no detected overflow, and at least three steps with every foot in the fixed walking tests. The service records every gate in `logs/go2_granular/training/evaluation_status.json`; completion of the training budget alone is not acceptance.
+The bed has a fixed rigid substrate at `z=0`. Its RFT bottom remains fixed; the sampled free surface determines layer thickness. This is a finite sand layer over a floor, rather than a shifted unsupported half-space. Robot spawning, height reward and height termination use the sampled free surface.
 
-All seven gates passed. The 600-iteration training run finished in about 5.3 minutes. No fall or foot-placement violation occurred in the fixed-command tests, 384 held-out command trials, or the command-sequence video.
+| Quantity | Initial curriculum distribution | Full target distribution |
+|---|---|---|
+| Layer thickness | Uniform 0–0.022 m | Uniform 0–0.100 m |
+| Bulk density | 1,600 kg/m³ | Uniform 1,400–1,800 kg/m³ |
+| Internal friction | 0.4 | Uniform 0.3–0.5 |
+| Surface/internal friction ratio | 1.0 | Uniform 0.6–1.0 |
+| Strength multiplier | 1.0 | Log-uniform 0.8–1.2 |
+| Forward command | Uniform 0.1–0.5 m/s | Same |
+| Lateral command | Uniform −0.1–0.1 m/s | Same |
+| Yaw command | Uniform −0.3–0.3 rad/s | Same |
+| Standing trials | 10% | Same |
 
-| Repaired rigid-control evaluation | Mean planar velocity error | Mean contact slip |
+The final 10 cm depth target is the default selected for this rerun. The depth upper bound interpolates as `0.022 + difficulty*(0.100-0.022)`; the lower bound stays zero. Density, friction and roughness interpolate linearly from nominal values, and strength interpolates in log space. The granular field is stationary; velocity randomization refers to commands.
+
+All material and command samples change only for resetting environments. Other environments retain their material, height and state. There is **no command curriculum**.
+
+The material curriculum advances by 0.1 after two qualifying windows of at least 4,096 episodes, each with ≥95% full 10 s completion and ≤0.10 m/s mean planar tracking error. Ten percent of episodes remain shallow nominal-material anchors before full difficulty; anchors do not qualify for progression. Success below 70% causes retreat. At full difficulty the target distribution freezes.
+
+Each run saves `material_curriculum.json` with the measured foot diameter, initial/target depth ranges and substrate height. Difficulty changes are saved alongside checkpoints. A stopped run requires explicit difficulty restoration and fresh progression windows when resumed.
+
+## Shared locomotion fixes
+
+The RFT curriculum inherits the validated rigid task's robot configuration, native DC motor model, self-collision, gait configuration, observations and action scaling. Both use 45 actor inputs, 48 critic inputs, 12 joint-position offsets scaled by 0.25 rad, and 50 Hz control.
+
+The same reward settings cover hip/joint posture, standing posture, vertical/angular motion, joint acceleration and limits, foot slip, swing time, undesired rigid non-foot collisions and stance width. Feet crossing the body centerline terminate an episode independently of fall detection. Nonfinite joint states also terminate.
+
+Native contact sensors report rigid collisions, including the substrate and self-collision. **Granular RFT loads are separate body wrenches.** The task combines rigid-contact cues with control-interval RFT body impulses for loaded/unloaded timing and contact-dependent rewards. Granular-load timers run at the 50 Hz control rate; the rigid-only control retains native sensor timers. A load above 1 N counts as loaded. Granular loading of calves and thighs is allowed; only rigid non-foot collisions receive the undesired-contact penalty. These cues affect rewards only; granular forces still enter articulated dynamics exactly once.
+
+All robot collision surfaces remain coupled, including hips, thighs, calves, feet and torso. The RFT adapter exports rigid collision contacts through its composed MJWarp solver and retains separate granular impulses.
+
+## Validated rigid reference
+
+The rigid policy was trained with 4,096 environments for 600 iterations in 317.64 s. The fixed-command tests ran for 20 s; three held-out banks contained 128 randomized-command trials each, lasting 10 s. One 34 s recording tests standing, walking, the 0.50 m/s training maximum, lateral motion, turning and stopping.
+
+| Rigid test | Mean planar velocity error | Mean contact slip |
 |---|---:|---:|
-| Stand, 20 s | 0.0063 m/s | 0.0049 m/s |
-| Walk at 0.30 m/s, 20 s | 0.0140 m/s | 0.0476 m/s |
-| Walk at 0.50 m/s, 20 s | 0.0178 m/s | 0.0684 m/s |
-| 128 commands, seed 123, 10 s | 0.0200 m/s | 0.0419 m/s |
-| 128 commands, seed 456, 10 s | 0.0207 m/s | 0.0451 m/s |
-| 128 commands, seed 789, 10 s | 0.0222 m/s | 0.0470 m/s |
-| Stand/walk/max/steer/stop, 34 s | 0.0206 m/s | 0.0455 m/s |
+| Stand | 0.0063 m/s | 0.0049 m/s |
+| Walk at 0.30 m/s | 0.0140 m/s | 0.0476 m/s |
+| Walk at 0.50 m/s | 0.0178 m/s | 0.0684 m/s |
+| Held-out bank 1 | 0.0200 m/s | 0.0419 m/s |
+| Held-out bank 2 | 0.0207 m/s | 0.0451 m/s |
+| Held-out bank 3 | 0.0222 m/s | 0.0470 m/s |
+| Command-sequence video | 0.0206 m/s | 0.0455 m/s |
 
-Each foot took 30–31 steps in the fixed 0.30 m/s test and 35–36 in the fixed 0.50 m/s test. The command-sequence video recorded 44 steps per foot and minimum signed foot clearance of 0.146 m. Across all seven recordings, states were finite, no motor saturation was observed, maximum torso tilt was 0.097 rad, and maximum hard-joint-limit overshoot was 0.0018 rad. These results establish the checked one-seed rigid baseline, rather than universal or real-hardware correctness.
+All seven specified acceptance gates passed. There were no falls or foot-placement violations. Each foot stepped repeatedly in both walking tests. States remained finite, maximum torso tilt was 0.097 rad, maximum joint-limit overshoot was 0.0018 rad, and no motor saturation or contact-buffer overflow was observed. This is a checked one-seed simulation baseline.
 
-The [new rigid-control video](http://localhost:18010/rigid_gait_control/rollout.mp4) and [validation graph](http://localhost:18010/report/13-rigid-control-validation.png) are served with the report. Mechanical-audit and per-rollout physics measurements are saved under `logs/go2_granular/rigid_audit/`.
+## Verification and post-training evaluation
 
-The earlier RFT video uses 0.30 m/s forward, not the training maximum of 0.50 m/s. Those earlier granular recordings are collapsed as provisional results in the report. The repaired rigid video replaces the crossed-leg control after evaluation.
+- Both native Go2 integration tests pass, including imported foot-height limits, masked depth/material resets, articulated momentum balance and the zero-layer rigid limit.
+- A controlled granular-load test detects foot contact above the rigid floor while native collision forces are zero. Removing the granular-load cue makes this regression fail.
+- Removing the composed solver's rigid-contact export makes the contact-enabled zero-layer test fail with `NotImplementedError`; forwarding it makes the test pass.
+- All 19 Newton RFT tests pass. Newton and Isaac Lab formatting/lint checks pass.
+- The 16-environment, three-iteration PPO smoke passes with the shared gait criteria and shallow layer.
 
-## Superseded experiment, retained for audit
+After training, the final RFT policy is tested on fixed stand/walk/maximum commands and three held-out full-distribution banks. Full material-curriculum completion is an acceptance gate. The final report will distinguish a stalled curriculum from full-distribution convergence. A new RFT video is recorded with explicit commands and layer depth.
 
-| Run / evaluation | Result |
-|---|---|
-| RFT training | 1,500 iterations, 147.456 million transitions, 44.5 minutes |
-| Material curriculum | Full target reached at iteration 910; 590 iterations at full width |
-| Rigid training | 600 iterations, 58.9824 million transitions, 12.2 minutes |
-| Final RFT nominal clip | 10 s without fall termination; mean tracking error 0.078 m/s |
-| Full-material held-out bank | 128/128 trials completed 10 s; mean tracking error 0.073 m/s; one seed |
-| Final rigid clip | 10 s without fall termination; error 0.008 m/s; rear feet cross at 0.12 s |
-| Same final RFT weights in MPM | Failure at 0.48 s in the 2 s exploratory recording |
+Only after those RFT checks pass is the same frozen policy evaluated in a depth-matched MPM bed. The MPM rigid entry includes the backing floor and uses the validated rigid solver settings. MPM resolution, preparation and coupling convergence remain necessary before treating transfer differences as material-model error.
 
-This table describes the superseded experiment. The current rigid-control repair and its live validation status are described above.
+The RFT configuration retains an experimental near-rest bearing term. Finite-layer clipping does not model confinement, compaction, evolving free surfaces or exact tangential sticking. The local numerical checks do not independently validate that material closure.
 
-### Gait defect
+## Report and live access
 
-The rigid policy's rear-foot left/right order is reversed in 98.2% of the recorded frames. Its mean signed lateral separation is −4.0 cm, measured in the robot base frame. The first 0.02 s sample has the correct order; the reversal begins at 0.12 s, indicating learned motion rather than an initially crossed reset pose. The zero-layer RFT control reproduces the same trajectory and crossing, so the defect is also present without granular forces.
+- [Current report](http://localhost:18010/report/).
+- [Live status and learning curves](http://localhost:18010/live/), refreshed every 30 s.
+- [Validated rigid-control video](http://localhost:18010/rigid_gait_control/rollout.mp4).
 
-The final RFT checkpoint has no rear-foot order reversal in its nominal clip, but its mean stance width is only 9.4 cm. Foot ordering alone does not certify a natural or collision-free gait.
-
-The shared Go2 asset disables self-collision. This direct task rewards command tracking, body orientation/height, effort and action smoothness, but has no leg-crossing, stance-width or joint-posture objective. Its failure check covers low base height, excessive tilt and nonfinite root position. Consequently, the previous label `First failure: None` meant no fall/termination, not acceptable gait. Dashboard/video labels now make this distinction explicit. These runs cannot be accepted as a physically credible rigid locomotion baseline based on tracking error alone.
-
-The repair above addresses these task defects. Older checkpoint weights are retained unchanged for traceability. The [rear-foot diagnostic plot](http://localhost:18010/report/12-gait-diagnostics.png) now shows the repaired rigid control alongside the earlier RFT policy.
-
-## Original study protocol
-
-- One shared Go2 policy trains with RFT only, across **4,096 environments**. MPM is reserved for frozen-policy inference.
-- Commands use their full distribution from the first reset: forward 0.1–0.5 m/s, lateral ±0.1 m/s, yaw ±0.3 rad/s, and 10% standing trials. There is **no command curriculum**.
-- Only material randomization has a performance-driven curriculum. Each resetting environment receives a new field; other environments retain their samples.
-- A separate 4,096-environment rigid-flat control uses the same observation, action, reward, command, and PPO settings.
-- Both fresh runs use seed 42 and initial action standard deviation 1.0. They start from scratch.
-
-| Run | Task | Completed PPO iterations | Log directory under `logs/rsl_rl/` |
-|---|---|---:|---|
-| RFT material curriculum | `Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct` | 1,500 | `go2_rft_material_curriculum/2026-11-10_19-05-34/` |
-| Rigid control | `Isaac-Velocity-Flat-UnitreeGo2-Rigid-Direct` | 600 | `go2_rigid_infinite/2026-11-10_19-05-34/` |
-
-Each PPO iteration collects 24 steps per environment, or 98,304 transitions. These budgets are starting budgets, not evidence of convergence. Checkpoints are saved every 50 iterations. Source at launch: Isaac Lab `1209b5518f`; Newton `cb4f57292ff8da2c7d422817ca9cdc539734b1f6`.
-
-The earlier curriculum run with reduced initial commands was stopped and has been superseded. Its checkpoint is not resumed for this protocol.
-
-## Live status and videos
-
-On another machine, keep this tunnel running:
+From a different machine, keep this tunnel running:
 
 ```bash
 ssh -o ExitOnForwardFailure=yes -N -L 18010:127.0.0.1:8010 horde@mrakhsha-41eslp
 ```
 
-Open [live status and curves](http://localhost:18010/live/), which refreshes every 30 seconds. It shows actual service state, iteration counts, checkpoint names, tracking error, material difficulty, episode completion, and throughput. [Raw live metrics](http://localhost:18010/live/status.json) include snapshot time and event age so stale logging is visible.
-
-The [study report](http://localhost:18010/report/) foregrounds the repaired rigid-control command-sequence video. Earlier RFT and MPM recordings are collapsed as provisional results, with explicit training/evaluation descriptions. Early checkpoints and extra layer videos are excluded from the main report and dashboard. Provenance is available under each video's recording details. On the server itself, use port 8010 instead of the tunnel port 18010.
-
-The gallery, monitor, and training jobs run as independent user services. A chat interruption does not terminate them:
+On the server itself, use `http://127.0.0.1:8010/`. The HTTP server and monitor run independently of this chat. Training stdout is at `/training/rft-shallow.log`; final evaluation status is at `/training/rft-evaluation-status.json`. Generated figures, videos and checkpoints remain under ignored `logs/` paths.
 
 ```bash
-systemctl --user status go2-rft-material-training go2-rigid-plane-training go2-granular-monitor go2-granular-gallery
-journalctl --user -u go2-granular-monitor -n 20
-```
+systemctl --user status go2-rft-shallow-training go2-rft-shallow-validation go2-granular-monitor
 
-Training stdout is served at `/training/rft.log` and `/training/rigid.log`. Actual artifacts live under `logs/`; checkpoints and videos are excluded from Git.
-
-The `go2-granular-validation` service completed the held-out achieved/full material banks, rigid and finite-layer controls, and nominal MPM evaluation after both training jobs finished. It rebuilt the figures/report. Future runs record final-policy evaluations only; the earlier development preview is not presented. MPM runs only after training ends.
-
-## Corrections and verification
-
-1. **Ambient fluid density:** the previous RFT adapter field named `density` was also accepted by the rigid solver as fluid density, adding unintended drag. The adapter now uses `bulk_density`, leaving MuJoCo ambient fluid density at zero. Historical RFT training and transfer results are confounded and cannot validate RFT performance. The frozen-policy evaluator asserts that ambient density is zero.
-2. **Floor coverage:** a finite 100 m box left many of the 4,096 clones unsupported. The rigid control and finite-layer substrate now use an infinite collision plane. The rendered mesh remains finite. Earlier rigid runs using the box are invalid controls.
-3. **Zero-layer limit:** RFT now clips surfaces between an optional bottom and free surface. At zero thickness it contributes exactly zero granular impulse. With identical prescribed actions, zero-layer RFT plus substrate agrees with the plain rigid task within 0.0005 over 100 control steps. The test includes clones 120 m from the origin.
-4. **Command independence:** the same sampled commands are reproduced at material levels zero and 0.8; lateral/yaw commands are present at level zero. This regression failed before removing the command curriculum and passed afterward.
-5. **Articulated coupling:** a nonzero-load momentum balance verifies that granular body impulses reach articulated dynamics exactly once, including fixed foot bodies.
-
-Latest native Go2 integration check: **2 tests passed**, including the new command and distant-floor coverage. Full repository formatting/lint checks passed after the report formatting correction. Previously completed Newton checks remain applicable: **19 RFT tests**, and all eight standalone numerical gates on both CPU and CUDA. A warning-as-error Sphinx build passed before the latest task-only command/floor changes.
-
-Both dependency declarations and `uv.lock` pin Newton `cb4f57292ff8da2c7d422817ca9cdc539734b1f6`. The active editable Newton checkout is at that clean revision; dependencies are not synchronized while training is active.
-
-## Material curriculum
-
-A single global difficulty `a` starts at zero and interpolates reset distributions continuously. Ten percent of episodes remain nominal-material anchors until `a=1`; anchors use the same full command distribution and do not qualify for progression.
-
-| Property | Nominal, `a=0` | Full target, `a=1` |
-|---|---:|---:|
-| Bulk density | 1,600 kg/m³ | Uniform 1,400–1,800 kg/m³ |
-| Internal friction coefficient | 0.4 | Uniform 0.3–0.5 |
-| Surface/internal friction ratio | 1.0 | Uniform 0.6–1.0 |
-| Strength multiplier | 1.0 | Log-uniform 0.8–1.2 |
-| Free-surface elevation | 0 m | Uniform −0.02–0.02 m |
-
-For example, density is `1600 + a*(sample-1600)`, and the strength multiplier is `exp(a*log_sample)`. Field bulk velocity is fixed at zero. Velocity randomization refers to robot commands.
-
-Progression requires two consecutive windows of at least 4,096 qualifying completed episodes, each with at least 95% full 10 s episode completion and mean planar tracking error at most 0.10 m/s. Failures count; nominal anchors and episodes from an earlier level are excluded. A pass increases `a` by 0.1. Completion below 70% retreats by 0.1. Once `a=1` is reached, the full distribution freezes and cannot shrink to hide poor performance.
-
-A stall before `a=1` means full-range training has not been achieved. Training return alone does not establish convergence. Difficulty snapshots are logged alongside checkpoints, but the full scheduler state is not embedded in RSL-RL checkpoints; a resume requires explicitly setting the matching initial difficulty and collecting fresh progression windows.
-
-## Physics and task contract
-
-The direct environment binds all 27 robot colliders, including hips, thighs, calves, feet, torso and head. Collision surfaces supply 1,536 nondegenerate RFT triangles at the training resolution. Triangles preserve original rigid collision geometry, mass and inertia; they approximate exterior surfaces rather than an exact Boolean union.
-
-The Newton adapter evaluates RFT body wrenches, advances MJWarp articulation dynamics once per substep, and preserves external-force inputs. Integrated body impulses provide control-interval force visualizations. MPM uses the existing two-way proxy coupling only during evaluation.
-
-The actor observes 45 proprioceptive/command values; the critic adds three true base linear-velocity values. Material identity and base linear velocity are absent from the actor. Actions are 12 joint-position offsets scaled by 0.25 rad. Control runs at 50 Hz; physics at 200 Hz with four Newton substeps. Episodes last 10 s. New runs spawn and measure base height relative to the sampled surface.
-
-Default RFT training uses a half-space with no support plane and no particles. `bed_depth` enables a finite clipped layer with an explicit rigid substrate. Lowering the free surface of an unsupported half-space does not produce rigid terrain. Only the zero-thickness layer over a substrate has the verified rigid limit; positive-thickness confinement accuracy remains unvalidated.
-
-The task enables an **experimental near-rest bearing extension** (`bearing=0.87574`, velocity regularization 0.04 m/s). It blends the published flowing RFT law with normal bearing and regularized sliding resistance. It supplies no exact tangential sticking or stress history. Its support/calibration is not independently validated; zero-action standing tests can sink into a low posture. These limitations remain visible in validation and are not fixed by a curriculum.
-
-## Validation after training
-
-Use the same frozen weights and compatible observations throughout:
-
-1. Evaluate the achieved curriculum level and the full target distribution on held-out reset/command banks. Report completion, tracking, posture, motor use, and material coverage, alongside learning curves.
-2. Evaluate the rigid policy on plain rigid ground and zero-thickness RFT over the same substrate. Then examine small positive layer depths separately.
-3. Evaluate the RFT-trained policy in nominal RFT and in an explicitly matched MPM material setup. Record force-arrow videos and trajectories, retaining failures.
-4. Establish MPM resolution, timestep, preparation and coupling convergence before interpreting differences as transfer error. The existing coarse finite-bed MPM setup is an exploratory reference, not an accepted material ground truth.
-
-A completed training budget, a favorable reward plateau, or one video does not establish robust transfer. Multiple training seeds and a converged MPM reference are still required for a final study.
-
-## Reproduction
-
-From `/home/horde/Documents/Repos/IsaacLab`, in the existing uv environment:
-
-```bash
 uv run --no-sync isaaclab train --rl_library rsl_rl \
   --task Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct \
   --num_envs 4096 --max_iterations 1500 --seed 42 \
-  --experiment_name go2_rft_material_curriculum
-
-uv run --no-sync isaaclab train --rl_library rsl_rl \
-  --task Isaac-Velocity-Flat-UnitreeGo2-Rigid-Direct \
-  --num_envs 4096 --max_iterations 600 --seed 42 \
-  --experiment_name go2_rigid_infinite
+  --experiment_name go2_rft_shallow_curriculum
 ```
 
-Isaac Lab: [milad/go2-rft-mpm](https://github.com/Milad-Rakhsha-NV/IsaacLab/tree/milad/go2-rft-mpm). Newton: [milad/go2-rft](https://github.com/Milad-Rakhsha-NV/newton/tree/milad/go2-rft).
+Isaac Lab branch: [milad/go2-rft-mpm](https://github.com/Milad-Rakhsha-NV/IsaacLab/tree/milad/go2-rft-mpm).
+Newton branch: [milad/go2-rft](https://github.com/Milad-Rakhsha-NV/newton/tree/milad/go2-rft).

@@ -30,8 +30,14 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path("logs/go2_granular")
 OUT = ROOT / "live"
 RUNS = (
-    ("rft", "RFT: material curriculum", "go2_rft_material_curriculum", "go2-rft-material-training.service", 1500),
-    ("rigid", "Rigid-ground control: gait repair", "go2_rigid_gait_control", "go2-rigid-gait-training.service", 600),
+    (
+        "rft",
+        "RFT: shallow-layer material curriculum",
+        "go2_rft_shallow_curriculum",
+        "go2-rft-shallow-training.service",
+        1500,
+    ),
+    ("rigid", "Validated rigid-ground control", "go2_rigid_gait_control", "go2-rigid-gait-training.service", 600),
 )
 TAGS = (
     ("Train/mean_reward", "Training return"),
@@ -114,6 +120,12 @@ def refresh() -> None:
     (OUT / "curves.tmp").replace(OUT / "curves.png")
     evaluation_path = ROOT / "training/evaluation_status.json"
     evaluation = json.loads(evaluation_path.read_text()) if evaluation_path.exists() else {}
+    rft_evaluation_path = ROOT / "training/rft-evaluation-status.json"
+    if rft_evaluation_path.exists():
+        rft_evaluation = json.loads(rft_evaluation_path.read_text())
+        evaluation["stage"] = rft_evaluation["stage"]
+        evaluation["cases"] = evaluation.get("cases", []) + rft_evaluation.get("cases", [])
+        evaluation["rft_validation_gates"] = rft_evaluation.get("rft_validation_gates")
     # Keep the live snapshot compact; per-body/material manifests stay in the case summaries.
     evaluation["cases"] = [
         {
@@ -157,7 +169,7 @@ def refresh() -> None:
             f"<p>{row['transitions'] / 1e6:.1f} million transitions · Training error: {error_text}<br>{material}<br>"
             "</p><details><summary>Run details</summary>"
             f"<p>Last checkpoint: {row['checkpoint']} · Event age: {row['event_age_seconds']} s</p>"
-            f"<a href='../training/{'rigid-gait' if row['key'] == 'rigid' else row['key']}.log'>"
+            f"<a href='../training/{'rigid-gait' if row['key'] == 'rigid' else 'rft-shallow'}.log'>"
             "Training log</a></details></article>"
         )
     videos = render_videos(ROOT, evaluation.get("cases", []), gait)
@@ -166,25 +178,25 @@ def refresh() -> None:
     if "rigid_control_accepted" in evaluation:
         verdict = (
             "<p><strong>The repaired rigid control passed the specified validation checks.</strong> "
-            "The report contains the per-test results. Repeating RFT training with the validated task remains next.</p>"
+            "The report contains the per-test results. The new RFT run uses the shared locomotion criteria.</p>"
             if evaluation["rigid_control_accepted"]
             else "<p><strong>The rigid control failed validation.</strong> Inspect the gates in the study report.</p>"
         )
     page = (
-        '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="30">'
+        '<!doctype html><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Go2 live training</title>'
         "<style>body{font:16px system-ui;background:#f1f5f9;color:#0f172a;max-width:1200px;margin:24px auto;"
         "padding:16px}section{display:flex;gap:20px;flex-wrap:wrap}article{background:white;padding:20px;"
         "border-radius:12px;flex:1;min-width:280px}progress,img,video{width:100%}a{color:#1d4ed8}"
         ".video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}"
         ".video-grid article{min-width:0}code{overflow-wrap:anywhere}summary{cursor:pointer;color:#1d4ed8}</style>"
-        f"<h1>Go2 live training</h1><p>Updates every 30 seconds. Snapshot: {now:%Y-%m-%d %H:%M:%S} UTC.</p>"
+        f"<h1>Go2 live training</h1><p>Updates every 30 seconds while videos are paused. "
+        f"Snapshot: {now:%Y-%m-%d %H:%M:%S} UTC.</p>"
         "<p>Both runs: 4,096 environments, seed 42, full commands from the first reset. "
         "Only RFT material randomization has a curriculum. MPM is used after training for inference.</p>"
-        "<p><b>Priority: validate the rigid-ground control.</b> The previous control had crossed rear legs. "
-        "The repaired task enables self-collision, checks foot placement and uses contact/posture rewards. "
-        "The earlier RFT/MPM results remain provisional until the shared task is validated. "
-        "The RFT clip uses 0.30 m/s; the training maximum is 0.50 m/s forward.</p>"
+        "<p><b>New RFT run:</b> self-collision, foot placement and contact/posture rewards match the rigid control. "
+        "The initial layer is 0–22 mm above a rigid floor, at most half the 44 mm foot diameter. "
+        "The performance-gated depth range grows toward 0–100 mm. Full commands are sampled from the start.</p>"
         f"<section>{''.join(cards)}</section><img src='curves.png?t={int(time.time())}' alt='Live learning curves'>"
         f"<h2>Final policy comparisons</h2>{verdict}{videos}"
         f"<details><summary>Evaluation progress</summary><p>{evaluation_text}</p></details>"
@@ -194,6 +206,8 @@ def refresh() -> None:
         "roughness 0.6–1.0; strength multiplier 0.8–1.2; surface elevation ±0.02 m. "
         "Commands: forward 0.1–0.5 m/s, lateral ±0.1 m/s, yaw ±0.3 rad/s; 10% standing.</p>"
         '<p><a href="../report/">Study report and graphs</a></p>'
+        "<script>setInterval(()=>{if(![...document.querySelectorAll('video')].some(v=>!v.paused&&!v.ended))"
+        "location.reload()},30000)</script>"
     )
     (OUT / "index.tmp").write_text(page)
     (OUT / "index.tmp").replace(OUT / "index.html")
