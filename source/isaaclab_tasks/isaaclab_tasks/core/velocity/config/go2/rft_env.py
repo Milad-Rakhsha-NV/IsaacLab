@@ -58,6 +58,12 @@ class Go2RFTEnv(DirectRLEnv):
             bottom = cfg.sim.physics.solver_cfg.surface_height - cfg.bed_depth
             cfg.sim.physics.solver_cfg.surface_bottom = bottom
             cfg.scene.substrate = rigid_substrate_cfg(bottom)
+        if cfg.bed_depth_range is not None:
+            if cfg.bed_depth is None or any(
+                not 0 <= low <= high or not math.isfinite(high)
+                for low, high in (cfg.initial_bed_depth_range, cfg.bed_depth_range)
+            ):
+                raise ValueError("Resettable layer depths require nonnegative ranges and a finite layer")
 
         if not isinstance(cfg.sim.physics.solver_cfg, RFTSolverCfg):
             from isaaclab_contrib.coupling import CouplerProxyCfg
@@ -99,6 +105,44 @@ class Go2RFTEnv(DirectRLEnv):
 
         if isinstance(self.rft, SolverRFT):
             self.material = wp.to_torch(self.rft.material)
+            if cfg.gait is not None:
+                body_lookup = {}
+                for body, label in enumerate(self.rft.model.body_label):
+                    match = re.search(r"/env_(\d+)/Robot/([^/]+)$", label)
+                    if match:
+                        body_lookup[(int(match.group(1)), match.group(2))] = body
+                self.rft_sensor_body_ids = torch.tensor(
+                    [
+                        [body_lookup[(i, name)] for name in self.contact_forces.sensor_names]
+                        for i in range(self.num_envs)
+                    ],
+                    device=self.device,
+                )
+                self._last_rft_impulse = wp.to_torch(self.rft.body_impulse)[:, :3].clone()
+                self._rft_air_time = torch.zeros((self.num_envs, self.contact_forces.num_sensors), device=self.device)
+                self._rft_last_air_time = torch.zeros_like(self._rft_air_time)
+            if cfg.bed_depth_range is not None:
+                radii = [
+                    row["scale"][0]
+                    for row in self.rft.surface_inventory
+                    if row["kind"] == "SPHERE" and row["body_label"].endswith("_foot")
+                ]
+                if not radii or cfg.initial_bed_depth_range[1] > min(radii) + 1e-8:
+                    raise ValueError("Initial layer depth must not exceed half the spherical Go2 foot diameter")
+                if cfg.log_dir:
+                    path = Path(cfg.log_dir)
+                    path.mkdir(parents=True, exist_ok=True)
+                    (path / "material_curriculum.json").write_text(
+                        json.dumps(
+                            dict(
+                                foot_diameter_m=2 * min(radii),
+                                initial_depth_range_m=cfg.initial_bed_depth_range,
+                                target_depth_range_m=cfg.bed_depth_range,
+                                substrate_height_m=cfg.sim.physics.solver_cfg.surface_bottom,
+                            ),
+                            indent=2,
+                        )
+                    )
         else:
             from newton.solvers import SolverMuJoCo
             from newton.solvers.experimental.coupled import SolverCoupledProxy
@@ -187,10 +231,11 @@ class Go2RFTEnv(DirectRLEnv):
             gait = self.cfg.gait
             deviation = d.joint_pos.torch - d.default_joint_pos.torch
             standing = self.commands.norm(dim=-1) < 0.05
-            contact = self.contact_forces.data.net_normal_forces_w_history.torch.norm(dim=-1).amax(dim=1) > 1.0
+            self._update_gait_contacts()
+            contact = self.gait_body_contact
             foot_slip = d.body_lin_vel_w.torch[:, self.foot_ids, :2].norm(dim=-1)
-            first_contact = self.contact_forces.compute_first_contact(self.step_dt).torch[:, self.foot_sensor_ids]
-            air_time = self.contact_forces.data.last_air_time.torch[:, self.foot_sensor_ids]
+            first_contact = self.gait_first_contact[:, self.foot_sensor_ids]
+            air_time = self.gait_last_air_time[:, self.foot_sensor_ids]
             signed_y = self.signed_foot_y()
             limits = d.soft_joint_pos_limits.torch
             limit_error = (limits[..., 0] - d.joint_pos.torch).clamp_min(0)
@@ -213,6 +258,30 @@ class Go2RFTEnv(DirectRLEnv):
         self.error_sum += xy.sqrt()
         self.steps_sum += 1
         return reward
+
+    def _update_gait_contacts(self) -> None:
+        """Combine collision contacts with interval-average RFT body loads for gait terms.
+
+        Native sensors report rigid collisions only. Granular support uses the
+        norm of the applied body load (>1 N), with air/landing times sampled at
+        the 50 Hz control rate. Rigid-only tasks retain native sensor timers.
+        """
+        native = self.contact_forces.data.net_normal_forces_w_history.torch.norm(dim=-1).amax(dim=1) > 1.0
+        if self.material is None:
+            self.gait_body_contact = native
+            self.gait_first_contact = self.contact_forces.compute_first_contact(self.step_dt).torch > 0
+            self.gait_last_air_time = self.contact_forces.data.last_air_time.torch
+            return
+        impulse = wp.to_torch(self.rft.body_impulse)[:, :3]
+        force = ((impulse - self._last_rft_impulse) / self.step_dt)[self.rft_sensor_body_ids]
+        self._last_rft_impulse.copy_(impulse)
+        self.gait_body_contact = native | (force.norm(dim=-1) > 1.0)
+        self.gait_first_contact = self.gait_body_contact & (self._rft_air_time > 0)
+        self._rft_last_air_time.copy_(
+            torch.where(self.gait_first_contact, self._rft_air_time + self.step_dt, self._rft_last_air_time)
+        )
+        self._rft_air_time.copy_(torch.where(self.gait_body_contact, 0.0, self._rft_air_time + self.step_dt))
+        self.gait_last_air_time = self._rft_last_air_time
 
     def _get_dones(self):
         d = self.robot.data
@@ -252,6 +321,11 @@ class Go2RFTEnv(DirectRLEnv):
         self.previous_actions[env_ids] = 0
         self.error_sum[env_ids] = 0
         self.steps_sum[env_ids] = 0
+        if self.cfg.gait is not None and self.material is not None:
+            self._rft_air_time[env_ids] = 0
+            self._rft_last_air_time[env_ids] = 0
+            bodies = self.rft_sensor_body_ids[env_ids]
+            self._last_rft_impulse[bodies] = wp.to_torch(self.rft.body_impulse)[bodies, :3]
         count = len(env_ids)
         if self.cfg.curriculum_enabled:
             difficulty = self.curriculum_difficulty.expand(count)
@@ -286,9 +360,20 @@ class Go2RFTEnv(DirectRLEnv):
             self.material[world, 1] = friction
             self.material[world, 2] = rough * friction
             self.material[world, 3] = density * 9.81 * (894 * friction**3 - 386 * friction**2 + 89 * friction) * factor
-            wp.to_torch(self.rft.surface_height)[world] = material_level * torch.empty(
-                count, device=self.device
-            ).uniform_(*self.cfg.bed_height_range)
+            if self.cfg.bed_depth_range is None:
+                wp.to_torch(self.rft.surface_height)[world] = material_level * torch.empty(
+                    count, device=self.device
+                ).uniform_(*self.cfg.bed_height_range)
+            else:
+                initial_low, initial_high = self.cfg.initial_bed_depth_range
+                final_low, final_high = self.cfg.bed_depth_range
+                low = initial_low + material_level * (final_low - initial_low)
+                high = initial_high + material_level * (final_high - initial_high)
+                depth = low + (high - low) * torch.rand(count, device=self.device)
+                bottom = wp.to_torch(self.rft.surface_bottom)[world]
+                wp.to_torch(self.rft.surface_height)[world] = bottom + depth
+                self.extras["log"]["Material/depth_mean"] = depth.mean()
+                self.extras["log"]["Material/depth_max"] = depth.max()
         pose = self.robot.data.default_root_pose.torch[env_ids].clone()
         pose[:, :3] += self.scene.env_origins[env_ids]
         if self.cfg.surface_relative_height:

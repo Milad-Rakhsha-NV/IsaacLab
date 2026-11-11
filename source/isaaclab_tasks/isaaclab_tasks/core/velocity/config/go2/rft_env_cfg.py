@@ -98,6 +98,9 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     bed_depth: float | None = None
     """Optional finite-layer depth [m]; creates a labeled rigid substrate. None keeps a half-space."""
     material_difficulty = 1.0
+    initial_bed_depth_range = (0.0, 0.022)
+    bed_depth_range: tuple[float, float] | None = None
+    """Resettable layer depth above a fixed substrate; None keeps the legacy elevation sampler."""
     gait: Go2GaitCfg | None = None
     surface_relative_height = False
     """Use the sampled surface for spawning, height reward and termination in new experiments."""
@@ -130,14 +133,6 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
 
 
 @configclass
-class Go2RFTCurriculumEnvCfg(Go2RFTEnvCfg):
-    """Success-driven material randomization with full commands from the first reset."""
-
-    curriculum_enabled = True
-    surface_relative_height = True
-
-
-@configclass
 class Go2RigidEnvCfg(Go2RFTEnvCfg):
     """Rigid-flat control with the same policy contract and rewards as the granular task."""
 
@@ -164,5 +159,34 @@ class Go2RigidEnvCfg(Go2RFTEnvCfg):
         substrate=rigid_substrate_cfg(0.0),
         contact_forces=ContactSensorCfg(
             prim_path="{ENV_REGEX_NS}/Robot/[^/]*", history_length=3, track_air_time=True, update_period=0.005
+        ),
+    )
+
+
+@configclass
+class Go2RFTCurriculumEnvCfg(Go2RigidEnvCfg):
+    """Validated locomotion contract with shallow-to-deeper resettable RFT material."""
+
+    randomize_material = True
+    curriculum_enabled = True
+    bed_depth = 0.022
+    bed_depth_range = (0.0, 0.10)
+    sim: SimulationCfg = replace(
+        Go2RFTEnvCfg().sim,
+        physics=replace(
+            Go2RFTEnvCfg().sim.physics,
+            solver_cfg=replace(Go2RFTEnvCfg().sim.physics.solver_cfg, surface_height=0.022, surface_bottom=0.0),
+        ),
+    )
+    scene: Go2RFTSceneCfg = replace(
+        Go2RigidEnvCfg().scene,
+        bed=AssetBaseCfg(
+            prim_path="/World/BedVisual",
+            spawn=sim_utils.CuboidCfg(
+                size=(100.0, 100.0, 0.022),
+                collision_props=sim_utils.UsdPhysicsCollisionCfg(collision_enabled=False),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.68, 0.46, 0.25)),
+            ),
+            init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.011)),
         ),
     )

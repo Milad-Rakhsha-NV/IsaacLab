@@ -12,7 +12,7 @@ import torch
 from isaaclab.app import launch_simulation
 
 from isaaclab_tasks.core.velocity.config.go2.rft_env import Go2RFTEnv
-from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTEnvCfg, Go2RigidEnvCfg
+from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTCurriculumEnvCfg, Go2RFTEnvCfg, Go2RigidEnvCfg
 
 pytestmark = pytest.mark.kitless
 
@@ -23,7 +23,8 @@ def test_go2_rft_articulation_and_masked_material_reset():
     A feet-only selection, global material rewrite, or wrong actor layout must
     fail here; plate-only tests cannot detect these Isaac Lab integration errors.
     """
-    cfg = Go2RFTEnvCfg()
+    cfg = Go2RFTCurriculumEnvCfg()
+    cfg.curriculum_enabled = False
     cfg.scene.num_envs = 4
     cfg.sim.visualizer_cfgs = []
     with launch_simulation(cfg):
@@ -37,10 +38,14 @@ def test_go2_rft_articulation_and_masked_material_reset():
             for leg in ("FL", "FR", "RL", "RR"):
                 assert {f"{leg}_hip", f"{leg}_thigh", f"{leg}_calf", f"{leg}_foot"} <= names
             material = env.material.clone()
+            heights = env.rft.surface_height.numpy().copy()
             pose = env.robot.data.root_pos_w.torch.clone()
             env._reset_idx(torch.tensor([1], device=env.device))
             keep = env.world_ids[torch.tensor([0, 2, 3], device=env.device)]
             torch.testing.assert_close(env.material[keep], material[keep], rtol=0, atol=0)
+            np.testing.assert_array_equal(
+                env.rft.surface_height.numpy()[keep.cpu().numpy()], heights[keep.cpu().numpy()]
+            )
             assert not torch.equal(env.material[env.world_ids[1]], material[env.world_ids[1]])
             env.scene.write_data_to_sim()
             env.sim.forward()
@@ -60,6 +65,8 @@ def test_go2_rft_articulation_and_masked_material_reset():
             cfg.curriculum_patience = 1
             cfg.curriculum_anchor_fraction = 0.0
             env._reset_idx(torch.arange(4, device=env.device))
+            depth = env.rft.surface_height.numpy() - env.rft.surface_bottom.numpy()
+            assert (depth >= 0).all() and depth.max() <= 0.022
             ids = torch.tensor([0, 1], device=env.device)
             env.steps_sum[ids] = 20
             env.error_sum[ids] = 0.01
@@ -128,6 +135,17 @@ def test_go2_rft_articulation_and_masked_material_reset():
             gravity = model.gravity.numpy()[model.body_world.numpy()]
             expected = impulse + (mass[:, None] * gravity).sum(0) * env.step_dt
             np.testing.assert_allclose(change, expected, rtol=0, atol=1e-3)
+
+            # With every foot above the rigid floor, sufficiently loaded RFT
+            # surfaces must count as foot contact even when native contacts are zero.
+            env.material[:, 3] = 5000.0
+            env.material[:, 5] = 100.0  # Keep this controlled load in the near-rest bearing regime.
+            env._reset_idx(torch.arange(4, device=env.device))
+            env.scene.write_data_to_sim()
+            env.sim.forward()
+            env.step(torch.zeros(4, 12, device=env.device))
+            assert env.contact_forces.data.net_normal_forces_w.torch.norm(dim=-1).max() < 1e-4
+            assert env.gait_body_contact[:, env.foot_sensor_ids].all()
         finally:
             env.close()
 
@@ -148,6 +166,8 @@ def test_zero_layer_recovers_rigid_articulation():
         if not isinstance(cfg, Go2RigidEnvCfg):
             cfg.bed_depth = 0.0
             cfg.scene.robot = Go2RigidEnvCfg().scene.robot  # Match the control's self-collision configuration.
+            cfg.scene.contact_forces = Go2RigidEnvCfg().scene.contact_forces
+            cfg.gait = Go2RigidEnvCfg().gait
         with launch_simulation(cfg):
             env = Go2RFTEnv(cfg)
             try:

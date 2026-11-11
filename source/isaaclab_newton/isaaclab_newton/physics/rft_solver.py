@@ -92,7 +92,7 @@ class RFTSolver(MJWarpSolver):
     solver_class = SolverRFT
     single_state = True
     deterministic = False  # Surface reduction uses floating-point atomics.
-    contact_sensors = False
+    contact_sensors = True  # Discrete rigid collisions; granular loads remain separate body impulses.
 
     @classmethod
     def coupling_error(cls, cfg: RFTSolverCfg, in_place: bool) -> str:
