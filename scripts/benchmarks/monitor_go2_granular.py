@@ -31,7 +31,7 @@ ROOT = Path("logs/go2_granular")
 OUT = ROOT / "live"
 RUNS = (
     ("rft", "RFT: material curriculum", "go2_rft_material_curriculum", "go2-rft-material-training.service", 1500),
-    ("rigid", "Rigid-ground control", "go2_rigid_infinite", "go2-rigid-plane-training.service", 600),
+    ("rigid", "Rigid-ground control: gait repair", "go2_rigid_gait_control", "go2-rigid-gait-training.service", 600),
 )
 TAGS = (
     ("Train/mean_reward", "Training return"),
@@ -117,12 +117,13 @@ def refresh() -> None:
     # Keep the live snapshot compact; per-body/material manifests stay in the case summaries.
     evaluation["cases"] = [
         {
-            key: case[key]
+            key: case.get(key)
             for key in (
                 "case",
                 "checkpoint",
                 "field",
                 "simulated_seconds",
+                "command_schedule",
                 "first_failure_seconds",
                 "failure_fraction",
                 "mean_velocity_error",
@@ -153,13 +154,22 @@ def refresh() -> None:
             f"<article><h2>{html.escape(row['label'])}</h2><p><b>{html.escape(status)}</b> · "
             f"{row['completed_iterations']:,} / {row['target_iterations']:,} iterations</p>"
             f"<progress value='{row['completed_iterations']}' max='{row['target_iterations']}'></progress>"
-            f"<p>{row['transitions'] / 1e6:.1f} million transitions · {error_text}<br>{material}<br>"
+            f"<p>{row['transitions'] / 1e6:.1f} million transitions · Training error: {error_text}<br>{material}<br>"
             "</p><details><summary>Run details</summary>"
             f"<p>Last checkpoint: {row['checkpoint']} · Event age: {row['event_age_seconds']} s</p>"
-            f"<a href='../training/{row['key']}.log'>Training log</a></details></article>"
+            f"<a href='../training/{'rigid-gait' if row['key'] == 'rigid' else row['key']}.log'>"
+            "Training log</a></details></article>"
         )
     videos = render_videos(ROOT, evaluation.get("cases", []), gait)
     evaluation_text = html.escape(evaluation.get("stage", "Validation pipeline has not started"))
+    verdict = ""
+    if "rigid_control_accepted" in evaluation:
+        verdict = (
+            "<p><strong>The repaired rigid control passed the specified validation checks.</strong> "
+            "The report contains the per-test results. Repeating RFT training with the validated task remains next.</p>"
+            if evaluation["rigid_control_accepted"]
+            else "<p><strong>The rigid control failed validation.</strong> Inspect the gates in the study report.</p>"
+        )
     page = (
         '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="30">'
         '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Go2 live training</title>'
@@ -171,11 +181,12 @@ def refresh() -> None:
         f"<h1>Go2 live training</h1><p>Updates every 30 seconds. Snapshot: {now:%Y-%m-%d %H:%M:%S} UTC.</p>"
         "<p>Both runs: 4,096 environments, seed 42, full commands from the first reset. "
         "Only RFT material randomization has a curriculum. MPM is used after training for inference.</p>"
-        "<p><b>No fall/termination does not imply an acceptable gait.</b> "
-        "The trained rigid policy crosses its rear feet. Its training asset disables self-collision, "
-        "and rewards/terminations do not check leg crossing.</p>"
+        "<p><b>Priority: validate the rigid-ground control.</b> The previous control had crossed rear legs. "
+        "The repaired task enables self-collision, checks foot placement and uses contact/posture rewards. "
+        "The earlier RFT/MPM results remain provisional until the shared task is validated. "
+        "The RFT clip uses 0.30 m/s; the training maximum is 0.50 m/s forward.</p>"
         f"<section>{''.join(cards)}</section><img src='curves.png?t={int(time.time())}' alt='Live learning curves'>"
-        f"<h2>Final policy comparisons</h2>{videos}"
+        f"<h2>Final policy comparisons</h2>{verdict}{videos}"
         f"<details><summary>Evaluation progress</summary><p>{evaluation_text}</p></details>"
         "<p>Material progression requires ≥95% episode completion and ≤0.10 m/s mean tracking error in "
         "two consecutive windows of at least 4,096 qualifying episodes. Training curves do not establish "

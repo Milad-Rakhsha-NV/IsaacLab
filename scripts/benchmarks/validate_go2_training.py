@@ -12,6 +12,7 @@ published for the live dashboard; physical failures remain in the recordings.
 
 from __future__ import annotations
 
+import argparse
 import json
 import subprocess
 import sys
@@ -42,7 +43,7 @@ def latest_checkpoint(family: str) -> Path | None:
     return max(paths, key=lambda path: int(path.stem.split("_")[-1])) if paths else None
 
 
-def main() -> None:
+def main(rigid_only: bool = False) -> None:
     progress = dict(stage="Waiting for training to finish", cases=[])
 
     def publish(stage: str) -> None:
@@ -52,7 +53,7 @@ def main() -> None:
         STATUS.with_suffix(".tmp").write_text(json.dumps(progress, indent=2))
         STATUS.with_suffix(".tmp").replace(STATUS)
 
-    def evaluate(name: str, checkpoint: Path, *options: str) -> None:
+    def evaluate(name: str, checkpoint: Path, *options: str, seed: int = 123) -> dict:
         publish(f"Evaluating {name}")
         output = ROOT / name
         command = [
@@ -63,7 +64,7 @@ def main() -> None:
             "--output",
             str(output),
             "--seed",
-            "123",
+            str(seed),
             *options,
         ]
         with (STATUS.parent / f"{name}.log").open("w") as log:
@@ -73,11 +74,12 @@ def main() -> None:
             raise RuntimeError(f"{name}: {summary['execution_error']}")
         progress["cases"].append(dict(case=name, **summary))
         publish(f"Finished {name}")
+        return summary
 
     publish(progress["stage"])
     try:
         while True:
-            states = [job_state(row[3]) for row in RUNS]
+            states = [job_state(row[3]) for row in (RUNS[1:] if rigid_only else RUNS)]
             if any(state["ActiveState"] == "failed" for state in states):
                 raise RuntimeError(f"Training job failed: {states}")
             if all(state["ActiveState"] == "inactive" for state in states):
@@ -87,10 +89,61 @@ def main() -> None:
             time.sleep(30)
         # Allow the final checkpoint's write and filesystem metadata to settle.
         time.sleep(12)
-        rft = latest_checkpoint(RUNS[0][2])
         rigid = latest_checkpoint(RUNS[1][2])
-        if rft is None or rigid is None:
-            raise RuntimeError("Missing final training checkpoint")
+        if rigid is None:
+            raise RuntimeError("Missing final rigid training checkpoint")
+        if rigid_only:
+            checks = []
+            for name, speed in (("stand", "0.0"), ("walk", "0.3"), ("maximum", "0.5")):
+                checks.append(
+                    evaluate(
+                        f"rigid_gait_{name}_validation",
+                        rigid,
+                        "--field",
+                        "rigid",
+                        "--steps",
+                        "1000",
+                        "--num_envs",
+                        "16",
+                        "--speed",
+                        speed,
+                    )
+                )
+            for seed in (123, 456, 789):
+                checks.append(
+                    evaluate(
+                        f"rigid_gait_commands_{seed}",
+                        rigid,
+                        "--field",
+                        "rigid",
+                        "--steps",
+                        "500",
+                        "--num_envs",
+                        "128",
+                        "--randomize",
+                        seed=seed,
+                    )
+                )
+            video = evaluate(
+                "rigid_gait_control", rigid, "--field", "rigid", "--steps", "1700", "--command_schedule", "--video"
+            )
+            gates = dict(
+                no_falls=all(case["failure_fraction"] == 0 for case in checks + [video]),
+                foot_placement=all(case["gait_pass_fraction"] == 1 for case in checks + [video]),
+                tracking=all(case["mean_velocity_error"] < 0.10 for case in checks),
+                standing=checks[0]["mean_velocity_error"] < 0.03,
+                contact_slip=all(case["mean_contact_slip_m_s"] < 0.10 for case in checks + [video]),
+                capacity=all(case["max_rigid_overflow"] == 0 for case in checks + [video]),
+                every_foot_steps=all(min(counts) >= 3 for case in checks[1:3] for counts in case["steps_per_foot"]),
+            )
+            progress["rigid_validation_gates"] = gates
+            progress["rigid_control_accepted"] = all(gates.values())
+            publish("Rigid-control validation passed" if all(gates.values()) else "Rigid-control validation failed")
+            subprocess.run([sys.executable, "scripts/benchmarks/report_go2_granular.py"], check=True)
+            return
+        rft = latest_checkpoint(RUNS[0][2])
+        if rft is None:
+            raise RuntimeError("Missing final RFT training checkpoint")
         events = EventAccumulator(str(rft.parent)).Reload()
         achieved = events.Scalars("Curriculum/difficulty")[-1].value
         progress["achieved_material_difficulty"] = achieved
@@ -144,4 +197,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--rigid-only", action="store_true", help="Validate the repaired rigid control before RFT work."
+    )
+    main(parser.parse_args().rigid_only)

@@ -316,10 +316,7 @@ if convergence:
 
 corrected_training = []
 fig, axes = plt.subplots(2, 3, figsize=(14, 7))
-for family, label, color in (
-    ("go2_rigid_infinite", "Training on rigid ground", "tab:orange"),
-    ("go2_rft_material_curriculum", "Training with RFT material randomization", "tab:blue"),
-):
+for family, label, color in (("go2_rigid_gait_control", "Training the repaired rigid-ground control", "tab:orange"),):
     runs = sorted(Path("logs/rsl_rl", family).glob("20*"))
     if not runs:
         continue
@@ -331,16 +328,16 @@ for family, label, color in (
             "Train/mean_reward",
             "Train/mean_episode_length",
             "Metrics/velocity_error",
-            "Curriculum/difficulty",
-            "Curriculum/window_success",
+            "Metrics/min_foot_clearance",
+            "Metrics/gait_failure_fraction",
             "Perf/total_fps",
         ),
         (
             "Training return",
             "Episode length [control steps]",
             "Training tracking error [m/s]",
-            "Randomization difficulty",
-            "Curriculum window completion",
+            "Minimum lateral foot clearance [m]",
+            "Foot-placement failure fraction",
             "Training transitions/s",
         ),
         strict=True,
@@ -366,11 +363,18 @@ for family, label, color in (
         )
     )
 axes[0, 0].legend(fontsize=8)
-fig.suptitle("RFT and rigid-ground training: 4,096 environments per run; full commands throughout", y=1.02)
+fig.suptitle("Repaired rigid-ground control: 4,096 environments; full commands throughout", y=1.02)
 save(fig, "09-corrected-training.png")
 
 corrected_cases = []
 for name in (
+    "rigid_gait_control",
+    "rigid_gait_stand_validation",
+    "rigid_gait_walk_validation",
+    "rigid_gait_maximum_validation",
+    "rigid_gait_commands_123",
+    "rigid_gait_commands_456",
+    "rigid_gait_commands_789",
     "material_rft_preview",
     "material_achieved_validation",
     "material_full_validation",
@@ -393,7 +397,10 @@ for ax, (name, title) in zip(
     axes,
     (
         ("corrected_rft_curriculum_nominal", "Final RFT-trained policy on RFT sand"),
-        ("corrected_rigid_final", "Final rigid-ground policy on a rigid floor"),
+        (
+            "rigid_gait_control" if (ROOT / "rigid_gait_control/summary.json").exists() else "corrected_rigid_final",
+            "Rigid-ground policy on a rigid floor",
+        ),
     ),
     strict=True,
 ):
@@ -441,6 +448,31 @@ if validation:
     fig.suptitle("Frozen policy: 128 environments, full commands, seed 123")
     save(fig, "10-material-validation.png")
 
+rigid_trials = (
+    ("rigid_gait_stand_validation", "Stand"),
+    ("rigid_gait_walk_validation", "Walk 0.30 m/s"),
+    ("rigid_gait_maximum_validation", "Walk 0.50 m/s"),
+    ("rigid_gait_commands_123", "Command bank 1"),
+    ("rigid_gait_commands_456", "Command bank 2"),
+    ("rigid_gait_commands_789", "Command bank 3"),
+)
+rigid_data = [(read_case(name)[0], label) for name, label in rigid_trials if (ROOT / name / "summary.json").exists()]
+if rigid_data:
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+    for ax, key, title, threshold in zip(
+        axes,
+        ("mean_velocity_error", "min_signed_foot_y", "mean_contact_slip_m_s"),
+        ("Planar tracking error [m/s]", "Minimum foot clearance from centerline [m]", "Mean foot slip [m/s]"),
+        (0.10, 0.01, 0.10),
+        strict=True,
+    ):
+        ax.bar([label for _, label in rigid_data], [summary[key] for summary, _ in rigid_data])
+        ax.axhline(threshold, color="red", linestyle="--")
+        ax.tick_params(axis="x", rotation=35)
+        ax.set_title(title, fontsize=10)
+    fig.suptitle("Repaired rigid control: fixed commands for 20 s; three held-out banks of 128 trials for 10 s")
+    save(fig, "13-rigid-control-validation.png")
+
 layer_cases = (
     ("corrected_rigid_final", "Rigid"),
     ("corrected_zero_layer_policy", "0 mm"),
@@ -476,20 +508,41 @@ if any((ROOT / name / "summary.json").exists() for name, _ in layer_cases):
     )
 )
 videos = render_videos(ROOT, corrected_cases, gait)
+evaluation_path = ROOT / "training/evaluation_status.json"
+evaluation = json.loads(evaluation_path.read_text()) if evaluation_path.exists() else {}
+rigid_validation = "<p>Rigid-control validation is in progress.</p>"
+if "rigid_control_accepted" in evaluation:
+    verdict = (
+        "Passed the specified rigid-control checks" if evaluation["rigid_control_accepted"] else "Validation failed"
+    )
+    labels = {
+        "no_falls": "No falls across fixed commands, held-out trials and the command sequence",
+        "foot_placement": "Feet stay on the assigned side of the body",
+        "tracking": "Mean planar velocity error below 0.10 m/s",
+        "standing": "Standing drift below 0.03 m/s",
+        "contact_slip": "Mean foot slip below 0.10 m/s",
+        "capacity": "No detected contact-buffer overflow",
+        "every_foot_steps": "At least three steps with each foot during walking tests",
+    }
+    rows = "".join(
+        f"<tr><td>{labels[key]}</td><td>{'Pass' if passed else 'Fail'}</td></tr>"
+        for key, passed in evaluation["rigid_validation_gates"].items()
+    )
+    rigid_validation = f"<p><strong>{verdict}.</strong></p><table>{rows}</table>"
 figures = "".join(
     f"<figure><h3>{title}</h3><p>{description}</p><img src='{name}' alt='{title}' loading='lazy'></figure>"
     for name, title, description in (
         (
             "09-corrected-training.png",
             "Learning curves",
-            "The RFT policy and rigid-ground control were trained separately. Both used 4,096 environments "
-            "and full velocity-command randomization. Only RFT material randomization used a curriculum.",
+            "The repaired rigid task uses self-collision, posture/contact rewards and foot-placement checks. "
+            "It trains with 4,096 environments and the full velocity-command range from the start.",
         ),
         (
-            "10-material-validation.png",
-            "Final RFT policy across randomized materials",
-            "128 held-out trials, each lasting 10 seconds, with the full material and command ranges. "
-            "Completion measures falls; gait quality needs a separate check.",
+            "13-rigid-control-validation.png",
+            "Rigid-ground validation",
+            "Fixed standing, walking and maximum-speed tests, followed by 384 randomized-command trials. "
+            "Each test checks falls, foot placement, tracking and contact slip.",
         ),
     )
     if (OUT / name).exists()
@@ -507,23 +560,26 @@ code{overflow-wrap:anywhere}a{color:#1d4ed8}
 <h1>Go2: training with RFT, testing with MPM</h1>
 <p>The goal is to train with an inexpensive granular approximation, then evaluate the same policy
 with particle-based material simulation. MPM is used only after training.</p>
-<p class="outcome"><strong>Current result:</strong> the RFT policy tracks commands in RFT and falls in the MPM test.
-The separately trained rigid-ground control crosses its rear legs.
-These results do not establish successful transfer.</p>
+<p class="outcome"><strong>Priority: validate the rigid-ground control first.</strong>
+The previous control had a crossed-leg gait. A repaired task adds self-collision, foot-placement checks
+and motion/contact rewards. Earlier RFT/MPM results remain provisional pending task validation.</p>
 <p><a href="../live/">Training status and live curves</a></p>
 <h2>Final policy comparisons</h2>
-<p>Each clip uses a fixed forward command of 0.30 m/s. The first two use the exact same trained weights.
-The rigid-ground clip uses a separate policy. Green arrows show granular forces on robot bodies.</p>"""
+<p>The rigid-control recording tests a command sequence including the 0.50 m/s training maximum.
+The earlier RFT/MPM clips both use 0.30 m/s and share the same weights.
+Green arrows show granular forces on robot bodies.</p>"""
     + videos
     + "<h2>Training and validation</h2>"
+    + rigid_validation
     + figures
     + """<details><summary>Rear-leg gait measurements</summary>
-<p>The final RFT clip has a narrow rear stance. In the rigid-ground clip the rear feet swap left/right order
-at 0.12 seconds and stay crossed for 98.2% of frames. Low velocity error does not measure gait quality.</p>
+<p>The traces measure signed lateral separation of the rear feet in the base frame.
+Negative values indicate reversed left/right foot order. Low velocity error alone does not measure gait quality.
+The rigid trace uses the repaired policy once its recording is available; the RFT trace is from the earlier task.</p>
 <img src="12-gait-diagnostics.png" alt="Rear-foot separation for the final policies" loading="lazy">
 </details>
 <details><summary>Rigid-ground limit as sand thickness vanishes</summary>
-<p>This diagnostic applies the rigid-ground policy to RFT layers of 0, 5, 20 and 50 mm above a rigid floor.
+<p>This earlier physics diagnostic applied the superseded rigid policy to RFT layers of 0, 5, 20 and 50 mm.
 At zero thickness the granular force vanishes and the motion matches the rigid-floor rollout, including its gait defect.
 The graph shows the layer comparison; positive-thickness confinement accuracy remains unvalidated.</p>
 <img src="11-layer-limit.png" alt="Same rigid-ground policy with different sand-layer thicknesses" loading="lazy">

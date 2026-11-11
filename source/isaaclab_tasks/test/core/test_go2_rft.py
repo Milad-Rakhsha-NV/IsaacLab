@@ -147,6 +147,7 @@ def test_zero_layer_recovers_rigid_articulation():
         cfg.surface_relative_height = True
         if not isinstance(cfg, Go2RigidEnvCfg):
             cfg.bed_depth = 0.0
+            cfg.scene.robot = Go2RigidEnvCfg().scene.robot  # Match the control's self-collision configuration.
         with launch_simulation(cfg):
             env = Go2RFTEnv(cfg)
             try:

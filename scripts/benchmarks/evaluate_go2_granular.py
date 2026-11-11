@@ -333,7 +333,7 @@ with launch_simulation(cfg):
                 slip = env.robot.data.body_lin_vel_w.torch[:, env.foot_ids, :2].norm(dim=-1)
                 mean_slip = ((slip * contact).sum(-1) / contact.sum(-1).clamp_min(1)).cpu().numpy()
                 gait_rows.append(np.column_stack((signed_y, contact.cpu().numpy(), mean_slip)))
-                first = env.contact_forces.compute_first_contact(env.step_dt).torch[:, env.foot_sensor_ids]
+                first = env.contact_forces.compute_first_contact(env.step_dt).torch[:, env.foot_sensor_ids] > 0
                 air = env.contact_forces.data.last_air_time.torch[:, env.foot_sensor_ids]
                 moving = env.commands.norm(dim=-1) > 0.05
                 if step * env.step_dt > 1.0:

@@ -1,8 +1,38 @@
 # Go2 RFT training and MPM inference
 
-Updated November 10, 2026 (Pacific). Both training budgets and automatic evaluations have finished. **The rigid policy has a crossed rear-leg gait, and RFT-to-MPM inference fails. Successful locomotion transfer is not established.**
+Updated November 10, 2026 (Pacific). **The repaired rigid control passed the specified validation suite.** The previous rigid policy had crossed rear legs. Earlier RFT/MPM comparisons remain provisional and must be repeated with the validated task setup.
 
-## Completed run status
+## Rigid-control repair
+
+The earlier rigid clip came from the custom direct environment using the stock Go2 asset and DC motor model. Its simplified reward omitted important posture and motion/contact criteria. This audit keeps the direct workflow and the 45-value actor / 48-value critic interface.
+
+Mechanical checks measured total mass 15.019 kg, positive-definite dynamic-body inertias (smallest eigenvalue 9.6e-6 kg·m²), zero ambient fluid density, frictional contacts, and no observed contact-buffer overflow. All twelve isolated positive joint commands produced positive motion in the corresponding joint, with the expected 0.05 rad target offsets. The action order matches the articulation order. Ten-second zero-action standing checks, with episode resets disabled, remain finite and settle near 0.249 m base height. This is a mechanical check rather than a learned-gait acceptance test.
+
+Enabling self-collision reduced filtered shape pairs from 339 to 34. Replaying the old policy with self-collision alone did not repair its gait. The new rigid task therefore enables self-collision and contact sensing, removes the overlapping sand visual, and adds hip/joint posture, vertical/angular motion, joint-acceleration/limit, foot-slip, swing-time, non-foot contact and stance penalties. Feet crossing the base centerline terminate an episode independently of fall detection. The existing native integration file passes both tests; restoring the previous termination function makes the new crossed-foot regression fail for the intended reason. A three-iteration training smoke also passes.
+
+The fresh rigid-only run uses 4,096 environments, seed 42, 600 PPO iterations, full commands from reset, and source revision `f3b34c0fec`. Its directory is `logs/rsl_rl/go2_rigid_gait_control/2026-11-11_00-02-21/`. The live dashboard reads `go2-rigid-gait-training.service`. No new RFT or MPM training is launched.
+
+After this run, `go2-rigid-gait-validation.service` tests standing and fixed 0.30/0.50 m/s commands for 20 s, plus three 128-environment held-out command banks for 10 s. One 34 s video exercises stand → 0.30 m/s → 0.50 m/s → lateral motion → turning → stop. Acceptance requires no falls or foot-placement violations, tracking error below 0.10 m/s, standing drift below 0.03 m/s, mean contact slip below 0.10 m/s, no detected overflow, and at least three steps with every foot in the fixed walking tests. The service records every gate in `logs/go2_granular/training/evaluation_status.json`; completion of the training budget alone is not acceptance.
+
+All seven gates passed. The 600-iteration training run finished in about 5.3 minutes. No fall or foot-placement violation occurred in the fixed-command tests, 384 held-out command trials, or the command-sequence video.
+
+| Repaired rigid-control evaluation | Mean planar velocity error | Mean contact slip |
+|---|---:|---:|
+| Stand, 20 s | 0.0063 m/s | 0.0049 m/s |
+| Walk at 0.30 m/s, 20 s | 0.0140 m/s | 0.0476 m/s |
+| Walk at 0.50 m/s, 20 s | 0.0178 m/s | 0.0684 m/s |
+| 128 commands, seed 123, 10 s | 0.0200 m/s | 0.0419 m/s |
+| 128 commands, seed 456, 10 s | 0.0207 m/s | 0.0451 m/s |
+| 128 commands, seed 789, 10 s | 0.0222 m/s | 0.0470 m/s |
+| Stand/walk/max/steer/stop, 34 s | 0.0206 m/s | 0.0455 m/s |
+
+Each foot took 30–31 steps in the fixed 0.30 m/s test and 35–36 in the fixed 0.50 m/s test. The command-sequence video recorded 44 steps per foot and minimum signed foot clearance of 0.146 m. Across all seven recordings, states were finite, no motor saturation was observed, maximum torso tilt was 0.097 rad, and maximum hard-joint-limit overshoot was 0.0018 rad. These results establish the checked one-seed rigid baseline, rather than universal or real-hardware correctness.
+
+The [new rigid-control video](http://localhost:18010/rigid_gait_control/rollout.mp4) and [validation graph](http://localhost:18010/report/13-rigid-control-validation.png) are served with the report. Mechanical-audit and per-rollout physics measurements are saved under `logs/go2_granular/rigid_audit/`.
+
+The earlier RFT video uses 0.30 m/s forward, not the training maximum of 0.50 m/s. Those earlier granular recordings are collapsed as provisional results in the report. The repaired rigid video replaces the crossed-leg control after evaluation.
+
+## Superseded experiment, retained for audit
 
 | Run / evaluation | Result |
 |---|---|
@@ -14,7 +44,7 @@ Updated November 10, 2026 (Pacific). Both training budgets and automatic evaluat
 | Final rigid clip | 10 s without fall termination; error 0.008 m/s; rear feet cross at 0.12 s |
 | Same final RFT weights in MPM | Failure at 0.48 s in the 2 s exploratory recording |
 
-No training process remains active. The dashboard continues to serve the final curves, recordings, and job exit state.
+This table describes the superseded experiment. The current rigid-control repair and its live validation status are described above.
 
 ### Gait defect
 
@@ -24,9 +54,9 @@ The final RFT checkpoint has no rear-foot order reversal in its nominal clip, bu
 
 The shared Go2 asset disables self-collision. This direct task rewards command tracking, body orientation/height, effort and action smoothness, but has no leg-crossing, stance-width or joint-posture objective. Its failure check covers low base height, excessive tilt and nonfinite root position. Consequently, the previous label `First failure: None` meant no fall/termination, not acceptable gait. Dashboard/video labels now make this distinction explicit. These runs cannot be accepted as a physically credible rigid locomotion baseline based on tracking error alone.
 
-The next corrective experiment should enable and verify self-collision, add measured leg-posture/foot-placement constraints, validate the rigid control's gait, and then repeat RFT training and transfer assessment. Existing checkpoint weights remain unchanged during this diagnosis. The [rear-foot diagnostic plot](http://localhost:18010/report/12-gait-diagnostics.png) shows the measured separation traces.
+The repair above addresses these task defects. Older checkpoint weights are retained unchanged for traceability. The [rear-foot diagnostic plot](http://localhost:18010/report/12-gait-diagnostics.png) now shows the repaired rigid control alongside the earlier RFT policy.
 
-## Current experiment
+## Original study protocol
 
 - One shared Go2 policy trains with RFT only, across **4,096 environments**. MPM is reserved for frozen-policy inference.
 - Commands use their full distribution from the first reset: forward 0.1–0.5 m/s, lateral ±0.1 m/s, yaw ±0.3 rad/s, and 10% standing trials. There is **no command curriculum**.
@@ -53,7 +83,7 @@ ssh -o ExitOnForwardFailure=yes -N -L 18010:127.0.0.1:8010 horde@mrakhsha-41eslp
 
 Open [live status and curves](http://localhost:18010/live/), which refreshes every 30 seconds. It shows actual service state, iteration counts, checkpoint names, tracking error, material difficulty, episode completion, and throughput. [Raw live metrics](http://localhost:18010/live/status.json) include snapshot time and event age so stale logging is visible.
 
-The [study report](http://localhost:18010/report/) presents three final-policy videos with explicit training/evaluation descriptions: the RFT-trained policy in RFT, the same policy in MPM, and the separately trained rigid-ground control. Early checkpoints, historical runs and extra layer videos are excluded from the main report and dashboard. Provenance is available under each video's recording details. On the server itself, use port 8010 instead of the tunnel port 18010.
+The [study report](http://localhost:18010/report/) foregrounds the repaired rigid-control command-sequence video. Earlier RFT and MPM recordings are collapsed as provisional results, with explicit training/evaluation descriptions. Early checkpoints and extra layer videos are excluded from the main report and dashboard. Provenance is available under each video's recording details. On the server itself, use port 8010 instead of the tunnel port 18010.
 
 The gallery, monitor, and training jobs run as independent user services. A chat interruption does not terminate them:
 
