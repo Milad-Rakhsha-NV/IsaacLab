@@ -81,6 +81,7 @@ case_names = (
     "rigid_max_forward",
     "rft_max_forward",
     "mpm_max_forward",
+    "rigid_mpm_max_forward",
     "rigid_gait_stand_validation",
     "rigid_gait_walk_validation",
     "rigid_gait_maximum_validation",
@@ -102,7 +103,7 @@ for name in case_names:
 
 gait = {}
 for case in cases:
-    if case["case"] not in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward"):
+    if case["case"] not in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward", "rigid_mpm_max_forward"):
         continue
     with np.load(ROOT / case["case"] / "rollout.npz") as data:
         poses = data["body_pose"]
@@ -129,6 +130,7 @@ forward_labels = {
     "rigid_max_forward": "Rigid policy / rigid floor",
     "rft_max_forward": "RFT policy / RFT sand",
     "mpm_max_forward": "RFT policy / MPM sand",
+    "rigid_mpm_max_forward": "Rigid policy / MPM sand",
 }
 forward_cases = [case for case in cases if case["case"] in forward_labels]
 forward_figure = ""
@@ -141,6 +143,8 @@ if forward_cases:
                 ax.plot(state[:, 0], state[:, column], label=forward_labels[case["case"]])
     axes[0].axhline(0.5, color="grey", linestyle="--", label="Forward command")
     axes[0].legend(fontsize=7)
+    height_limit = axes[2].axhline(0.16, color="grey", linestyle=":", label="Body-height failure threshold")
+    axes[2].legend(handles=[height_limit], fontsize=7, loc="upper right")
     for ax, label in zip(
         axes, ("Forward speed [m/s]", "Planar tracking error [m/s]", "Height above initial surface [m]"), strict=True
     ):
@@ -151,7 +155,7 @@ if forward_cases:
         "<h2>Maximum-forward comparison</h2>"
         "<p>All clips command 0.50 m/s forward with zero lateral and yaw commands. "
         "The curves include the initial acceleration and any time after a fall.</p>"
-        "<img src='forward-comparison.png' alt='Speed, tracking error and body height for the three recordings'>"
+        "<img src='forward-comparison.png' alt='Speed, tracking error and body height for the four recordings'>"
     )
 
 rigid_status_path = ROOT / "training/evaluation_status.json"
@@ -195,7 +199,7 @@ failed_gates = [
 validation_note = (
     "<p><strong>RFT validation remains incomplete.</strong> Failed acceptance checks: "
     + ", ".join(failed_gates)
-    + ". The MPM clip tests the current frozen checkpoint; it does not certify convergence or material equivalence.</p>"
+    + ". The MPM clips are exploratory transfer tests; they do not certify convergence or material equivalence.</p>"
     if failed_gates
     else ""
 )
@@ -225,9 +229,10 @@ style="max-width:520px;display:block;margin:auto"></details>
     + """
 <p><a href="../live/">Live status and learning curves</a></p>
 <h2>Current policy recordings</h2>
-<p>Three 10 s recordings use the maximum forward command, 0.50 m/s. The rigid-floor clip uses the validated
-rigid-trained policy. The RFT and MPM clips use the exact same final RFT-trained weights without fine-tuning.
-Both sand beds start at 118 mm depth with density 1,600 kg/m³ and nominal friction 0.4.</p>"""
+<p>Four 10 s recordings use the maximum forward command, 0.50 m/s. There are two frozen policies:
+one trained on a rigid floor and one trained in randomized RFT sand. Neither was trained in MPM.
+Each policy is first shown in its training simulator and then in the same MPM sand bed, without fine-tuning.
+All sand beds start at 118 mm depth with density 1,600 kg/m³ and nominal friction 0.4.</p>"""
     + render_videos(ROOT, cases, gait)
     + forward_figure
     + "<h2>Training curves</h2>"

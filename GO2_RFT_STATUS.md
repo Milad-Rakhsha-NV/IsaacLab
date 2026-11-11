@@ -84,19 +84,22 @@ The RFT configuration retains an experimental near-rest bearing term. Finite-lay
 
 ## Current maximum-forward recordings
 
-All three recordings request **0.50 m/s forward**, zero lateral velocity and zero yaw, for **10 s**. The rigid clip uses its validated rigid-trained checkpoint (`model_599.pt`); both sand clips use the same final RFT checkpoint (`model_1499.pt`) without fine-tuning. Material parameters are fixed during recording.
+All four recordings request **0.50 m/s forward**, zero lateral velocity and zero yaw, for **10 s**. Two frozen policies are compared: the validated rigid-ground checkpoint (`model_599.pt`) is tested on a rigid floor and in MPM sand; the final RFT checkpoint (`model_1499.pt`) is tested in RFT sand and MPM sand. Neither policy was trained in MPM, and neither receives fine-tuning for these recordings. Material parameters are fixed during recording. Training budgets were 600 iterations for the rigid policy and 1,500 for the RFT policy.
 
-Both sand beds have a 118 mm initial depth, density 1,600 kg/m³, internal friction 0.4 and surface/internal friction ratio 1.0. Matching these inputs does not establish equivalence of the RFT and MPM constitutive laws. The MPM bed is 7 m long, with a 20 mm grid and 1,016,400 particles; its backing floor and bed-exit check use the same extent. The longer bed avoids reaching the old short bed's edge during a 10 s walk.
+All sand recordings use a 118 mm initial depth, density 1,600 kg/m³, internal friction 0.4 and surface/internal friction ratio 1.0. Matching these inputs does not establish equivalence of the RFT and MPM constitutive laws. The MPM bed is 7 m long, with a 20 mm grid and 1,016,400 particles; its backing floor and bed-exit check use the same extent. The longer bed avoids reaching the old short bed's edge during a 10 s walk.
 
-| Recording | Mean planar velocity error | Fall |
-|---|---:|---|
-| Rigid policy / rigid floor | 0.0209 m/s | None in 10 s |
-| RFT policy / RFT sand | 0.0682 m/s | None in 10 s |
-| RFT policy / MPM sand | 0.2318 m/s | None in 10 s |
+| Policy trained on | Terrain simulated in video | Mean planar velocity error | First failure check |
+|---|---|---:|---|
+| Rigid ground | Rigid floor | 0.0209 m/s | None in 10 s |
+| RFT sand with material randomization | RFT sand | 0.0682 m/s | None in 10 s |
+| RFT sand with material randomization | MPM sand | 0.2318 m/s | None in 10 s |
+| Rigid ground | MPM sand | 0.4862 m/s | Low body height at 0.66 s |
 
-All three videos contain 500 frames at 50 FPS, with the commanded vector `[0.5, 0, 0]` verified throughout their saved traces. The MPM run completed without execution errors, nonfinite particle positions or rigid-contact overflow. This is a single-seed inference comparison.
+All four videos contain 500 frames at 50 FPS, with the commanded vector `[0.5, 0, 0]` verified throughout their saved traces. Both MPM runs completed without execution errors, nonfinite particle positions, rigid-contact overflow or entering the bed-edge margin. All four evaluations use seed 123. This is a single-seed inference comparison.
 
-The report shows these three clips, explicit command/depth captions, green granular-force arrows, and speed/error/height curves relative to the initial free surface. Numerical summaries and state traces remain linked from each recording.
+The rigid-trained policy in MPM crossed the 0.16 m height threshold at 0.66 s, when its height was 0.1515 m above the initial sand surface. Its maximum torso tilt was 0.220 rad. The recorded failure is loss of body clearance. It averaged 0.0096 m/s forward during the last 5 s and finished at 0.1482 m body height. The full rollout remains visible without resets. The failure check also covers projected-gravity z greater than −0.3 and nonfinite body positions.
+
+Each video has an embedded banner naming its training terrain, evaluation terrain and command. The report repeats these labels above each player and shows all four clips with explicit command/depth captions, green granular-force arrows, and speed/error/height curves relative to the initial free surface. Numerical summaries and state traces remain linked from each recording.
 
 ## Report and live access
 
@@ -104,7 +107,8 @@ The report shows these three clips, explicit command/depth captions, green granu
 - [Live status and learning curves](http://localhost:18010/live/), refreshed every 30 s.
 - [Rigid-trained policy on a rigid floor](http://localhost:18010/rigid_max_forward/rollout.mp4).
 - [RFT-trained policy on RFT sand](http://localhost:18010/rft_max_forward/rollout.mp4).
-- [Same RFT-trained policy on MPM sand](http://localhost:18010/mpm_max_forward/rollout.mp4).
+- [RFT-trained policy on MPM sand](http://localhost:18010/mpm_max_forward/rollout.mp4).
+- [Rigid-trained policy on MPM sand](http://localhost:18010/rigid_mpm_max_forward/rollout.mp4).
 
 From a different machine, keep this tunnel running:
 

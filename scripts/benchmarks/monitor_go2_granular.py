@@ -126,7 +126,7 @@ def refresh() -> None:
         evaluation["stage"] = rft_evaluation["stage"]
         evaluation["cases"] = evaluation.get("cases", []) + rft_evaluation.get("cases", [])
         evaluation["rft_validation_gates"] = rft_evaluation.get("rft_validation_gates")
-    for name in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward"):
+    for name in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward", "rigid_mpm_max_forward"):
         path = ROOT / name / "summary.json"
         if path.exists():
             evaluation.setdefault("cases", []).append(dict(case=name, **json.loads(path.read_text())))

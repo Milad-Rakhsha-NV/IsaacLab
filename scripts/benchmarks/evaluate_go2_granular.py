@@ -24,6 +24,9 @@ from isaaclab.app.logging_utils import configure_console_logging
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--field", choices=("rft", "mpm", "rigid"), default="rft")
 parser.add_argument("--checkpoint", type=Path)
+parser.add_argument(
+    "--policy_training_terrain", choices=("rigid", "rft"), help="Training terrain shown in video labels."
+)
 parser.add_argument("--output", type=Path, default=Path("logs/go2_granular/stance"))
 parser.add_argument("--steps", type=int, default=1000)
 parser.add_argument("--num_envs", type=int, default=1)
@@ -292,6 +295,11 @@ with launch_simulation(cfg):
     writer = None
     if args.video:
         import imageio_ffmpeg
+        from PIL import ImageFont
+
+        overlay_font = ImageFont.load_default(size=18)
+        training_terrain = {"rigid": "rigid ground", "rft": "RFT sand"}.get(args.policy_training_terrain, "unspecified")
+        evaluation_terrain = {"rigid": "rigid ground", "rft": "RFT sand", "mpm": "MPM sand"}[args.field]
 
         writer = imageio_ffmpeg.write_frames(
             str(args.output / "rollout.mp4"),
@@ -438,21 +446,27 @@ with launch_simulation(cfg):
                 frame = np.asarray(viz.render_rgb_array(), dtype=np.uint8)[..., :3]
                 im = Image.fromarray(frame)
                 draw = ImageDraw.Draw(im)
-                draw.rectangle((0, 0, 960, 65), fill=(15, 23, 42))
+                draw.rectangle((0, 0, 960, 96), fill=(15, 23, 42))
                 draw.text(
-                    (15, 12),
-                    (
-                        f"Go2 {args.field.upper()} | t={(step + 1) * env.step_dt:.2f}s | "
-                        f"vx={v[0, 0]:.2f} m/s | z={height[0]:.3f} m"
-                    ),
+                    (15, 10),
+                    f"Policy trained on: {training_terrain} | Evaluated in: {evaluation_terrain}",
                     fill="white",
+                    font=overlay_font,
                 )
                 command = env.commands[0].cpu().tolist()
                 draw.text(
-                    (15, 35),
-                    f"Command vx={command[0]:.2f}, vy={command[1]:.2f} m/s, yaw={command[2]:.2f} rad/s"
-                    f" | {phase or 'Fixed command'} | fall: {first_failure}",
+                    (15, 38),
+                    f"Command: forward {command[0]:.2f} m/s | lateral {command[1]:.2f} m/s | "
+                    f"yaw {command[2]:.2f} rad/s",
                     fill="white",
+                    font=overlay_font,
+                )
+                draw.text(
+                    (15, 66),
+                    f"t={(step + 1) * env.step_dt:.2f}s | measured forward={v[0, 0]:.2f} m/s | "
+                    f"height={height[0]:.3f} m | failure: {first_failure}",
+                    fill="white",
+                    font=overlay_font,
                 )
                 writer.send(np.ascontiguousarray(np.asarray(im)))
                 if step == min(500 if schedule else 100, args.steps - 1):
@@ -483,6 +497,7 @@ with launch_simulation(cfg):
             validation_difficulty=args.difficulty,
             substrate_depth=cfg.bed_depth if args.field == "rft" else None,
             checkpoint=checkpoint,
+            policy_training_terrain=args.policy_training_terrain,
             steps=len(rows),
             seed=args.seed,
             simulated_seconds=len(rows) * env.step_dt,

@@ -159,6 +159,8 @@ def main(rigid_only: bool = False) -> None:
             "--speed",
             "0.5",
             "--video",
+            "--policy_training_terrain",
+            "rigid" if rigid_only else "rft",
             label=f"Recording the final {field.upper()} policy",
         )
         gates = dict(
@@ -189,6 +191,8 @@ def main(rigid_only: bool = False) -> None:
                 "--bed_length",
                 "7.0",
                 "--video",
+                "--policy_training_terrain",
+                "rft",
                 label="Evaluating the same new policy in MPM (inference only)",
             )
             progress["mpm_transfer_passed"] = mpm["failure_fraction"] == 0
