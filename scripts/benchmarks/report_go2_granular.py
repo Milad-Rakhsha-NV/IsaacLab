@@ -205,6 +205,8 @@ material_comparison = (
     "The dotted line evaluates the RFT policy in RFT; bars evaluate both policies in MPM. "
     "These are exploratory short trials. MPM numerical validation remains incomplete.</p>"
     "<img src='policy-and-support.png' alt='New-policy material tracking and granular versus floor support'>"
+    "<p>Support forces include all rigid robot contacts and time after a failure threshold. "
+    "Floor support alone does not imply successful walking.</p>"
     f"<p><a href='../{STUDY.get('case_directory', '')}/materials/materials.html'>MPM trial records</a></p>"
     if STUDY.get("material_comparison_ready")
     else ""

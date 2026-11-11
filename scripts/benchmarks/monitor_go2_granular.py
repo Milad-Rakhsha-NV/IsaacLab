@@ -224,7 +224,7 @@ def refresh() -> None:
         "Material properties have a curriculum; depth and commands use their full ranges from the start.</p>"
         f"<section>{''.join(cards)}</section><img src='curves.png?t={int(time.time())}' alt='Live learning curves'>"
         f"<h2>Final policy comparisons</h2>{verdict}{videos}"
-        f"<details><summary>Evaluation progress</summary><p>{evaluation_text}</p></details>"
+        f"<p><strong>Evaluation progress: {evaluation_text}</strong></p>"
         "<p>Material progression requires ≥95% episode completion and ≤0.10 m/s mean tracking error in "
         "two consecutive windows of at least 4,096 qualifying episodes. Training curves do not establish "
         "held-out convergence or MPM transfer.</p><p>Full target: density 1,400–1,800 kg/m³; friction 0.3–0.5; "

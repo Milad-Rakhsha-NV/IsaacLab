@@ -2,7 +2,7 @@
 
 ## Current study: forward commands up to 1.0 m/s
 
-Both policies start fresh with **4,096 environments, 1,500 PPO iterations and seed 42**. Forward commands are reset-uniform over **0.1–1.0 m/s** from the first episode, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing. There is no command curriculum. RFT retains its material curriculum and reset-randomized 0–118 mm layers. The previous policies used a maximum forward command of 0.5 m/s.
+Both fresh training runs have completed **1,500 PPO iterations with 4,096 environments and seed 42**. RFT reached the full material curriculum. The rigid policy passed the specified acceptance checks; RFT still failed standing drift and loaded-foot slip. Forward commands are reset-uniform over **0.1–1.0 m/s** from the first episode, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing. There is no command curriculum. RFT retains its material curriculum and reset-randomized 0–118 mm layers. The previous policies used a maximum forward command of 0.5 m/s.
 
 - [Live training and evaluation status](http://localhost:18010/live/).
 - [Current report](http://localhost:18010/report/).
@@ -11,9 +11,9 @@ Both policies start fresh with **4,096 environments, 1,500 PPO iterations and se
 
 New training runs are `go2_rigid_max1/2026-11-11_08-33-41` and `go2_rft_max1/2026-11-11_08-33-41` under `logs/rsl_rl/`. Core training source is `66afe5d303`. The two native task tests pass; the command-range regression fails with the previous hard-coded sampler. A 16-environment, three-iteration PPO smoke confirms the new range in the saved configuration. The extended MPM bed also has a dedicated inference smoke test.
 
-After both training services finish, `run_go2_speed_comparison.py` checks stand, 0.5 m/s and 1.0 m/s commands, plus three held-out reset-randomization banks per policy. It generates exactly four 10 s videos at **1.0 m/s forward, zero lateral and zero yaw**: rigid policy / rigid floor, RFT policy / RFT field, RFT policy / MPM sand, and rigid policy / MPM sand. The MPM videos use a prepared **12 × 1.6 × 0.118 m** bed, PIC transfer, 20 mm grid, four substeps, 50 stress iterations and one coupling pass with relaxation 0.1. MPM remains inference-only. Both MPM policies use identical material and numerical settings.
+`run_go2_speed_comparison.py` completed checks at stand, 0.5 m/s and 1.0 m/s commands, plus three held-out reset-randomization banks per policy. All four 10 s videos are available at **1.0 m/s forward, zero lateral and zero yaw**: rigid policy / rigid floor, RFT policy / RFT field, RFT policy / MPM sand, and rigid policy / MPM sand. The MPM videos use a prepared **12 × 1.6 × 0.118 m** bed, PIC transfer, 20 mm grid, four substeps, 50 stress iterations and one coupling pass with relaxation 0.1. MPM remains inference-only. Both MPM policies use identical material and numerical settings.
 
-The pipeline also repeats the three-material tracking and support-force comparison at 1.0 m/s using the new frozen checkpoints. Short material trials use a 5 × 1.6 m bed. The earlier standalone force-convergence checks are retained; **MPM material equivalence remains unvalidated**. Acceptance failures are reported independently of training-budget completion and video generation. Each new video is published after its file, command and decoded-frame checks pass; remaining recordings stay clearly marked as pending. Physical failures remain visible.
+The pipeline completed the three-material tracking and support-force comparison at 1.0 m/s using the new frozen checkpoints, including all six MPM trials and three RFT reference trials. The report includes the new training curves, four-video tracking plots and material comparison figure. Short material trials use a 5 × 1.6 m bed. The earlier standalone force-convergence checks are retained; **MPM material equivalence remains unvalidated**. Acceptance failures are reported independently of training-budget completion and video generation. All four videos passed file, command and decoded-frame checks. Physical failures remain visible.
 
 The training and evaluation jobs run as durable services: `go2-max1-rigid-training`, `go2-max1-rft-training` and `go2-max1-evaluation`. Logs are `/training/rigid-max1.log`, `/training/rft-max1.log` and `/training/max1-evaluation.log`. Use the existing SSH tunnel described below. Generated artifacts stay under ignored `logs/go2_granular/max1/` paths.
 
@@ -28,6 +28,33 @@ uv run --no-sync isaaclab train --rl_library rsl_rl \
   --num_envs 4096 --max_iterations 1500 --seed 42 \
   --experiment_name go2_rft_max1 'env.forward_command_range=[0.1,1.0]'
 ```
+
+### Completed maximum-command recordings
+
+All new recordings command **1.00 m/s forward**, zero lateral velocity and zero yaw. Each completed file contains 500 decoded frames at 50 FPS. Metrics cover all 10 s, including any interval after a failure threshold.
+
+| Policy training | Evaluation terrain | Mean planar tracking error | First failure threshold |
+|---|---|---:|---|
+| Rigid ground | [Rigid floor](http://localhost:18010/max1/rigid_max_forward/rollout.mp4) | 0.034 m/s | None in 10 s |
+| RFT materials | [RFT field](http://localhost:18010/max1/rft_max_forward/rollout.mp4) | 0.068 m/s | None in 10 s |
+| RFT materials | [MPM sand](http://localhost:18010/max1/mpm_max_forward/rollout.mp4) | 0.969 m/s | 0.62 s |
+| Rigid ground | [MPM sand](http://localhost:18010/max1/rigid_mpm_max_forward/rollout.mp4) | 0.972 m/s | 0.52 s |
+
+The new RFT policy loses tracking and falls in the completed nominal MPM trial at 1.0 m/s. This is a failure in the current simulation comparison. RFT training still uses a zero inertial correction, and MPM has not passed its numerical reference gates; these runs do not isolate the cause of the transfer failure. The 0.5 m/s results below are historical and use the previous checkpoints.
+
+### Three-material MPM comparison at 1.0 m/s
+
+These separate trials last **3 s**, use the same new checkpoints and seed 123, and do not reset after failure. Errors include the complete trial. The failure threshold detects low body clearance, severe tilt or nonfinite state; passing this short trial does not establish longer-duration stability.
+
+| Material inputs: density, internal friction, surface/internal ratio, depth | Rigid policy error / first failure | RFT policy error / first failure |
+|---|---|---|
+| 1,400 kg/m³, 0.3, 0.6, 60 mm | 0.820 m/s / 1.14 s | 0.091 m/s / none in 3 s |
+| 1,600 kg/m³, 0.4, 1.0, 118 mm | 0.909 m/s / 0.52 s | 0.732 m/s / 0.64 s |
+| 1,800 kg/m³, 0.5, 0.8, 100 mm | 0.898 m/s / 0.54 s | 0.853 m/s / 1.54 s |
+
+The RFT policy performs substantially better in the shallow, lower-density/lower-friction case. These inputs change together, so this comparison does not isolate a depth effect. Neither policy maintains walking in the other two cases. All six MPM trials remained finite and stayed inside the bed margin without rigid-contact overflow. Support plots include all rigid robot contacts, including contacts after collapse; backing-floor support alone does not indicate successful locomotion.
+
+The corresponding RFT reference trials had tracking errors of 0.087, 0.108 and 0.132 m/s, with no failure threshold reached in 3 s. The [tracking and support figure](http://localhost:18010/report/policy-and-support.png) and [MPM trial records](http://localhost:18010/max1/materials/materials.html) use these new 1.0 m/s checkpoints. Training, recordings and material comparisons all completed successfully as jobs; the policy and material-validation limitations above remain.
 
 ## Previous study: forward commands up to 0.5 m/s
 
