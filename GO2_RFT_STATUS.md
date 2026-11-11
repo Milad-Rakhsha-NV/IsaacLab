@@ -1,13 +1,13 @@
-# Go2: validated rigid control and shallow-layer RFT training
+# Go2: validated rigid control and 0–118 mm RFT training
 
 Updated November 10, 2026 (Pacific). **The new RFT domain-randomization run is active with 4,096 environments.** The report contains the validated rigid control and this run only. Previous RFT/MPM results have been removed from the report and dashboard.
 
 ## Current RFT run
 
 - Task: `Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct`.
-- Run: `logs/rsl_rl/go2_rft_shallow_curriculum/2026-11-11_01-51-10/`.
-- Fresh initialization, seed 42, 1,500 PPO iterations planned; 24 steps per environment per iteration.
-- Isaac Lab source at launch: `9ed395d620`; Newton pin: `6528eb5e7bb823fe35f0d238b2571431bb55a811`.
+- Run: `logs/rsl_rl/go2_rft_knee_depth_curriculum/2026-11-11_02-42-39/`.
+- The previous 0–22 mm start / 0–100 mm target run is superseded and excluded from the report. Fresh initialization, seed 42, 1,500 PPO iterations planned; 24 steps per environment per iteration.
+- Isaac Lab source at launch: `0e27c65786`; Newton pin: `6528eb5e7bb823fe35f0d238b2571431bb55a811`.
 - Native task checks passed from the installed pinned Newton package. No dependency synchronization runs while training is active.
 - MPM is excluded from training. Final frozen-policy evaluation runs automatically after training finishes.
 
@@ -15,13 +15,15 @@ Training is not accepted as converged until the final material distribution and 
 
 ## Material height and reset randomization
 
-The Go2 foot collider is a sphere with radius **22 mm**, hence a **44 mm foot length/diameter**. Initial layer thickness is sampled independently for each resetting environment from **0–22 mm**, at most half that foot length. The limit is checked against the imported collision geometry.
+The relevant length is **knee to sole**, measured as **235.915 mm** in the Go2 USD visual geometry and rounded to **236 mm** in the task configuration. Half is **118 mm**. Layer thickness is sampled independently at reset over **0–118 mm**, from the first episode onward. The initial range is checked against half the configured knee-to-sole length. The separate collision sphere has a 22 mm radius; it does not define this depth limit.
+
+[Measured geometry and dimension PNG](http://localhost:18010/measurements/foot-lengths.png).
 
 The bed has a fixed rigid substrate at `z=0`. Its RFT bottom remains fixed; the sampled free surface determines layer thickness. This is a finite sand layer over a floor, rather than a shifted unsupported half-space. Robot spawning, height reward and height termination use the sampled free surface.
 
 | Quantity | Initial curriculum distribution | Full target distribution |
 |---|---|---|
-| Layer thickness | Uniform 0–0.022 m | Uniform 0–0.100 m |
+| Layer thickness | Uniform 0–0.118 m | Uniform 0–0.118 m |
 | Bulk density | 1,600 kg/m³ | Uniform 1,400–1,800 kg/m³ |
 | Internal friction | 0.4 | Uniform 0.3–0.5 |
 | Surface/internal friction ratio | 1.0 | Uniform 0.6–1.0 |
@@ -31,13 +33,13 @@ The bed has a fixed rigid substrate at `z=0`. Its RFT bottom remains fixed; the 
 | Yaw command | Uniform −0.3–0.3 rad/s | Same |
 | Standing trials | 10% | Same |
 
-The final 10 cm depth target is the default selected for this rerun. The depth upper bound interpolates as `0.022 + difficulty*(0.100-0.022)`; the lower bound stays zero. Density, friction and roughness interpolate linearly from nominal values, and strength interpolates in log space. The granular field is stationary; velocity randomization refers to commands.
+The depth range remains 0–118 mm throughout training. Density, friction and roughness interpolate linearly from nominal values, and strength interpolates in log space. The granular field is stationary; velocity randomization refers to commands.
 
 All material and command samples change only for resetting environments. Other environments retain their material, height and state. There is **no command curriculum**.
 
-The material curriculum advances by 0.1 after two qualifying windows of at least 4,096 episodes, each with ≥95% full 10 s completion and ≤0.10 m/s mean planar tracking error. Ten percent of episodes remain shallow nominal-material anchors before full difficulty; anchors do not qualify for progression. Success below 70% causes retreat. At full difficulty the target distribution freezes.
+The material curriculum advances by 0.1 after two qualifying windows of at least 4,096 episodes, each with ≥95% full 10 s completion and ≤0.10 m/s mean planar tracking error. Ten percent of episodes remain nominal-material anchors with the same depth distribution before full difficulty; anchors do not qualify for progression. Success below 70% causes retreat. At full difficulty the target distribution freezes.
 
-Each run saves `material_curriculum.json` with the measured foot diameter, initial/target depth ranges and substrate height. Difficulty changes are saved alongside checkpoints. A stopped run requires explicit difficulty restoration and fresh progression windows when resumed.
+Each run saves `material_curriculum.json` with the knee-to-sole reference length, initial depth cap, separate collision diameter, initial/target depth ranges and substrate height. Difficulty changes are saved alongside checkpoints. A stopped run requires explicit difficulty restoration and fresh progression windows when resumed.
 
 ## Shared locomotion fixes
 
@@ -67,11 +69,11 @@ All seven specified acceptance gates passed. There were no falls or foot-placeme
 
 ## Verification and post-training evaluation
 
-- Both native Go2 integration tests pass, including imported foot-height limits, masked depth/material resets, articulated momentum balance and the zero-layer rigid limit.
+- Both native Go2 integration tests pass in 13.80 s with the corrected 118 mm cap, masked depth/material resets, articulated momentum balance and the zero-layer rigid limit. Restoring the previous collider-radius guard makes the 118 mm configuration fail as expected.
 - A controlled granular-load test detects foot contact above the rigid floor while native collision forces are zero. Removing the granular-load cue makes this regression fail.
 - Removing the composed solver's rigid-contact export makes the contact-enabled zero-layer test fail with `NotImplementedError`; forwarding it makes the test pass.
 - All 19 Newton RFT tests pass. Newton and Isaac Lab formatting/lint checks pass.
-- The 16-environment, three-iteration PPO smoke passes with the shared gait criteria and shallow layer.
+- The 16-environment, three-iteration PPO smoke passes with the shared gait criteria and corrected 0–118 mm layer range; its saved manifest records the 236 mm reference length and 118 mm cap.
 
 After training, the final RFT policy is tested on fixed stand/walk/maximum commands and three held-out full-distribution banks. Full material-curriculum completion is an acceptance gate. The final report will distinguish a stalled curriculum from full-distribution convergence. A new RFT video is recorded with explicit commands and layer depth.
 
@@ -91,15 +93,15 @@ From a different machine, keep this tunnel running:
 ssh -o ExitOnForwardFailure=yes -N -L 18010:127.0.0.1:8010 horde@mrakhsha-41eslp
 ```
 
-On the server itself, use `http://127.0.0.1:8010/`. The HTTP server and monitor run independently of this chat. Training stdout is at `/training/rft-shallow.log`; final evaluation status is at `/training/rft-evaluation-status.json`. Generated figures, videos and checkpoints remain under ignored `logs/` paths.
+On the server itself, use `http://127.0.0.1:8010/`. The HTTP server and monitor run independently of this chat. Training stdout is at `/training/rft-knee-depth.log`; final evaluation status is at `/training/rft-evaluation-status.json`. Generated figures, videos and checkpoints remain under ignored `logs/` paths.
 
 ```bash
-systemctl --user status go2-rft-shallow-training go2-rft-shallow-validation go2-granular-monitor
+systemctl --user status go2-rft-knee-depth-training go2-rft-knee-depth-validation go2-granular-monitor
 
 uv run --no-sync isaaclab train --rl_library rsl_rl \
   --task Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct \
   --num_envs 4096 --max_iterations 1500 --seed 42 \
-  --experiment_name go2_rft_shallow_curriculum
+  --experiment_name go2_rft_knee_depth_curriculum
 ```
 
 Isaac Lab branch: [milad/go2-rft-mpm](https://github.com/Milad-Rakhsha-NV/IsaacLab/tree/milad/go2-rft-mpm).
