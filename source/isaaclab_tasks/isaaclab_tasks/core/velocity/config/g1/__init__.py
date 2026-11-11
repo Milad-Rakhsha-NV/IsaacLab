@@ -45,3 +45,15 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:G1RoughDepthStudentRunnerCfg",
     },
 )
+
+for terrain, config in (("Rigid", "G1GranularRigidEnvCfg"), ("RFT", "G1GranularRFTEnvCfg")):
+    gym.register(
+        id=f"Isaac-Velocity-Flat-G1-Granular-{terrain}-Direct",
+        entry_point="isaaclab_tasks.core.velocity.granular_env:GranularVelocityEnv",
+        disable_env_checker=True,
+        kwargs={
+            "env_cfg_entry_point": f"{__name__}.granular_env_cfg:{config}",
+            "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:G1GranularPPORunnerCfg",
+            "default_agent": "rsl_rl",
+        },
+    )

@@ -108,3 +108,12 @@ class G1RoughDepthStudentRunnerCfg(RslRlDistillationRunnerCfg):
         optimizer="adam",
         loss_type="mse",
     )
+
+
+@configclass
+class G1GranularPPORunnerCfg(G1FlatPPORunnerCfg):
+    """Same PPO budget and policy interface for rigid and RFT G1 training."""
+
+    experiment_name = "g1_granular"
+    obs_groups = {"actor": ["policy"], "critic": ["critic"]}
+    init_at_random_ep_len = False

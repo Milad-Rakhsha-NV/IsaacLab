@@ -24,7 +24,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from go2_granular_videos import render_videos
+from go2_granular_videos import render_videos, video_cases
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 ROOT = Path("logs/go2_granular")
@@ -135,7 +135,7 @@ def refresh() -> None:
         evaluation["stage"] = rft_evaluation["stage"]
         evaluation["cases"] = evaluation.get("cases", []) + rft_evaluation.get("cases", [])
         evaluation["rft_validation_gates"] = rft_evaluation.get("rft_validation_gates")
-    for name in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward", "rigid_mpm_max_forward"):
+    for name, _, _ in video_cases(tuple(study.get("video_speeds", [study.get("max_forward_command", 0.5)]))):
         path = case_root / name / "summary.json"
         if path.exists():
             evaluation.setdefault("cases", []).append(dict(case=name, **json.loads(path.read_text())))
@@ -197,7 +197,13 @@ def refresh() -> None:
         for case in evaluation.get("cases", [])
         if not study or study.get("videos_ready") or case["case"] in study.get("published_videos", [])
     ]
-    videos = render_videos(case_root, ready_cases, gait, url_prefix=url_prefix)
+    videos = render_videos(
+        case_root,
+        ready_cases,
+        gait,
+        url_prefix=url_prefix,
+        speeds=tuple(study.get("video_speeds", [study.get("max_forward_command", 0.5)])),
+    )
     evaluation_text = html.escape(evaluation.get("stage", "Validation pipeline has not started"))
     verdict = ""
     if "rigid_control_accepted" in evaluation:

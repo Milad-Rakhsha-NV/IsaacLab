@@ -11,6 +11,7 @@ in ``logs/go2_granular/current-study.json``. MPM is used only after training.
 
 from __future__ import annotations
 
+import argparse
 import ast
 import hashlib
 import json
@@ -21,6 +22,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from go2_granular_videos import video_cases
 from imageio_ffmpeg import count_frames_and_secs
 from monitor_go2_granular import ROOT, load_study
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
@@ -36,6 +38,9 @@ def write_json(path: Path, value: dict) -> None:
 
 def main() -> None:
     """Keep checkpoints, commands, validation and recording provenance consistent."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--recordings_only", action="store_true", help="Reuse completed policy acceptance checks.")
+    args = parser.parse_args()
     study = load_study()
     if not study:
         raise RuntimeError("Create current-study.json before starting the comparison")
@@ -159,42 +164,60 @@ def main() -> None:
         events = EventAccumulator(str(checkpoints["rft"].parent)).Reload()
         difficulty = events.Scalars("Curriculum/difficulty")[-1].value
         progress["achieved_material_difficulty"] = difficulty
-        validations = {}
-        for field in ("rigid", "rft"):
-            options = ["--substrate_depth", "0.118"] if field == "rft" else []
-            checks = []
-            for name, speed in (("stand", 0.0), ("walk", 0.5), ("maximum", maximum)):
-                checks.append(
-                    evaluate(
-                        f"{field}_{name}_validation",
-                        field,
-                        checkpoints[field],
-                        [*options, "--steps", "1000", "--num_envs", "16", "--speed", str(speed)],
+        validations = {
+            field: [
+                row
+                for row in progress["cases"]
+                if row["case"].startswith(f"{field}_")
+                and "validation" in row["case"]
+                or row["case"].startswith(f"{field}_commands_")
+            ]
+            for field in ("rigid", "rft")
+        }
+        if args.recordings_only:
+            if any(len(checks) != 6 for checks in validations.values()):
+                raise RuntimeError("Recordings-only mode requires all six completed validation trials per policy")
+        else:
+            for field in ("rigid", "rft"):
+                options = ["--substrate_depth", "0.118"] if field == "rft" else []
+                checks = []
+                for name, speed in (("stand", 0.0), ("walk", 0.5), ("maximum", maximum)):
+                    checks.append(
+                        evaluate(
+                            f"{field}_{name}_validation",
+                            field,
+                            checkpoints[field],
+                            [*options, "--steps", "1000", "--num_envs", "16", "--speed", str(speed)],
+                        )
                     )
-                )
-            for seed in (123, 456, 789):
-                checks.append(
-                    evaluate(
-                        f"{field}_commands_{seed}",
-                        field,
-                        checkpoints[field],
-                        [*options, "--steps", "500", "--num_envs", "128", "--randomize"],
-                        seed=seed,
+                for seed in (123, 456, 789):
+                    checks.append(
+                        evaluate(
+                            f"{field}_commands_{seed}",
+                            field,
+                            checkpoints[field],
+                            [*options, "--steps", "500", "--num_envs", "128", "--randomize"],
+                            seed=seed,
+                        )
                     )
-                )
-            validations[field] = checks
-            gates = validation_gates(checks, material_difficulty=difficulty if field == "rft" else None)
-            progress[f"{field}_validation_gates"] = gates
-            progress[f"{field}_control_accepted"] = all(gates.values())
-            publish(f"Completed {field.upper()} policy validation", render=True)
+                validations[field] = checks
+                gates = validation_gates(checks, material_difficulty=difficulty if field == "rft" else None)
+                progress[f"{field}_validation_gates"] = gates
+                progress[f"{field}_control_accepted"] = all(gates.values())
+                publish(f"Completed {field.upper()} policy validation", render=True)
 
-        for name, field, policy in (
-            ("rigid_max_forward", "rigid", "rigid"),
-            ("rft_max_forward", "rft", "rft"),
-            ("mpm_max_forward", "mpm", "rft"),
-            ("rigid_mpm_max_forward", "mpm", "rigid"),
-        ):
-            options = ["--steps", "500", "--speed", str(maximum), "--video", "--policy_training_terrain", policy]
+        roles = {
+            "rigid_max_forward": ("rigid", "rigid"),
+            "rft_max_forward": ("rft", "rft"),
+            "mpm_max_forward": ("mpm", "rft"),
+            "rigid_mpm_max_forward": ("mpm", "rigid"),
+        }
+        speeds = tuple(study.get("video_speeds", [maximum]))
+        recordings = video_cases(speeds)
+        recordings.sort(key=lambda row: 0 if row[1] == "mpm_max_forward" and row[2] == 0.5 else 1)
+        for name, base, speed in recordings:
+            field, policy = roles[base]
+            options = ["--steps", "500", "--speed", str(speed), "--video", "--policy_training_terrain", policy]
             if field == "rft":
                 options += ["--substrate_depth", "0.118"]
             if field == "mpm":
@@ -204,16 +227,16 @@ def main() -> None:
                     "--bed_length",
                     str(max(7.0, 10 * maximum + 2)),
                     "--bed_width",
-                    "1.6",
+                    str(study.get("video_bed_width", 1.6)),
+                    "--max_active_cell_count",
+                    str(1 << 20),
                     "--settle_seconds",
                     "0.5",
                 ]
             summary = evaluate(name, field, checkpoints[policy], options)
             assert summary["steps"] == 500
             with np.load(case_root / name / "rollout.npz") as data:
-                np.testing.assert_array_equal(
-                    data["commands"], np.broadcast_to([maximum, 0, 0], data["commands"].shape)
-                )
+                np.testing.assert_array_equal(data["commands"], np.broadcast_to([speed, 0, 0], data["commands"].shape))
             frames, duration = count_frames_and_secs(case_root / name / "rollout.mp4")
             assert frames == 500 and abs(duration - 10.0) < 0.1
             if field == "mpm" and summary["first_bed_exit_seconds"] is not None:
@@ -231,7 +254,7 @@ def main() -> None:
         study = load_study()
         study["videos_ready"] = True
         write_json(ROOT / "current-study.json", study)
-        publish("All four recordings completed; evaluating the new policies across three materials", render=True)
+        publish("All paired-speed recordings completed; updating material comparison plots", render=True)
         material_root = case_root / "materials"
         for phase in ("materials", "reference"):
             command = [

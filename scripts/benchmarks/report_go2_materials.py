@@ -349,14 +349,16 @@ def foot_geometry(phase, row, *, data_root=ROOT):
     with np.load(folder / "rollout.npz") as data:
         poses = data["body_pose"]
     labels = row["summary"]["body_labels"]
-    root = next(i for i, name in enumerate(labels) if name.endswith("/base"))
-    feet = [
-        next(i for i, name in enumerate(labels) if name.endswith(f"/{leg}_foot")) for leg in ("FL", "FR", "RL", "RR")
-    ]
+    summary = row["summary"]
+    root_name = summary.get("root_body_name", "base")
+    foot_names = summary.get("foot_body_names", [f"{leg}_foot" for leg in ("FL", "FR", "RL", "RR")])
+    sides = summary.get("foot_side_signs", [1, -1, 1, -1])
+    root = next(i for i, name in enumerate(labels) if name.endswith(f"/{root_name}"))
+    feet = [next(i for i, name in enumerate(labels) if name.endswith(f"/{foot}")) for foot in foot_names]
     offsets = poses[:, feet, :3] - poses[:, root, None, :3]
-    orientation = Rotation.from_quat(np.repeat(poses[:, root, 3:7], 4, axis=0))
-    local = orientation.inv().apply(offsets.reshape(-1, 3)).reshape(-1, 4, 3)
-    signed_y = local[:, :, 1] * [1, -1, 1, -1]
+    orientation = Rotation.from_quat(np.repeat(poses[:, root, 3:7], len(feet), axis=0))
+    local = orientation.inv().apply(offsets.reshape(-1, 3)).reshape(-1, len(feet), 3)
+    signed_y = local[:, :, 1] * sides
     minimum = float(signed_y.min())
     recorded = row["summary"].get("min_signed_foot_y")
     if recorded is not None:
@@ -404,7 +406,8 @@ def policy_report(policy_root=ROOT, output_root=ROOT, *, speed=0.5):
     rigid = np.array([row["summary"].get("mean_rigid_contact_vertical_N", np.nan) for row in rows])
     axes[1].bar(positions, granular, label="Granular coupling")
     axes[1].bar(positions, rigid, bottom=granular, label="Rigid contacts")
-    axes[1].axhline(147.336, color="k", ls="--", lw=1, label="Robot weight")
+    weight = rows[0]["summary"].get("robot_weight_N", 147.336) if rows else 147.336
+    axes[1].axhline(weight, color="k", ls="--", lw=1, label="Robot weight")
     axes[1].set(
         xticks=positions,
         xticklabels=[f"{row['name'].split('-')[0].title()}\n{row['policy'].upper()}" for row in rows],

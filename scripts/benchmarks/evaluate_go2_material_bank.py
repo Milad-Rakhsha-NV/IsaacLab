@@ -124,6 +124,7 @@ def main(args):
         field = settings.pop("field", "mpm")
         manifest = dict(
             settings=settings,
+            robot=args.robot,
             field=field,
             checkpoint=str(checkpoints[policy]),
             source_ast_sha256=source_hash,
@@ -140,6 +141,8 @@ def main(args):
                 field,
                 "--seed",
                 "123",
+                "--robot",
+                args.robot,
                 "--checkpoint",
                 str(checkpoints[policy]),
                 "--policy_training_terrain",
@@ -186,6 +189,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--robot", choices=("go2", "g1"), default="go2")
     parser.add_argument("--phase", choices=("coupling", "materials", "reference"), default="coupling")
     parser.add_argument("--profile", type=Path)
     parser.add_argument("--output_root", type=Path, default=ROOT)

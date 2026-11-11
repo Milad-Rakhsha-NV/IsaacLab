@@ -49,6 +49,8 @@
             ["Isaac-Velocity-Flat-AnymalD", "rsl_rl,skrl", "isaacsim_physx,newton_kamino,newton_mjwarp,ovphysx", "", "", "environment-previews/anymal_d_flat.jpg", true, {}, {}, "", null, ["||", "isaacsim_physx||", "newton_kamino||", "newton_mjwarp||", "ovphysx||"]],
             ["Isaac-Velocity-Flat-Cassie", "rsl_rl,skrl", "isaacsim_physx,newton_kamino,newton_mjwarp,ovphysx", "", "", "environment-previews/cassie_flat.jpg", true, {}, {}, "", null, ["||", "isaacsim_physx||", "newton_kamino||", "newton_mjwarp||", "ovphysx||"]],
             ["Isaac-Velocity-Flat-G1", "rsl_rl", "isaacsim_physx,newton_kamino,newton_mjwarp,ovphysx", "", "", "environment-previews/g1_flat.jpg", true, {}, {}, "", null, ["||", "isaacsim_physx||", "newton_kamino||", "newton_mjwarp||", "ovphysx||"]],
+            ["Isaac-Velocity-Flat-G1-Granular-RFT-Direct", "rsl_rl", "", "", "", "environment-previews/g1_granular.jpg"],
+            ["Isaac-Velocity-Flat-G1-Granular-Rigid-Direct", "rsl_rl", "", "", "", "environment-previews/g1_flat.jpg"],
             ["Isaac-Velocity-Flat-H1", "rsl_rl,skrl", "isaacsim_physx,newton_kamino,newton_mjwarp,ovphysx", "", "", "environment-previews/h1_flat.jpg", true, {}, {}, "", null, ["||", "isaacsim_physx||", "newton_kamino||", "newton_mjwarp||", "ovphysx||"]],
             ["Isaac-Velocity-Flat-UnitreeGo2", "rsl_rl,skrl", "isaacsim_physx,newton_kamino,newton_mjwarp,ovphysx", "", "", "environment-previews/go2_flat.jpg", true, {}, {}, "", null, ["||", "isaacsim_physx||", "newton_kamino||", "newton_mjwarp||", "ovphysx||"]],
             ["Isaac-Velocity-Flat-UnitreeGo2-RFT-Direct", "rsl_rl", "", "", "", "environment-previews/go2_flat.jpg"],

@@ -15,7 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from go2_granular_videos import render_videos
+from go2_granular_videos import render_videos, video_cases
 from monitor_go2_granular import load_study
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
@@ -23,6 +23,9 @@ ROOT = Path("logs/go2_granular")
 STUDY = load_study()
 CASE_ROOT = ROOT / STUDY.get("case_directory", "")
 MAX_COMMAND = STUDY.get("max_forward_command", 0.5)
+SPEEDS = tuple(STUDY.get("video_speeds", [MAX_COMMAND]))
+VARIANTS = video_cases(SPEEDS)
+VIDEO_NAMES = {name for name, _, _ in VARIANTS}
 FAMILIES = {row[0]: row[2] for row in STUDY.get("runs", [])}
 MEDIA_PREFIX = f"../{STUDY['case_directory']}/" if STUDY.get("case_directory") else "../"
 OUT = ROOT / "report"
@@ -102,7 +105,7 @@ case_names = (
     "rft_knee_depth_commands_789",
 )
 if STUDY:
-    case_names = (*case_names[:4], *STUDY.get("validation_cases", []))
+    case_names = (*[name for name, _, _ in VARIANTS], *STUDY.get("validation_cases", []))
 cases = []
 for name in case_names:
     path = CASE_ROOT / name / "summary.json"
@@ -111,7 +114,7 @@ for name in case_names:
 
 gait = {}
 for case in cases:
-    if case["case"] not in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward", "rigid_mpm_max_forward"):
+    if case["case"] not in VIDEO_NAMES:
         continue
     with np.load(CASE_ROOT / case["case"] / "rollout.npz") as data:
         poses = data["body_pose"]
@@ -145,16 +148,20 @@ ready_cases = [
     for case in cases
     if not STUDY or STUDY.get("videos_ready") or case["case"] in STUDY.get("published_videos", [])
 ]
-forward_cases = [case for case in ready_cases if case["case"] in forward_labels]
+forward_cases = [case for case in ready_cases if case["case"] in VIDEO_NAMES]
 forward_figure = ""
-if forward_cases:
+for speed in SPEEDS:
+    names = {name: base for name, base, command in VARIANTS if command == speed}
+    selected = [case for case in forward_cases if case["case"] in names]
+    if not selected:
+        continue
     fig, axes = plt.subplots(1, 3, figsize=(13, 3.5))
-    for case in forward_cases:
+    for case in selected:
         with np.load(CASE_ROOT / case["case"] / "rollout.npz") as data:
             state = data["state"][:, 0]
             for ax, column in zip(axes, (4, 8, 7), strict=True):
-                ax.plot(state[:, 0], state[:, column], label=forward_labels[case["case"]])
-    axes[0].axhline(MAX_COMMAND, color="grey", linestyle="--", label="Forward command")
+                ax.plot(state[:, 0], state[:, column], label=forward_labels[names[case["case"]]])
+    axes[0].axhline(speed, color="grey", linestyle="--", label="Forward command")
     axes[0].legend(fontsize=7)
     height_limit = axes[2].axhline(0.16, color="grey", linestyle=":", label="Body-height failure threshold")
     axes[2].legend(handles=[height_limit], fontsize=7, loc="upper right")
@@ -163,12 +170,13 @@ if forward_cases:
     ):
         ax.set(xlabel="Simulation time [s]", ylabel=label)
         ax.grid(alpha=0.2)
-    save(fig, "forward-comparison.png")
-    forward_figure = (
-        "<h2>Maximum-forward comparison</h2>"
-        f"<p>All clips command {MAX_COMMAND:.2f} m/s forward with zero lateral and yaw commands. "
-        "The curves include the initial acceleration and any time after a fall.</p>"
-        "<img src='forward-comparison.png' alt='Speed, tracking error and body height for the four recordings'>"
+    fig.suptitle(f"Same frozen checkpoints · {speed:.2f} m/s forward command")
+    filename = f"forward-comparison-{speed:g}.png"
+    save(fig, filename)
+    forward_figure += (
+        f"<h2>Comparison at {speed:.2f} m/s</h2>"
+        "<p>The curves include initial acceleration and time after a fall.</p>"
+        f"<img src='{filename}' alt='Speed, tracking error and body height at {speed:g} m/s'>"
     )
 
 rigid_status_path = ROOT / STUDY.get("status_file", "training/evaluation_status.json")
@@ -211,8 +219,39 @@ material_comparison = (
     if STUDY.get("material_comparison_ready")
     else ""
 )
+if STUDY.get("half_speed_material_comparison_ready"):
+    material_comparison += (
+        "<h2>Material comparison at 0.50 m/s</h2>"
+        "<p>The same new checkpoints and three material settings are tested for 3 s. "
+        "Only the command changes relative to the 1.0 m/s material trials.</p>"
+        "<img src='../max1/materials_cmd_0p5/policy-and-support.png' "
+        "alt='Tracking and whole-robot support at 0.5 m/s'>"
+    )
+mpm_recheck = ""
+if STUDY.get("mpm_recheck_ready"):
+    recheck = json.loads((CASE_ROOT / "mpm-recheck/results.json").read_text())
+    recheck_rows = []
+    for row in recheck["cases"]:
+        result = row["summary"]
+        first = result["first_failure_seconds"]
+        failure = "None in 2 s" if first is None else f"{first:.2f} s"
+        recheck_rows.append(
+            f"<tr><td>{row['substeps']}</td><td>{row['coupling_passes']}</td>"
+            f"<td>{result['mean_velocity_error']:.3f}</td><td>{failure}</td></tr>"
+        )
+    mpm_recheck = (
+        "<h2>MPM startup check at 1.0 m/s</h2>"
+        "<p>The frozen RFT policy is tested in the same prepared 5 × 1.6 × 0.118 m bed for 2 s. "
+        "Each row changes either the number of physics substeps or coupling passes. "
+        "Grid, material, preparation, checkpoint and seed stay fixed. "
+        "This is a numerical sensitivity check, not a completed MPM convergence study.</p>"
+        "<table><tr><th>Substeps</th><th>Coupling passes</th><th>Tracking error [m/s]</th>"
+        "<th>First failure threshold</th></tr>" + "".join(recheck_rows) + "</table>"
+        "<img src='mpm-startup-recheck.png' alt='Startup height, velocity, tilt and support sensitivity'>"
+    )
 recording_text = (
-    f"Four 10 s recordings {'command' if STUDY.get('videos_ready') else 'will command'} {MAX_COMMAND:.2f} m/s forward. "
+    f"Each terrain panel compares the same frozen policy at {' and '.join(f'{speed:.2f}' for speed in SPEEDS)} "
+    "m/s forward for 10 s. "
     "The two policies share a 4,096-environment, 1,500-iteration training budget."
     if STUDY
     else "Four 10 s recordings use the maximum forward command, 0.50 m/s."
@@ -262,14 +301,14 @@ if STUDY and material_note:
     )
 (OUT / "index.html").write_text(
     """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Go2: maximum-forward policy comparison</title>
+<title>Go2: policy comparison at two forward speeds</title>
 <style>body{font:16px/1.5 system-ui;max-width:1200px;margin:24px auto;padding:20px;background:#f1f5f9;color:#0f172a}
 video,img{width:100%;border-radius:6px}.video-grid{display:grid;
-grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
+grid-template-columns:1fr;gap:20px}.paired-videos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
 article,figure{background:white;padding:20px;margin:0 0 24px;border-radius:10px}figure{margin:20px 0}
 h1,h2,h3{line-height:1.2}h3{margin-top:0}details{margin:12px 0}summary,a{color:#1d4ed8}
 code{overflow-wrap:anywhere}.status{padding:16px;background:#dbeafe}</style>
-<h1>Go2: maximum-forward policy comparison</h1>
+<h1>Go2: policy comparison at two forward speeds</h1>
 <p>The rigid and RFT runs use the same robot, self-collision, posture and foot-placement criteria.
 Their standing, tracking, slip and stepping acceptance checks are reported separately.</p>
 <p>The Go2 knee-to-sole length is approximately 236 mm. Each resetting environment samples
@@ -292,7 +331,7 @@ style="max-width:520px;display:block;margin:auto"></details>
         else ""
     )
     + """
-<p><a href="../live/">Live status and learning curves</a></p>
+<p><a href="../live/">Live status and learning curves</a> · <a href="../g1/report/">G1 study</a></p>
 <h2>Current policy recordings</h2>
 <p>"""
     + recording_text
@@ -300,9 +339,18 @@ style="max-width:520px;display:block;margin:auto"></details>
 Neither was trained in MPM.
 Each policy is first shown in its training simulator and then in the same MPM sand bed, without fine-tuning.
 All sand beds start at 118 mm depth with density 1,600 kg/m³ and nominal friction 0.4.</p>"""
-    + render_videos(CASE_ROOT, ready_cases, gait, url_prefix=MEDIA_PREFIX)
+    + (
+        "<p>MPM recordings use a 12 × 3.2 m bed at both commands. "
+        "An earlier narrow-bed 0.5 m/s clip reached the bed edge before falling and is excluded. "
+        "Bed-boundary and numerical-capacity checks are required for publication. "
+        "Failure times remain in the numerical results and captions; they are omitted from video banners.</p>"
+        if STUDY.get("video_bed_width") == 3.2
+        else ""
+    )
+    + render_videos(CASE_ROOT, ready_cases, gait, url_prefix=MEDIA_PREFIX, speeds=SPEEDS)
     + forward_figure
     + material_comparison
+    + mpm_recheck
     + "<h2>Training curves</h2>"
     + figures
     + """<details><summary>Material randomization and contact criteria</summary>

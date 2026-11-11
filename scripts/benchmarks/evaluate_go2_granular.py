@@ -22,6 +22,7 @@ from isaaclab.app import launch_simulation
 from isaaclab.app.logging_utils import configure_console_logging
 
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--robot", choices=("go2", "g1"), default="go2")
 parser.add_argument("--field", choices=("rft", "mpm", "rigid"), default="rft")
 parser.add_argument("--checkpoint", type=Path)
 parser.add_argument(
@@ -61,6 +62,7 @@ parser.add_argument("--substeps", type=int, default=4)
 parser.add_argument("--bed_depth", type=float, default=0.4)
 parser.add_argument("--bed_length", type=float, default=2.0, help="MPM bed length along the forward axis [m].")
 parser.add_argument("--bed_width", type=float, default=1.2)
+parser.add_argument("--max_active_cell_count", type=int, help="Optional MPM sparse-grid capacity; overflow is checked.")
 parser.add_argument(
     "--substrate_depth", type=float, default=None, help="Optional RFT layer thickness; zero tests rigid limit."
 )
@@ -70,7 +72,23 @@ configure_console_logging()
 
 from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTCurriculumEnvCfg, Go2RFTEnvCfg, Go2RigidEnvCfg
 
-cfg = Go2RigidEnvCfg() if args.field == "rigid" else Go2RFTCurriculumEnvCfg() if args.field == "rft" else Go2RFTEnvCfg()
+if args.robot == "g1":
+    from isaaclab_tasks.core.velocity.config.g1.granular_env_cfg import G1GranularRFTEnvCfg, G1GranularRigidEnvCfg
+
+    rigid_cfg = G1GranularRigidEnvCfg()
+    cfg = G1GranularRFTEnvCfg() if args.field == "rft" else G1GranularRigidEnvCfg()
+    if args.field == "mpm":
+        cfg.gait = None
+        cfg.scene.contact_forces = None
+else:
+    rigid_cfg = Go2RigidEnvCfg()
+    cfg = (
+        Go2RigidEnvCfg()
+        if args.field == "rigid"
+        else Go2RFTCurriculumEnvCfg()
+        if args.field == "rft"
+        else Go2RFTEnvCfg()
+    )
 cfg.curriculum_enabled = False
 cfg.sim.visualizer_cfgs = [cfg.sim.visualizer_cfgs]
 cfg.seed = args.seed
@@ -130,7 +148,7 @@ if args.field == "mpm":
     if args.num_envs != 1:
         raise ValueError("The initial MPM reference supports one isolated bed")
     from isaaclab_newton.assets import MPMObjectCfg
-    from isaaclab_newton.physics import MJWarpSolverCfg, MPMSolverCfg, NewtonCfg
+    from isaaclab_newton.physics import MPMSolverCfg, NewtonCfg
     from isaaclab_newton.sim.spawners.mpm import MPMGridCfg, MPMParticleMaterialCfg
 
     from isaaclab.assets import AssetBaseCfg
@@ -139,14 +157,14 @@ if args.field == "mpm":
     from isaaclab_contrib.coupling import CouplerEntryCfg, CouplerProxyCfg, CouplerProxyMappingCfg
 
     cfg.randomize_material = False
-    cfg.scene.robot = Go2RigidEnvCfg().scene.robot
+    cfg.scene.robot = rigid_cfg.scene.robot
     cfg.scene.bed = None
     cfg.scene.floor = AssetBaseCfg(
         prim_path="/World/Floor",
         spawn=CuboidCfg(
             size=(args.bed_length + 0.4, args.bed_width + 0.4, 0.1),
             collision_props=UsdPhysicsCollisionCfg(collision_enabled=True),
-            physics_material=Go2RigidEnvCfg().scene.substrate.spawn.physics_material,
+            physics_material=rigid_cfg.scene.substrate.spawn.physics_material,
             visual_material=PreviewSurfaceCfg(diffuse_color=(0.3, 0.3, 0.3)),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(pos=(args.bed_length / 2 - 0.7, 0, -args.bed_depth - 0.05)),
@@ -176,7 +194,7 @@ if args.field == "mpm":
             entries=[
                 CouplerEntryCfg(
                     name="rigid",
-                    solver_cfg=MJWarpSolverCfg(njmax=128, nconmax=64, use_mujoco_contacts=True),
+                    solver_cfg=rigid_cfg.sim.physics.solver_cfg,
                     bodies=[r"/World/envs/env_.*/Robot"],
                     include_static_shapes=True,
                 ),
@@ -186,7 +204,8 @@ if args.field == "mpm":
                         voxel_size=args.voxel_size,
                         grid_type="sparse",
                         separate_worlds=True,
-                        max_active_cell_count=max(
+                        max_active_cell_count=args.max_active_cell_count
+                        or max(
                             1 << 19,
                             1
                             << int(
@@ -234,9 +253,9 @@ with launch_simulation(cfg):
     import torch
     import warp as wp
 
-    from isaaclab_tasks.core.velocity.config.go2.rft_env import Go2RFTEnv
+    from isaaclab_tasks.core.velocity.granular_env import GranularVelocityEnv
 
-    class InferenceEnv(Go2RFTEnv):
+    class InferenceEnv(GranularVelocityEnv):
         def _get_dones(self):
             # Preserve failed poses for recording; do not hide falls by resetting.
             zero = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
@@ -258,7 +277,13 @@ with launch_simulation(cfg):
         from isaaclab_tasks.core.velocity.config.go2.agents.rsl_rl_rft_ppo_cfg import Go2RFTPPORunnerCfg
 
         wrapped = RslRlVecEnvWrapper(env)
-        runner = OnPolicyRunner(wrapped, to_dict(Go2RFTPPORunnerCfg()), log_dir=None, device=env.device)
+        if args.robot == "g1":
+            from isaaclab_tasks.core.velocity.config.g1.agents.rsl_rl_ppo_cfg import G1GranularPPORunnerCfg
+
+            runner_cfg = G1GranularPPORunnerCfg()
+        else:
+            runner_cfg = Go2RFTPPORunnerCfg()
+        runner = OnPolicyRunner(wrapped, to_dict(runner_cfg), log_dir=None, device=env.device)
         runner.load(str(args.checkpoint))
         policy = runner.get_inference_policy(device=env.device)
         checkpoint = str(args.checkpoint.resolve())
@@ -266,7 +291,7 @@ with launch_simulation(cfg):
     else:
 
         def policy(observations):
-            return torch.zeros(args.num_envs, 12, device=env.device)
+            return torch.zeros(args.num_envs, cfg.action_space, device=env.device)
 
     if args.field == "rft":
         inventory = solver.surface_inventory
@@ -420,8 +445,10 @@ with launch_simulation(cfg):
         )
         writer.send(None)
     rows, force_rows, joint_rows, pose_rows, metric_rows, gait_rows, command_rows = [], [], [], [], [], [], []
+    joint_velocity_rows, joint_effort_rows, action_rows = [], [], []
     support_rows = []
-    steps_per_foot = np.zeros((args.num_envs, 4), dtype=int)
+    foot_count = len(cfg.foot_body_names)
+    steps_per_foot = np.zeros((args.num_envs, foot_count), dtype=int)
     phase = None
     max_rigid_overflow = 0
     previous_impulse = solver.body_impulse.numpy().copy() if args.field == "rft" else None
@@ -493,7 +520,7 @@ with launch_simulation(cfg):
             else:
                 force = np.zeros((model.body_count, 6), dtype=np.float32)
             height = env.relative_base_height().cpu().numpy()
-            failed = (height < 0.16) | (g[:, 2] > -0.3) | ~np.isfinite(p).all(-1)
+            failed = (height < cfg.minimum_base_height) | (g[:, 2] > -0.3) | ~np.isfinite(p).all(-1)
             local_p = p - env.scene.env_origins.cpu().numpy()
             if (
                 args.field == "mpm"
@@ -506,9 +533,11 @@ with launch_simulation(cfg):
             ):
                 first_exit = (step + 1) * env.step_dt
             poses_now = env.sim.backend_manager.backend.state_0.body_q.numpy()
-            feet = [i for i, label in enumerate(labels) if label.endswith("_foot")]
+            feet = [i for i, label in enumerate(labels) if label.split("/")[-1] in cfg.foot_body_names]
             bottom = -args.bed_depth if args.field == "mpm" else 0.0
-            if first_bottom is None and np.any(poses_now[feet, 2] - 0.022 <= bottom + 0.001):
+            if first_bottom is None and np.any(
+                poses_now[feet, 2] - (0.022 if args.robot == "go2" else 0.04) <= bottom + 0.001
+            ):
                 first_bottom = (step + 1) * env.step_dt
             if first_failure is None and failed.any():
                 first_failure = (step + 1) * env.step_dt
@@ -527,6 +556,9 @@ with launch_simulation(cfg):
             force_rows.append(force)
             pose_rows.append(env.sim.backend_manager.backend.state_0.body_q.numpy().copy())
             joint_rows.append(env.robot.data.joint_pos.torch.cpu().numpy())
+            joint_velocity_rows.append(joint_velocity.copy())
+            joint_effort_rows.append(effort.copy())
+            action_rows.append(env.actions.cpu().numpy().copy())
             metric_rows.append(
                 np.column_stack(
                     (
@@ -542,8 +574,9 @@ with launch_simulation(cfg):
             if args.video and np.isfinite(p).all():
                 from PIL import Image, ImageDraw
 
-                origin = p[0]
-                env.sim.set_camera_view(tuple(origin + np.array([1.0, -1.3, 0.5])), tuple(origin))
+                origin = p[0] + np.array([0.0, 0.0, -0.1]) if args.robot == "g1" else p[0]
+                eye_offset = [2.0, -2.6, 0.8] if args.robot == "g1" else [1.0, -1.3, 0.5]
+                env.sim.set_camera_view(tuple(origin + np.array(eye_offset)), tuple(origin))
                 viz = env.sim.visualizers[0]
                 viewer = viz._viewer
                 poses = env.sim.backend_manager.backend.state_0.body_q.numpy()
@@ -566,7 +599,8 @@ with launch_simulation(cfg):
                 draw.rectangle((0, 0, 960, 96), fill=(15, 23, 42))
                 draw.text(
                     (15, 10),
-                    f"Policy trained on: {training_terrain} | Evaluated in: {evaluation_terrain}",
+                    f"{args.robot.upper()} | Policy trained on: {training_terrain} | "
+                    f"Evaluated in: {evaluation_terrain}",
                     fill="white",
                     font=overlay_font,
                 )
@@ -581,7 +615,7 @@ with launch_simulation(cfg):
                 draw.text(
                     (15, 66),
                     f"t={(step + 1) * env.step_dt:.2f}s | measured forward={v[0, 0]:.2f} m/s | "
-                    f"height={height[0]:.3f} m | failure: {first_failure}",
+                    f"height={height[0]:.3f} m",
                     fill="white",
                     font=overlay_font,
                 )
@@ -601,6 +635,9 @@ with launch_simulation(cfg):
             state=np.array(rows),
             body_wrench=np.array(force_rows),
             joint_pos=np.array(joint_rows),
+            joint_vel=np.array(joint_velocity_rows),
+            joint_effort=np.array(joint_effort_rows),
+            actions=np.array(action_rows),
             body_pose=np.array(pose_rows),
             metrics=np.array(metric_rows),
             gait=np.array(gait_rows),
@@ -608,7 +645,13 @@ with launch_simulation(cfg):
             support_wrenches=np.array(support_rows),
         )
         summary = dict(
+            robot=args.robot,
+            foot_body_names=cfg.foot_body_names,
+            foot_side_signs=cfg.foot_side_signs,
+            root_body_name=env.robot.body_names[0],
+            robot_weight_N=float(rigid.model.body_mass.numpy().sum() * 9.81 / args.num_envs),
             field=args.field,
+            minimum_base_height=cfg.minimum_base_height,
             ambient_fluid_density=ambient_density,
             max_rigid_overflow=max_rigid_overflow,
             surface_relative_height=True,
@@ -626,7 +669,11 @@ with launch_simulation(cfg):
             particles_finite=particles_finite,
             first_bed_exit_seconds=first_exit,
             first_bottom_contact_seconds=first_bottom,
-            bottom_contact_sampling="geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+            bottom_contact_sampling=(
+                "geometric foot-sphere proximity within 1 mm; not a contact-force measurement"
+                if args.robot == "go2"
+                else "foot origin minus nominal 40 mm sole offset; not a contact-force measurement"
+            ),
             bed_depth=args.bed_depth,
             bed_length=args.bed_length if mpm is not None else None,
             bed_width=args.bed_width if mpm is not None else None,
@@ -681,11 +728,11 @@ with launch_simulation(cfg):
             )
             if gait_rows:
                 gait_history = np.array(gait_rows)
-                violations = (gait_history[:, :, :4] < cfg.gait.min_signed_foot_y).any(-1)
+                violations = (gait_history[:, :, :foot_count] < cfg.gait.min_signed_foot_y).any(-1)
                 summary.update(
                     gait_pass_fraction=float((~violations.any(axis=0)).mean()),
-                    min_signed_foot_y=float(gait_history[:, :, :4].min()),
-                    mean_contact_slip_m_s=float(gait_history[min(50, len(rows) - 1) :, :, 8].mean()),
+                    min_signed_foot_y=float(gait_history[:, :, :foot_count].min()),
+                    mean_contact_slip_m_s=float(gait_history[min(50, len(rows) - 1) :, :, 2 * foot_count].mean()),
                     steps_per_foot=steps_per_foot.tolist(),
                 )
         (args.output / "summary.json").write_text(json.dumps(summary, indent=2))

@@ -1,5 +1,23 @@
 # Go2: rigid, RFT and MPM policy comparisons
 
+## Paired commands: recording refresh in progress
+
+The same policies trained with a 1.0 m/s maximum are being evaluated at **both 1.0 and 0.5 m/s**.
+Each of the four terrain panels will contain two regenerated 10 s videos, with matching tracking plots.
+Video banners retain the command, measured velocity, time and height; the failure field is removed.
+Failure checks remain in the numerical results and page captions.
+
+The new MPM recordings use a **12 × 3.2 × 0.118 m** bed at both commands. An initial 0.5 m/s trial in
+the narrower 1.6 m bed reached its interior margin at 7.2 s and crossed the body-clearance threshold at
+9.38 s after leaving the bed; that clip is excluded. The earlier 1.0 m/s failure occurred at 0.62 s,
+well before a boundary was reached. The saved traces show loss of clearance before the later rollover.
+Controlled 2 s tests vary substeps and coupling passes while holding the policy, material, bed and seed fixed.
+MPM convergence and equivalence remain unvalidated.
+
+The [Go2 report](http://localhost:18010/report/) publishes each replacement after decoding, command,
+boundary and numerical-capacity checks. G1 implementation and smoke checks are documented in
+[G1_RFT_STATUS.md](G1_RFT_STATUS.md); its full study follows completion of these Go2 comparisons.
+
 ## Current study: forward commands up to 1.0 m/s
 
 Both fresh training runs have completed **1,500 PPO iterations with 4,096 environments and seed 42**. RFT reached the full material curriculum. The rigid policy passed the specified acceptance checks; RFT still failed standing drift and loaded-foot slip. Forward commands are reset-uniform over **0.1–1.0 m/s** from the first episode, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing. There is no command curriculum. RFT retains its material curriculum and reset-randomized 0–118 mm layers. The previous policies used a maximum forward command of 0.5 m/s.

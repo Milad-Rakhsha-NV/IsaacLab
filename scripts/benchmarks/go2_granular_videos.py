@@ -16,7 +16,7 @@ PRIMARY_VIDEOS = (
         "Rigid-trained policy on a rigid floor",
         "Rigid ground",
         "Rigid floor",
-        "The rigid-ground policy is evaluated at the maximum forward command from training. "
+        "The rigid-ground policy is evaluated at the requested forward commands. "
         "This is the rigid-surface reference for the sand recordings.",
         "The same rigid-trained weights are also tested in the rigid-policy-on-MPM clip. "
         "Comparing those two clips shows how this baseline transfers from a floor to sand.",
@@ -56,73 +56,69 @@ PRIMARY_VIDEOS = (
 )
 
 
-def render_videos(root: Path, cases: list[dict], gait: dict, *, url_prefix: str = "../") -> str:
-    """Describe only the final comparison clips; retain provenance in collapsed details."""
+def video_cases(speeds: tuple[float, ...] = (1.0,)) -> list[tuple[str, str, float]]:
+    """Name speed variants consistently across recording, dashboards and plots."""
+    return [
+        (name if index == 0 else f"{name}_cmd_{speed:g}".replace(".", "p"), name, speed)
+        for name, *_ in PRIMARY_VIDEOS
+        for index, speed in enumerate(speeds)
+    ]
+
+
+def render_videos(
+    root: Path,
+    cases: list[dict],
+    gait: dict,
+    *,
+    url_prefix: str = "../",
+    speeds: tuple[float, ...] = (1.0,),
+    robot: str = "Go2",
+) -> str:
+    """Group matched commands under each training/evaluation terrain combination."""
     by_name = {case["case"]: case for case in cases}
     cards = []
-    for name, title, training_terrain, evaluation_terrain, description, interpretation in PRIMARY_VIDEOS:
-        if name not in by_name or not (root / name / "rollout.mp4").exists():
-            cards.append(f"<article><h3>{html.escape(title)}</h3><p>Recording pending.</p></article>")
-            continue
-        version = int((root / name / "rollout.mp4").stat().st_mtime)
-        case = by_name[name]
-        duration = case["simulated_seconds"]
-        failure = case["first_failure_seconds"]
-        outcome = (
-            f"No failure threshold reached during {duration:g} s"
-            if failure is None
-            else f"Failure threshold reached at {failure:.2f} s"
-        )
-        diagnostic = gait.get(name)
-        gait_text = ""
-        if diagnostic and diagnostic["reversed_rear_foot_order_fraction"] > 0:
-            gait_text = (
-                f" Rear feet cross at {diagnostic['first_rear_foot_order_reversal_s']:.2f} s and their "
-                f"left/right order stays reversed in {diagnostic['reversed_rear_foot_order_fraction']:.1%} of frames."
+    variants = video_cases(speeds)
+    for base, title, training, terrain, description, interpretation in PRIMARY_VIDEOS:
+        if robot != "Go2":
+            description = description.replace("Go2", robot).replace(", half the knee-to-sole length", "")
+        clips = []
+        for name, role, speed in variants:
+            if role != base:
+                continue
+            clip = root / name / "rollout.mp4"
+            if name not in by_name or not clip.exists():
+                clips.append(f"<div><h4>Command: {speed:.2f} m/s forward</h4><p>Recording pending.</p></div>")
+                continue
+            case = by_name[name]
+            command = case["commands"][0]
+            version = int(clip.stat().st_mtime)
+            duration = case["simulated_seconds"]
+            failure = case["first_failure_seconds"]
+            outcome = (
+                f"No failure threshold reached in {duration:g} s"
+                if failure is None
+                else f"First failure threshold: {failure:.2f} s"
             )
-        elif diagnostic:
-            gait_text = f" Mean rear-foot spacing: {100 * diagnostic['mean_rear_foot_separation_m']:.1f} cm."
-        checkpoint = html.escape(str(case["checkpoint"]))
-        command = case.get("commands", [])
-        commands = "Command history is included in the evaluation data."
-        if command and len(command) == 1 and not case.get("command_schedule"):
-            forward, lateral, yaw = command[0]
-            limit = case.get("training_forward_command_range", (0.1, 0.5))[1]
-            maximum = " (training maximum)" if abs(forward - limit) < 1e-6 else ""
-            commands = f"Forward command: {forward:.2f} m/s{maximum}; lateral: {lateral:.2f} m/s; yaw: {yaw:.2f} rad/s."
-        depth = case.get("substrate_depth") if case["field"] == "rft" else case.get("bed_depth")
-        layer = f"Initial sand depth: {1000 * depth:g} mm. " if case["field"] != "rigid" and depth is not None else ""
-        boundary = ""
-        if case["field"] == "mpm":
-            exit_time = case.get("first_bed_exit_seconds")
-            boundary = (
-                f" The body entered the bed-edge margin at {exit_time:.2f} s."
-                if exit_time is not None
-                else " The body stayed within the bed's interior margin."
+            clips.append(
+                f"<div><h4>Command: {command[0]:.2f} m/s forward</h4>"
+                f"<video controls preload='metadata' src='{url_prefix}{name}/rollout.mp4?v={version}' "
+                f"poster='{url_prefix}{name}/preview.jpg?v={version}' "
+                f"aria-label='{html.escape(title)} at {speed:g} m/s'></video>"
+                f"<p>Mean planar tracking error: <strong>{case['mean_velocity_error']:.3f} m/s</strong>. {outcome}.</p>"
+                "<details><summary>Recording details and numerical data</summary>"
+                f"<p>{duration:g} s; lateral command {command[1]:.2f} m/s; yaw {command[2]:.2f} rad/s. "
+                "Sand depth is 118 mm. Failure means low body clearance, excessive tilt or nonfinite position. "
+                "The rollout continues without resets; metrics include time after failure. "
+                "Green arrows show granular body forces.</p>"
+                f"<p>Checkpoint: <code>{html.escape(str(case['checkpoint']))}</code></p>"
+                f"<p><a href='{url_prefix}{name}/summary.json'>Evaluation data</a></p></details></div>"
             )
         cards.append(
             f"<article><h3>{html.escape(title)}</h3>"
-            f"<p><strong>Policy trained on:</strong> {html.escape(training_terrain)}<br>"
-            f"<strong>Terrain simulated in this video:</strong> {html.escape(evaluation_terrain)}</p>"
+            f"<p><strong>Training:</strong> {html.escape(training)}. "
+            f"<strong>Evaluation:</strong> {html.escape(terrain)}.</p>"
             f"<p>{html.escape(description)}</p>"
-            f"<p><strong>{commands} {layer}</strong></p>"
-            f"<video controls preload='metadata' src='{url_prefix}{name}/rollout.mp4?v={version}' "
-            f"poster='{url_prefix}{name}/preview.jpg?v={version}' aria-label='{html.escape(title)}'></video>"
-            f"<p><strong>{outcome}.</strong> Mean planar velocity error: "
-            f"{case['mean_velocity_error']:.3f} m/s.{gait_text}{boundary}</p>"
-            f"<p>{html.escape(interpretation)}</p>"
-            "<details><summary>Recording details</summary>"
-            f"<p>Duration: {duration:g} s. "
-            "Failure means body height below 0.16 m above the initial surface, excessive tilt "
-            "(projected gravity z greater than −0.3), or nonfinite position. The rollout continues without resets. "
-            "Errors cover the full recording, including any interval after a failure. "
-            "Green arrows show granular body forces; the rigid-floor clip has no granular load.</p>"
-            f"<p>Saved policy: <code>{checkpoint}</code></p>"
-            f"<p><a href='{url_prefix}{name}/summary.json'>Evaluation data</a></p></details></article>"
+            "<div class='paired-videos'>" + "".join(clips) + "</div>"
+            f"<p>{html.escape(interpretation)}</p></article>"
         )
-    main = (
-        "<div class='video-grid'>" + "".join(cards) + "</div>"
-        if cards
-        else "<p>The four maximum-forward-command recordings are being generated.</p>"
-    )
-    return main
+    return "<div class='video-grid'>" + "".join(cards) + "</div>"

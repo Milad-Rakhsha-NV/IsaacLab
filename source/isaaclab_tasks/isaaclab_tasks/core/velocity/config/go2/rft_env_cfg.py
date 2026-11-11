@@ -64,6 +64,7 @@ class Go2GaitCfg:
     foot_sliding_weight = 0.1
     air_time_weight = 0.25
     air_time_target = 0.3
+    biped_air_time = False
     undesired_contact_weight = 1.0
     stance_weight = 20.0
     stance_half_width = 0.10
@@ -86,9 +87,16 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     state_space = 48
     action_scale = 0.25
     target_height = 0.32
+    minimum_base_height = 0.16
+    effort_weight = 0.0002
+    foot_body_names = ("FL_foot", "FR_foot", "RL_foot", "RR_foot")
+    foot_side_signs = (1.0, -1.0, 1.0, -1.0)
+    hip_joint_pattern = ".*_hip_joint"
+    undesired_contact_pattern = ".*_(hip|thigh|calf)|base"
     randomize_material = True
     randomize_commands = True
     observation_noise = True
+    actor_observes_linear_velocity = False
     command_speed = 0.35
     forward_command_range: tuple[float, float] = (0.1, 0.5)
     """Forward velocity command bounds [m/s], sampled at reset without a command curriculum."""
