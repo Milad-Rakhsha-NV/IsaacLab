@@ -1,4 +1,35 @@
-# Go2: maximum-forward rigid, RFT and MPM comparison
+# Go2: rigid, RFT and MPM policy comparisons
+
+## Current study: forward commands up to 1.0 m/s
+
+Both policies start fresh with **4,096 environments, 1,500 PPO iterations and seed 42**. Forward commands are reset-uniform over **0.1–1.0 m/s** from the first episode, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing. There is no command curriculum. RFT retains its material curriculum and reset-randomized 0–118 mm layers. The previous policies used a maximum forward command of 0.5 m/s.
+
+- [Live training and evaluation status](http://localhost:18010/live/).
+- [Current report](http://localhost:18010/report/).
+- [Automatically updated Markdown status](http://localhost:18010/max1/STATUS.md).
+- [Previous 0.5 m/s report and four recordings](http://localhost:18010/previous_0p5_report/).
+
+New training runs are `go2_rigid_max1/2026-11-11_08-33-41` and `go2_rft_max1/2026-11-11_08-33-41` under `logs/rsl_rl/`. Core training source is `66afe5d303`. The two native task tests pass; the command-range regression fails with the previous hard-coded sampler. A 16-environment, three-iteration PPO smoke confirms the new range in the saved configuration. The extended MPM bed also has a dedicated inference smoke test.
+
+After both training services finish, `run_go2_speed_comparison.py` checks stand, 0.5 m/s and 1.0 m/s commands, plus three held-out reset-randomization banks per policy. It generates exactly four 10 s videos at **1.0 m/s forward, zero lateral and zero yaw**: rigid policy / rigid floor, RFT policy / RFT field, RFT policy / MPM sand, and rigid policy / MPM sand. The MPM videos use a prepared **12 × 1.6 × 0.118 m** bed, PIC transfer, 20 mm grid, four substeps, 50 stress iterations and one coupling pass with relaxation 0.1. MPM remains inference-only. Both MPM policies use identical material and numerical settings.
+
+The pipeline also repeats the three-material tracking and support-force comparison at 1.0 m/s using the new frozen checkpoints. Short material trials use a 5 × 1.6 m bed. The earlier standalone force-convergence checks are retained; **MPM material equivalence remains unvalidated**. Acceptance failures are reported independently of training-budget completion and video generation. Each new video is published after its file, command and decoded-frame checks pass; remaining recordings stay clearly marked as pending. Physical failures remain visible.
+
+The training and evaluation jobs run as durable services: `go2-max1-rigid-training`, `go2-max1-rft-training` and `go2-max1-evaluation`. Logs are `/training/rigid-max1.log`, `/training/rft-max1.log` and `/training/max1-evaluation.log`. Use the existing SSH tunnel described below. Generated artifacts stay under ignored `logs/go2_granular/max1/` paths.
+
+```bash
+uv run --no-sync isaaclab train --rl_library rsl_rl \
+  --task Isaac-Velocity-Flat-UnitreeGo2-Rigid-Direct \
+  --num_envs 4096 --max_iterations 1500 --seed 42 \
+  --experiment_name go2_rigid_max1 'env.forward_command_range=[0.1,1.0]'
+
+uv run --no-sync isaaclab train --rl_library rsl_rl \
+  --task Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct \
+  --num_envs 4096 --max_iterations 1500 --seed 42 \
+  --experiment_name go2_rft_max1 'env.forward_command_range=[0.1,1.0]'
+```
+
+## Previous study: forward commands up to 0.5 m/s
 
 Updated November 11, 2026 (Pacific). **RFT training finished 1,500 iterations with 4,096 environments and the full material curriculum.** The final checkpoint is not accepted as converged: standing drift, loaded-foot slip, foot placement and stepping criteria failed. The report now compares the current policies at the maximum forward command; previous RFT/MPM experiments remain excluded.
 

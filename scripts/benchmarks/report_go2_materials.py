@@ -343,9 +343,9 @@ def rate_report(data):
     return result
 
 
-def foot_geometry(phase, row):
+def foot_geometry(phase, row, *, data_root=ROOT):
     """Measure the task's 10 mm lateral-foot margin from recorded body poses."""
-    folder = ROOT / phase / row["name"]
+    folder = data_root / phase / row["name"]
     with np.load(folder / "rollout.npz") as data:
         poses = data["body_pose"]
     labels = row["summary"]["body_labels"]
@@ -364,15 +364,15 @@ def foot_geometry(phase, row):
     return dict(minimum_signed_foot_y_m=minimum, foot_placement_pass=minimum >= 0.01)
 
 
-def policy_report():
+def policy_report(policy_root=ROOT, output_root=ROOT, *, speed=0.5):
     """Read frozen-policy studies and quantify tracking and load support."""
     result = {}
     for phase in ("coupling", "materials", "reference"):
-        path = ROOT / f"{phase}-status.json"
+        path = policy_root / f"{phase}-status.json"
         result[phase] = json.loads(path.read_text())["results"] if path.exists() else []
         if phase in ("materials", "reference"):
             for row in result[phase]:
-                row["foot_geometry"] = foot_geometry(phase, row)
+                row["foot_geometry"] = foot_geometry(phase, row, data_root=policy_root)
     fig, axes = plt.subplots(1, 2, figsize=(13, 4))
     labels = ("lower-density-friction", "nominal", "higher-density-friction")
     x = np.arange(3)
@@ -395,7 +395,7 @@ def policy_report():
         xticks=x,
         xticklabels=("Lower density / friction", "Nominal", "Higher density / friction"),
         ylabel="Mean planar tracking error [m/s]",
-        title="Frozen policies: 0.50 m/s command, 3 s",
+        title=f"Frozen policies: {speed:.2f} m/s command, 3 s",
     )
     axes[0].legend(fontsize=8)
     rows = result["materials"]
@@ -415,7 +415,7 @@ def policy_report():
     for ax in axes:
         ax.grid(axis="y", alpha=0.2)
     fig.tight_layout()
-    fig.savefig(ROOT / "policy-and-support.png", dpi=150)
+    fig.savefig(output_root / "policy-and-support.png", dpi=150)
     plt.close(fig)
     if result["coupling"]:
         fig, ax = plt.subplots(figsize=(11, 4))
@@ -431,11 +431,11 @@ def policy_report():
             xticks=np.arange(len(labels)),
             xticklabels=labels,
             ylabel="Mean planar error [m/s]",
-            title="Coupling sensitivity: same frozen RFT policy, 2 s at 0.50 m/s",
+            title=f"Coupling sensitivity: same frozen RFT policy, 2 s at {speed:.2f} m/s",
         )
         ax.grid(axis="y", alpha=0.2)
         fig.tight_layout()
-        fig.savefig(ROOT / "coupling.png", dpi=150)
+        fig.savefig(output_root / "coupling.png", dpi=150)
         plt.close(fig)
     return result
 
@@ -443,6 +443,9 @@ def policy_report():
 def main(final=False):
     """Publish numerical gates and exploratory comparisons with explicit limits."""
     data = records()
+    policy_video_href = (
+        "../previous_0p5_report/" if (ROOT.parent / "previous_0p5_report/index.html").exists() else "../report/"
+    )
     checks = numerical_report(data)
     fit = fit_response(data)
     rate = rate_report(data)
@@ -524,7 +527,8 @@ def main(final=False):
         "color:#0f172a}img{width:100%}table{border-collapse:collapse;background:white}"
         "th,td{padding:8px;border:1px solid #aaa}"
         ".status{padding:16px;background:#fff7ed}a{color:#1d4ed8}</style><h1>Go2: material-model investigation</h1>"
-        '<p><a href="../report/">Four policy videos</a> · <a href="coupling.html">Coupling sensitivity</a> · '
+        f'<p><a href="{policy_video_href}">Original 0.5 m/s policy videos</a> · '
+        '<a href="coupling.html">Coupling sensitivity</a> · '
         '<a href="materials.html">Material-bank policy evaluation</a></p>'
         f"<p class='status'>Completed: {len(data)}/50 force probes, "
         f"{len(policies['materials'])}/6 material-policy trials, "

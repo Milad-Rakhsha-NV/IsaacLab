@@ -16,9 +16,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from go2_granular_videos import render_videos
+from monitor_go2_granular import load_study
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 ROOT = Path("logs/go2_granular")
+STUDY = load_study()
+CASE_ROOT = ROOT / STUDY.get("case_directory", "")
+MAX_COMMAND = STUDY.get("max_forward_command", 0.5)
+FAMILIES = {row[0]: row[2] for row in STUDY.get("runs", [])}
+MEDIA_PREFIX = f"../{STUDY['case_directory']}/" if STUDY.get("case_directory") else "../"
 OUT = ROOT / "report"
 OUT.mkdir(parents=True, exist_ok=True)
 plt.rcParams.update({"font.size": 10, "axes.spines.top": False, "axes.spines.right": False})
@@ -63,13 +69,13 @@ def training_figure(family: str, title: str, name: str, extra_tags: tuple) -> di
 
 
 rigid = training_figure(
-    "go2_rigid_gait_control",
-    "Validated rigid-ground control",
+    FAMILIES.get("rigid", "go2_rigid_gait_control"),
+    "Rigid-ground training",
     "rigid-training.png",
     (("Metrics/min_foot_clearance", "Foot clearance from body centerline [m]"), ("Perf/total_fps", "Transitions/s")),
 )
 rft = training_figure(
-    "go2_rft_knee_depth_curriculum",
+    FAMILIES.get("rft", "go2_rft_knee_depth_curriculum"),
     "RFT training: shared gait criteria and reset-randomized 0–118 mm layers",
     "rft-training.png",
     (
@@ -95,9 +101,11 @@ case_names = (
     "rft_knee_depth_commands_456",
     "rft_knee_depth_commands_789",
 )
+if STUDY:
+    case_names = (*case_names[:4], *STUDY.get("validation_cases", []))
 cases = []
 for name in case_names:
-    path = ROOT / name / "summary.json"
+    path = CASE_ROOT / name / "summary.json"
     if path.exists():
         cases.append(dict(case=name, **json.loads(path.read_text())))
 
@@ -105,7 +113,7 @@ gait = {}
 for case in cases:
     if case["case"] not in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward", "rigid_mpm_max_forward"):
         continue
-    with np.load(ROOT / case["case"] / "rollout.npz") as data:
+    with np.load(CASE_ROOT / case["case"] / "rollout.npz") as data:
         poses = data["body_pose"]
         labels = case["body_labels"]
         base = poses[:, next(i for i, label in enumerate(labels) if label.endswith("/base"))]
@@ -132,16 +140,21 @@ forward_labels = {
     "mpm_max_forward": "RFT policy / MPM sand",
     "rigid_mpm_max_forward": "Rigid policy / MPM sand",
 }
-forward_cases = [case for case in cases if case["case"] in forward_labels]
+ready_cases = [
+    case
+    for case in cases
+    if not STUDY or STUDY.get("videos_ready") or case["case"] in STUDY.get("published_videos", [])
+]
+forward_cases = [case for case in ready_cases if case["case"] in forward_labels]
 forward_figure = ""
 if forward_cases:
     fig, axes = plt.subplots(1, 3, figsize=(13, 3.5))
     for case in forward_cases:
-        with np.load(ROOT / case["case"] / "rollout.npz") as data:
+        with np.load(CASE_ROOT / case["case"] / "rollout.npz") as data:
             state = data["state"][:, 0]
             for ax, column in zip(axes, (4, 8, 7), strict=True):
                 ax.plot(state[:, 0], state[:, column], label=forward_labels[case["case"]])
-    axes[0].axhline(0.5, color="grey", linestyle="--", label="Forward command")
+    axes[0].axhline(MAX_COMMAND, color="grey", linestyle="--", label="Forward command")
     axes[0].legend(fontsize=7)
     height_limit = axes[2].axhline(0.16, color="grey", linestyle=":", label="Body-height failure threshold")
     axes[2].legend(handles=[height_limit], fontsize=7, loc="upper right")
@@ -153,13 +166,13 @@ if forward_cases:
     save(fig, "forward-comparison.png")
     forward_figure = (
         "<h2>Maximum-forward comparison</h2>"
-        "<p>All clips command 0.50 m/s forward with zero lateral and yaw commands. "
+        f"<p>All clips command {MAX_COMMAND:.2f} m/s forward with zero lateral and yaw commands. "
         "The curves include the initial acceleration and any time after a fall.</p>"
         "<img src='forward-comparison.png' alt='Speed, tracking error and body height for the four recordings'>"
     )
 
-rigid_status_path = ROOT / "training/evaluation_status.json"
-rft_status_path = ROOT / "training/rft-evaluation-status.json"
+rigid_status_path = ROOT / STUDY.get("status_file", "training/evaluation_status.json")
+rft_status_path = ROOT / STUDY.get("status_file", "training/rft-evaluation-status.json")
 rigid_status = json.loads(rigid_status_path.read_text()) if rigid_status_path.exists() else {}
 rft_status = json.loads(rft_status_path.read_text()) if rft_status_path.exists() else {}
 (OUT / "results.json").write_text(
@@ -183,6 +196,25 @@ figures = "".join(
     if (rft if name == "rft-training.png" else rigid) is not None
 )
 new_status = rft_status.get("stage", "New RFT training is being prepared; final recordings follow training.")
+previous_note = "<p><a href='../previous_0p5_report/'>Previous 0.5 m/s recordings and results</a></p>" if STUDY else ""
+material_comparison = (
+    f"<h2>Material comparison at {MAX_COMMAND:.2f} m/s</h2>"
+    "<p>Both new policies are frozen and tested for 3 s at each material setting, using seed 123. "
+    "Lower: 1,400 kg/m³, friction 0.3, surface/internal ratio 0.6, depth 60 mm. "
+    "Nominal: 1,600, 0.4, 1.0, 118 mm. Higher: 1,800, 0.5, 0.8, 100 mm. "
+    "The dotted line evaluates the RFT policy in RFT; bars evaluate both policies in MPM. "
+    "These are exploratory short trials. MPM numerical validation remains incomplete.</p>"
+    "<img src='policy-and-support.png' alt='New-policy material tracking and granular versus floor support'>"
+    f"<p><a href='../{STUDY.get('case_directory', '')}/materials/materials.html'>MPM trial records</a></p>"
+    if STUDY.get("material_comparison_ready")
+    else ""
+)
+recording_text = (
+    f"Four 10 s recordings {'command' if STUDY.get('videos_ready') else 'will command'} {MAX_COMMAND:.2f} m/s forward. "
+    "The two policies share a 4,096-environment, 1,500-iteration training budget."
+    if STUDY
+    else "Four 10 s recordings use the maximum forward command, 0.50 m/s."
+)
 gate_labels = {
     "no_falls": "no falls",
     "foot_placement": "foot placement",
@@ -203,6 +235,13 @@ validation_note = (
     if failed_gates
     else ""
 )
+rigid_failed = [
+    gate_labels.get(key, key) for key, passed in rigid_status.get("rigid_validation_gates", {}).items() if not passed
+]
+if rigid_failed:
+    validation_note += (
+        "<p><strong>Rigid validation remains incomplete.</strong> Failed checks: " + ", ".join(rigid_failed) + ".</p>"
+    )
 material_analysis_path = ROOT / "investigation/analysis.json"
 material_analysis = json.loads(material_analysis_path.read_text()) if material_analysis_path.exists() else None
 material_note = (
@@ -214,6 +253,11 @@ material_note = (
     if material_analysis and not material_analysis["mpm_reference_accepted"]
     else ""
 )
+if STUDY and material_note:
+    material_note += (
+        "<p>The linked material investigation retains its earlier 0.5 m/s policy comparisons. "
+        "Its standalone force-convergence checks do not depend on the new training command range.</p>"
+    )
 (OUT / "index.html").write_text(
     """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Go2: maximum-forward policy comparison</title>
@@ -224,8 +268,8 @@ article,figure{background:white;padding:20px;margin:0 0 24px;border-radius:10px}
 h1,h2,h3{line-height:1.2}h3{margin-top:0}details{margin:12px 0}summary,a{color:#1d4ed8}
 code{overflow-wrap:anywhere}.status{padding:16px;background:#dbeafe}</style>
 <h1>Go2: maximum-forward policy comparison</h1>
-<p>The rigid-ground control passed standing, walking, maximum-speed, steering and held-out command tests.
-The new RFT run uses the same robot, self-collision, posture and foot-placement criteria.</p>
+<p>The rigid and RFT runs use the same robot, self-collision, posture and foot-placement criteria.
+Their standing, tracking, slip and stepping acceptance checks are reported separately.</p>
 <p>The Go2 knee-to-sole length is approximately 236 mm. Each resetting environment samples
 <strong>0–118 mm of sand above a rigid floor</strong>, capped at half that length from the first reset.
 Density, friction and strength have a performance-gated curriculum;
@@ -236,6 +280,7 @@ style="max-width:520px;display:block;margin:auto"></details>
 <p class="status">"""
     + new_status
     + "</p>"
+    + previous_note
     + validation_note
     + material_note
     + (
@@ -247,12 +292,15 @@ style="max-width:520px;display:block;margin:auto"></details>
     + """
 <p><a href="../live/">Live status and learning curves</a></p>
 <h2>Current policy recordings</h2>
-<p>Four 10 s recordings use the maximum forward command, 0.50 m/s. There are two frozen policies:
-one trained on a rigid floor and one trained in randomized RFT sand. Neither was trained in MPM.
+<p>"""
+    + recording_text
+    + """ There are two frozen policies: one trained on a rigid floor and one trained in randomized RFT sand.
+Neither was trained in MPM.
 Each policy is first shown in its training simulator and then in the same MPM sand bed, without fine-tuning.
 All sand beds start at 118 mm depth with density 1,600 kg/m³ and nominal friction 0.4.</p>"""
-    + render_videos(ROOT, cases, gait)
+    + render_videos(CASE_ROOT, ready_cases, gait, url_prefix=MEDIA_PREFIX)
     + forward_figure
+    + material_comparison
     + "<h2>Training curves</h2>"
     + figures
     + """<details><summary>Material randomization and contact criteria</summary>

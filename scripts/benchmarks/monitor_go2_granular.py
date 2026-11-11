@@ -49,13 +49,22 @@ TAGS = (
 )
 
 
+def load_study() -> dict:
+    """Read the active comparison manifest; absent manifests retain the original study."""
+    path = ROOT / "current-study.json"
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
 def refresh() -> None:
     """Publish an atomic snapshot; missing events mean a job has not started logging yet."""
     OUT.mkdir(parents=True, exist_ok=True)
     now = datetime.now(UTC)
+    study = load_study()
+    case_root = ROOT / study.get("case_directory", "")
+    url_prefix = f"../{study['case_directory']}/" if study.get("case_directory") else "../"
     rows = []
     fig, axes = plt.subplots(2, 3, figsize=(14, 7))
-    for key, label, family, unit, target in RUNS:
+    for key, label, family, unit, target in study.get("runs", RUNS):
         result = subprocess.run(
             ["systemctl", "--user", "show", unit, "-p", "ActiveState,Result,ExecMainStatus"],
             capture_output=True,
@@ -118,16 +127,16 @@ def refresh() -> None:
     fig.savefig(OUT / "curves.tmp", format="png", dpi=130)
     plt.close(fig)
     (OUT / "curves.tmp").replace(OUT / "curves.png")
-    evaluation_path = ROOT / "training/evaluation_status.json"
+    evaluation_path = ROOT / study.get("status_file", "training/evaluation_status.json")
     evaluation = json.loads(evaluation_path.read_text()) if evaluation_path.exists() else {}
     rft_evaluation_path = ROOT / "training/rft-evaluation-status.json"
-    if rft_evaluation_path.exists():
+    if not study and rft_evaluation_path.exists():
         rft_evaluation = json.loads(rft_evaluation_path.read_text())
         evaluation["stage"] = rft_evaluation["stage"]
         evaluation["cases"] = evaluation.get("cases", []) + rft_evaluation.get("cases", [])
         evaluation["rft_validation_gates"] = rft_evaluation.get("rft_validation_gates")
     for name in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward", "rigid_mpm_max_forward"):
-        path = ROOT / name / "summary.json"
+        path = case_root / name / "summary.json"
         if path.exists():
             evaluation.setdefault("cases", []).append(dict(case=name, **json.loads(path.read_text())))
     # Keep the live snapshot compact; per-body/material manifests stay in the case summaries.
@@ -141,6 +150,7 @@ def refresh() -> None:
                 "simulated_seconds",
                 "command_schedule",
                 "commands",
+                "training_forward_command_range",
                 "substrate_depth",
                 "bed_depth",
                 "first_bed_exit_seconds",
@@ -159,6 +169,8 @@ def refresh() -> None:
     cards = []
     for row in rows:
         metrics = row["metrics"]
+        legacy_log = "rigid-gait.log" if row["key"] == "rigid" else "rft-knee-depth.log"
+        log_name = study.get("log_files", {}).get(row["key"], legacy_log)
         difficulty = metrics.get("Curriculum/difficulty", 0)
         error = metrics.get("Metrics/velocity_error")
         error_text = f"{error:.3f} m/s" if error is not None else "Waiting for episodes"
@@ -177,10 +189,15 @@ def refresh() -> None:
             f"<p>{row['transitions'] / 1e6:.1f} million transitions · Training error: {error_text}<br>{material}<br>"
             "</p><details><summary>Run details</summary>"
             f"<p>Last checkpoint: {row['checkpoint']} · Event age: {row['event_age_seconds']} s</p>"
-            f"<a href='../training/{'rigid-gait' if row['key'] == 'rigid' else 'rft-knee-depth'}.log'>"
+            f"<a href='../training/{log_name}'>"
             "Training log</a></details></article>"
         )
-    videos = render_videos(ROOT, evaluation.get("cases", []), gait)
+    ready_cases = [
+        case
+        for case in evaluation.get("cases", [])
+        if not study or study.get("videos_ready") or case["case"] in study.get("published_videos", [])
+    ]
+    videos = render_videos(case_root, ready_cases, gait, url_prefix=url_prefix)
     evaluation_text = html.escape(evaluation.get("stage", "Validation pipeline has not started"))
     verdict = ""
     if "rigid_control_accepted" in evaluation:
@@ -212,7 +229,8 @@ def refresh() -> None:
         "two consecutive windows of at least 4,096 qualifying episodes. Training curves do not establish "
         "held-out convergence or MPM transfer.</p><p>Full target: density 1,400–1,800 kg/m³; friction 0.3–0.5; "
         "roughness 0.6–1.0; strength multiplier 0.8–1.2; layer depth 0–118 mm above a fixed floor. "
-        "Commands: forward 0.1–0.5 m/s, lateral ±0.1 m/s, yaw ±0.3 rad/s; 10% standing.</p>"
+        f"Commands: forward 0.1–{study.get('max_forward_command', 0.5):g} m/s, "
+        "lateral ±0.1 m/s, yaw ±0.3 rad/s; 10% standing.</p>"
         '<p><a href="../report/">Study report and graphs</a></p>'
         "<script>setInterval(()=>{if(![...document.querySelectorAll('video')].some(v=>!v.paused&&!v.ended))"
         "location.reload()},30000)</script>"

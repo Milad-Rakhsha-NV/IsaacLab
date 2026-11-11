@@ -41,6 +41,7 @@ parser.add_argument("--randomize", action="store_true")
 parser.add_argument("--segments", type=int, default=12)
 parser.add_argument("--voxel_size", type=float, default=0.02)
 parser.add_argument("--speed", type=float, default=0.3)
+parser.add_argument("--max_forward_command", type=float, default=0.5)
 parser.add_argument("--density", type=float, default=1600.0)
 parser.add_argument("--friction", type=float, default=0.4)
 parser.add_argument("--roughness", type=float, default=1.0)
@@ -59,6 +60,7 @@ parser.add_argument("--mpm_modulus", type=float, default=1e15)
 parser.add_argument("--substeps", type=int, default=4)
 parser.add_argument("--bed_depth", type=float, default=0.4)
 parser.add_argument("--bed_length", type=float, default=2.0, help="MPM bed length along the forward axis [m].")
+parser.add_argument("--bed_width", type=float, default=1.2)
 parser.add_argument(
     "--substrate_depth", type=float, default=None, help="Optional RFT layer thickness; zero tests rigid limit."
 )
@@ -79,11 +81,12 @@ cfg.surface_relative_height = True
 cfg.material_difficulty = args.difficulty
 cfg.observation_noise = False
 cfg.command_speed = 0.0 if args.stand else args.speed
+cfg.forward_command_range = (0.1, args.max_forward_command)
 schedule = (
     (
         (0.0, (0.0, 0.0, 0.0), "Stand"),
         (3.0, (0.3, 0.0, 0.0), "Walk"),
-        (10.0, (0.5, 0.0, 0.0), "Maximum forward command"),
+        (10.0, (args.max_forward_command, 0.0, 0.0), "Maximum forward command"),
         (17.0, (0.3, 0.1, 0.0), "Walk and move left"),
         (23.0, (0.3, 0.0, 0.3), "Walk and turn"),
         (29.0, (0.0, 0.0, 0.0), "Stop"),
@@ -141,7 +144,7 @@ if args.field == "mpm":
     cfg.scene.floor = AssetBaseCfg(
         prim_path="/World/Floor",
         spawn=CuboidCfg(
-            size=(args.bed_length + 0.4, 1.6, 0.1),
+            size=(args.bed_length + 0.4, args.bed_width + 0.4, 0.1),
             collision_props=UsdPhysicsCollisionCfg(collision_enabled=True),
             physics_material=Go2RigidEnvCfg().scene.substrate.spawn.physics_material,
             visual_material=PreviewSurfaceCfg(diffuse_color=(0.3, 0.3, 0.3)),
@@ -151,8 +154,8 @@ if args.field == "mpm":
     cfg.scene.sand = MPMObjectCfg(
         prim_path="{ENV_REGEX_NS}/Sand",
         spawn=MPMGridCfg(
-            lower=(-0.7, -0.6, -args.bed_depth),
-            upper=(args.bed_length - 0.7, 0.6, 0),
+            lower=(-0.7, -args.bed_width / 2, -args.bed_depth),
+            upper=(args.bed_length - 0.7, args.bed_width / 2, 0),
             voxel_size=args.voxel_size,
             particles_per_cell=2,
             particle_placement="cell_center",
@@ -185,7 +188,12 @@ if args.field == "mpm":
                         separate_worlds=True,
                         max_active_cell_count=max(
                             1 << 19,
-                            1 << int(np.ceil(np.log2(2.4 * args.bed_length * args.bed_depth / args.voxel_size**3))),
+                            1
+                            << int(
+                                np.ceil(
+                                    np.log2(2 * args.bed_width * args.bed_length * args.bed_depth / args.voxel_size**3)
+                                )
+                            ),
                         ),
                         max_leaf_node_count=1 << 15,
                         max_lower_node_count=1 << 11,
@@ -493,7 +501,7 @@ with launch_simulation(cfg):
                 and (
                     np.any(local_p[:, 0] > args.bed_length - 1.0)
                     or np.any(local_p[:, 0] < -0.4)
-                    or np.any(np.abs(local_p[:, 1]) > 0.35)
+                    or np.any(np.abs(local_p[:, 1]) > args.bed_width / 2 - 0.25)
                 )
             ):
                 first_exit = (step + 1) * env.step_dt
@@ -621,10 +629,12 @@ with launch_simulation(cfg):
             bottom_contact_sampling="geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
             bed_depth=args.bed_depth,
             bed_length=args.bed_length if mpm is not None else None,
+            bed_width=args.bed_width if mpm is not None else None,
             density=args.density,
             internal_friction=args.friction,
             roughness=args.roughness,
             commands=command_manifest,
+            training_forward_command_range=list(cfg.forward_command_range),
             command_schedule=schedule,
             material_parameters=material_manifest,
             surface_heights=height_manifest,

@@ -41,6 +41,25 @@ def latest_checkpoint(family: str) -> Path | None:
     return max(paths, key=lambda path: int(path.stem.split("_")[-1])) if paths else None
 
 
+def validation_gates(
+    checks: list[dict], video: dict | None = None, *, material_difficulty: float | None = None
+) -> dict:
+    """Apply the study's standing, locomotion and capacity criteria to measured trials."""
+    cases = checks + ([video] if video is not None else [])
+    gates = dict(
+        no_falls=all(case["failure_fraction"] == 0 for case in cases),
+        foot_placement=all(case["gait_pass_fraction"] == 1 for case in cases),
+        tracking=all(case["mean_velocity_error"] < 0.10 for case in checks),
+        standing=checks[0]["mean_velocity_error"] < 0.03,
+        contact_slip=all(case["mean_contact_slip_m_s"] < 0.10 for case in cases),
+        capacity=all(case["max_rigid_overflow"] == 0 for case in cases),
+        every_foot_steps=all(min(counts) >= 3 for case in checks[1:3] for counts in case["steps_per_foot"]),
+    )
+    if material_difficulty is not None:
+        gates["full_material_curriculum"] = material_difficulty >= 0.999
+    return gates
+
+
 def main(rigid_only: bool = False) -> None:
     row = RUNS[1] if rigid_only else RUNS[0]
     field = "rigid" if rigid_only else "rft"
@@ -163,17 +182,7 @@ def main(rigid_only: bool = False) -> None:
             "rigid" if rigid_only else "rft",
             label=f"Recording the final {field.upper()} policy",
         )
-        gates = dict(
-            no_falls=all(case["failure_fraction"] == 0 for case in checks + [video]),
-            foot_placement=all(case["gait_pass_fraction"] == 1 for case in checks + [video]),
-            tracking=all(case["mean_velocity_error"] < 0.10 for case in checks),
-            standing=checks[0]["mean_velocity_error"] < 0.03,
-            contact_slip=all(case["mean_contact_slip_m_s"] < 0.10 for case in checks + [video]),
-            capacity=all(case["max_rigid_overflow"] == 0 for case in checks + [video]),
-            every_foot_steps=all(min(counts) >= 3 for case in checks[1:3] for counts in case["steps_per_foot"]),
-        )
-        if not rigid_only:
-            gates["full_material_curriculum"] = achieved >= 0.999
+        gates = validation_gates(checks, video, material_difficulty=achieved if not rigid_only else None)
         progress[f"{field}_validation_gates"] = gates
         progress[f"{field}_control_accepted"] = all(gates.values())
         if not rigid_only and all(gates.values()):

@@ -77,9 +77,11 @@ def publish(progress, phase):
         "<style>body{font:16px/1.5 system-ui;max-width:1200px;margin:30px auto;padding:20px}"
         "table{border-collapse:collapse}th,td{border:1px solid #aaa;padding:8px}img{width:100%}</style>"
         f"<h1>Go2: {html.escape(phase)} investigation</h1>"
-        '<p><a href="index.html">Material validation</a> · <a href="../report/">Policy videos</a></p>'
+        '<p><a href="/investigation/analysis.html">Material-model numerics</a> · '
+        '<a href="/report/">Policy videos</a></p>'
         f"<p>{html.escape(progress['stage'])}: {len(progress['results'])} / {progress['total']} cases.</p>"
-        "<p>Existing frozen policies; 0.50 m/s forward command. The bed is prepared with the robot held fixed. "
+        f"<p>Existing frozen policies; {progress.get('command_speed', 0.5):.2f} m/s forward command. "
+        "The bed is prepared with the robot held fixed. "
         "Force audit values are whole-robot external body loads and rigid-contact resultants "
         "inferred from momentum balance.</p>"
         "<table><tr><th>Case</th><th>Policy</th><th>Relaxation</th><th>Passes</th><th>Substeps</th>"
@@ -92,8 +94,11 @@ def publish(progress, phase):
 def main(args):
     ROOT.mkdir(parents=True, exist_ok=True)
     profile = json.loads(args.profile.read_text()) if args.profile else {}
+    checkpoints = CHECKPOINTS | {
+        key: path for key, path in (("rigid", args.checkpoint_rigid), ("rft", args.checkpoint_rft)) if path is not None
+    }
     cases = coupling_cases() if args.phase == "coupling" else material_cases(profile, args.phase == "reference")
-    progress = dict(stage="Running frozen-policy comparisons", total=len(cases), results=[])
+    progress = dict(stage="Running frozen-policy comparisons", total=len(cases), results=[], command_speed=args.speed)
     worker = Path("scripts/benchmarks/evaluate_go2_granular.py")
     source_hash = hashlib.sha256(ast.dump(ast.parse(worker.read_text())).encode()).hexdigest()
     dependencies = tomllib.loads(Path("pyproject.toml").read_text())["project"]["dependencies"]
@@ -105,18 +110,22 @@ def main(args):
         settings = (
             dict(
                 steps=100 if args.phase == "coupling" else 150,
-                speed=0.5,
+                speed=args.speed,
+                max_forward_command=args.max_forward_command,
                 bed_depth=0.118,
                 bed_length=2.0 if args.phase == "coupling" else 3.0,
                 settle_seconds=0.5,
             )
             | options
         )
+        if args.bed_length is not None:
+            settings["bed_length"] = args.bed_length
+        settings["bed_width"] = args.bed_width
         field = settings.pop("field", "mpm")
         manifest = dict(
             settings=settings,
             field=field,
-            checkpoint=str(CHECKPOINTS[policy]),
+            checkpoint=str(checkpoints[policy]),
             source_ast_sha256=source_hash,
             newton_requirement=newton_requirement,
         )
@@ -132,7 +141,7 @@ def main(args):
                 "--seed",
                 "123",
                 "--checkpoint",
-                str(CHECKPOINTS[policy]),
+                str(checkpoints[policy]),
                 "--policy_training_terrain",
                 policy,
                 "--output",
@@ -179,4 +188,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=("coupling", "materials", "reference"), default="coupling")
     parser.add_argument("--profile", type=Path)
-    main(parser.parse_args())
+    parser.add_argument("--output_root", type=Path, default=ROOT)
+    parser.add_argument("--speed", type=float, default=0.5)
+    parser.add_argument("--max_forward_command", type=float, default=0.5)
+    parser.add_argument("--bed_length", type=float)
+    parser.add_argument("--bed_width", type=float, default=1.2)
+    parser.add_argument("--checkpoint_rigid", type=Path)
+    parser.add_argument("--checkpoint_rft", type=Path)
+    args = parser.parse_args()
+    ROOT = args.output_root
+    main(args)
