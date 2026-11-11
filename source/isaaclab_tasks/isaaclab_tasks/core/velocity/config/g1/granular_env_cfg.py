@@ -125,7 +125,7 @@ class G1GranularRigidEnvCfg(Go2RigidEnvCfg):
         Go2RigidEnvCfg().sim,
         physics=NewtonCfg(
             num_substeps=4,
-            solver_cfg=MJWarpSolverCfg(njmax=128, nconmax=64, use_mujoco_contacts=True),
+            solver_cfg=MJWarpSolverCfg(njmax=128, nconmax=64, use_mujoco_contacts=True, integrator="implicitfast"),
         ),
     )
     scene: Go2RFTSceneCfg = replace(
@@ -159,6 +159,7 @@ class G1GranularRFTEnvCfg(G1GranularRigidEnvCfg):
                 njmax=128,
                 nconmax=64,
                 use_mujoco_contacts=True,
+                integrator="implicitfast",
                 bearing=0.87574,
                 velocity_regularization=0.04,
                 segments=12,
