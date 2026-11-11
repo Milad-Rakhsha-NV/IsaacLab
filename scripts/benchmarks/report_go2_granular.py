@@ -39,53 +39,59 @@ def save(fig, name: str) -> None:
     plt.close(fig)
 
 
-def training_figure(family: str, title: str, name: str, extra_tags: tuple) -> dict | None:
-    runs = sorted(Path("logs/rsl_rl", family).glob("20*"))
-    if not runs:
-        return None
-    events = EventAccumulator(str(runs[-1]), size_guidance={"scalars": 0}).Reload()
-    tags = events.Tags()["scalars"]
-    if "Perf/total_fps" not in tags:
-        return None
+def training_figure(families: dict[str, str]) -> dict:
+    """Overlay both training runs on the same metric axes."""
     fig, axes = plt.subplots(2, 3, figsize=(13, 6))
     metrics = (
         ("Train/mean_reward", "Training return"),
         ("Train/mean_episode_length", "Episode length [control steps; maximum 500]"),
         ("Metrics/velocity_error", "Planar tracking error [m/s]"),
-        *extra_tags,
+        ("Metrics/min_foot_clearance", "Foot clearance from body centerline [m]"),
+        ("Perf/total_fps", "Transitions/s"),
         ("Metrics/gait_failure_fraction", "Foot-placement failure fraction"),
     )
-    for ax, (tag, label) in zip(axes.flat, metrics, strict=True):
-        if tag in tags:
+    completed = {}
+    for policy, label, color in (("rigid", "Rigid", "tab:blue"), ("rft", "RFT", "tab:orange")):
+        runs = sorted(Path("logs/rsl_rl", families[policy]).glob("20*"))
+        if not runs:
+            continue
+        events = EventAccumulator(str(runs[-1]), size_guidance={"scalars": 0}).Reload()
+        tags = events.Tags()["scalars"]
+        if "Perf/total_fps" not in tags:
+            continue
+        for ax, (tag, _) in zip(axes.flat, metrics, strict=True):
+            if tag not in tags:
+                continue
             values = events.Scalars(tag)
             x = np.array([v.step for v in values])
             y = np.array([v.value for v in values])
-            ax.plot(x, y, alpha=0.2)
+            ax.plot(x, y, color=color, alpha=0.15)
             window = min(20, len(y))
-            ax.plot(x[window - 1 :], np.convolve(y, np.ones(window) / window, mode="valid"))
+            ax.plot(x[window - 1 :], np.convolve(y, np.ones(window) / window, mode="valid"), color=color, label=label)
+        last = events.Scalars("Perf/total_fps")[-1]
+        completed[policy] = dict(
+            directory=str(runs[-1]), completed_iterations=last.step + 1, transitions=(last.step + 1) * 4096 * 24
+        )
+    if not completed:
+        plt.close(fig)
+        return completed
+    for ax, (_, label) in zip(axes.flat, metrics, strict=True):
         ax.set(title=label, xlabel="PPO iteration")
         ax.grid(alpha=0.2)
-    fig.suptitle(title)
-    save(fig, name)
-    last = events.Scalars("Perf/total_fps")[-1]
-    return dict(directory=str(runs[-1]), completed_iterations=last.step + 1, transitions=(last.step + 1) * 4096 * 24)
+    axes[0, 0].legend()
+    fig.suptitle("Rigid and RFT training")
+    save(fig, "training-comparison.png")
+    return completed
 
 
-rigid = training_figure(
-    FAMILIES.get("rigid", "go2_rigid_gait_control"),
-    "Rigid-ground training",
-    "rigid-training.png",
-    (("Metrics/min_foot_clearance", "Foot clearance from body centerline [m]"), ("Perf/total_fps", "Transitions/s")),
+training = training_figure(
+    dict(
+        rigid=FAMILIES.get("rigid", "go2_rigid_gait_control"),
+        rft=FAMILIES.get("rft", "go2_rft_knee_depth_curriculum"),
+    )
 )
-rft = training_figure(
-    FAMILIES.get("rft", "go2_rft_knee_depth_curriculum"),
-    "RFT training: shared gait criteria and reset-randomized 0–118 mm layers",
-    "rft-training.png",
-    (
-        ("Curriculum/difficulty", "Material curriculum width [0–1]"),
-        ("Material/depth_max", "Largest layer depth in reset batch [m]"),
-    ),
-)
+rigid = training.get("rigid")
+rft = training.get("rft")
 case_names = (
     "rigid_max_forward",
     "rft_max_forward",
@@ -156,8 +162,8 @@ for case in forward_cases:
 domain_description = "; ".join(
     f"{speed:.2f} m/s: {length:g} × {width:g} m" for speed, (length, width) in sorted(mpm_domains.items(), reverse=True)
 )
-forward_figure = ""
-for speed in SPEEDS:
+forward_figures = {}
+for speed in sorted(SPEEDS):
     names = {name: base for name, base, command in VARIANTS if command == speed}
     selected = [case for case in forward_cases if case["case"] in names]
     if not selected:
@@ -180,8 +186,7 @@ for speed in SPEEDS:
     fig.suptitle(f"Same frozen checkpoints · {speed:.2f} m/s forward command")
     filename = f"forward-comparison-{speed:g}.png"
     save(fig, filename)
-    forward_figure += (
-        f"<h2>Comparison at {speed:.2f} m/s</h2>"
+    forward_figures[speed] = (
         "<p>Velocities and commands use the robot frame. The curves include initial acceleration "
         "and time after a fall.</p>"
         f"<img src='{filename}' alt='Speed, tracking error and body height at {speed:g} m/s'>"
@@ -203,44 +208,31 @@ rft_status = json.loads(rft_status_path.read_text()) if rft_status_path.exists()
         indent=2,
     )
 )
-figures = "".join(
-    f"<figure><h3>{title}</h3><img src='{name}' alt='{title}' loading='lazy'></figure>"
-    for name, title in (
-        ("rft-training.png", "New RFT learning curves"),
-        ("rigid-training.png", "Rigid-control learning curves"),
-    )
-    if (rft if name == "rft-training.png" else rigid) is not None
+figures = (
+    "<p>Rigid and RFT share each metric axis. Solid lines show 20-iteration moving averages; "
+    "faint lines show the raw measurements.</p>"
+    "<figure><img src='training-comparison.png' alt='Rigid and RFT learning curves on shared axes' "
+    "loading='lazy'></figure>"
+    if training
+    else ""
 )
 new_status = describe_progress(
     rft_status.get("stage", "New RFT training is being prepared; final recordings follow training."), SPEEDS
 )
 previous_note = "<p><a href='../previous_0p5_report/'>Previous 0.5 m/s recordings and results</a></p>" if STUDY else ""
-material_comparison = (
-    f"<h2>Material comparison at {MAX_COMMAND:.2f} m/s</h2>"
-    "<p>Both new policies are frozen and tested for 3 s at each material setting, using seed 123. "
-    "Lower: 1,400 kg/m³, friction 0.3, surface/internal ratio 0.6, depth 60 mm. "
-    "Nominal: 1,600, 0.4, 1.0, 118 mm. Higher: 1,800, 0.5, 0.8, 100 mm. "
-    "The dotted line evaluates the RFT policy in RFT; bars evaluate both policies in MPM. "
-    "These are exploratory short trials. MPM numerical validation remains incomplete.</p>"
-    "<img src='policy-and-support.png' alt='New-policy material tracking and granular versus floor support'>"
-    "<p>Support forces include all rigid robot contacts and time after a failure threshold. "
-    "Floor support alone does not imply successful walking.</p>"
-    f"<p><a href='../{STUDY.get('case_directory', '')}/materials/materials.html'>MPM trial records</a></p>"
-    if STUDY.get("material_comparison_ready")
-    else ""
-)
+material_comparison = ""
 if STUDY.get("half_speed_material_comparison_ready"):
-    material_comparison += (
-        "<h2>Material comparison at 0.50 m/s</h2>"
-        "<p>The same new checkpoints and three material settings are tested for 3 s. "
-        "Only the command changes relative to the 1.0 m/s material trials.</p>"
+    material_comparison = (
+        "<h4>Material sensitivity</h4>"
+        "<p>Both policies are frozen and tested for 3 s at each material setting, using seed 123. "
+        "Lower: 1,400 kg/m³, friction 0.3, surface/internal ratio 0.6, depth 60 mm. "
+        "Nominal: 1,600, 0.4, 1.0, 118 mm. Higher: 1,800, 0.5, 0.8, 100 mm. "
+        "The dotted line evaluates the RFT policy in RFT; bars evaluate both policies in MPM. "
+        "These are exploratory short trials. MPM numerical validation remains incomplete.</p>"
         "<img src='../max1/materials_cmd_0p5/policy-and-support.png' "
         "alt='Tracking and whole-robot support at 0.5 m/s'>"
-    )
-elif len(SPEEDS) > 1:
-    material_comparison += (
-        "<h2>Material comparison at 0.50 m/s</h2>"
-        "<p>The material plots will be published after the final MPM recording completes.</p>"
+        "<p>Support forces include all rigid robot contacts and time after a failure threshold. "
+        "Floor support alone does not imply successful walking.</p>"
     )
 mpm_recheck = ""
 if STUDY.get("mpm_recheck_ready"):
@@ -256,7 +248,7 @@ if STUDY.get("mpm_recheck_ready"):
             f"<td>{result['mean_velocity_error']:.3f}</td><td>{failure}</td></tr>"
         )
     mpm_recheck = (
-        "<h2 id='mpm-numerics'>MPM startup check at 1.0 m/s</h2>"
+        "<h4 id='mpm-numerics'>MPM startup check</h4>"
         "<p>The frozen RFT policy is tested in the same prepared 5 × 1.6 × 0.118 m bed for 2 s. "
         "Each row changes substeps, coupling passes or feedback relaxation. "
         "The physics frame is 5 ms; 4, 8 and 16 substeps correspond to 1.25, 0.625 and 0.3125 ms. "
@@ -271,6 +263,14 @@ if STUDY.get("mpm_recheck_ready"):
         "<th>First failure threshold</th></tr>" + "".join(recheck_rows) + "</table>"
         "<img src='mpm-startup-recheck.png' alt='Startup height, velocity, tilt and support sensitivity'>"
     )
+comparisons = "<h2>Comparisons</h2>" + "".join(
+    f"<section><h3>Comparison at {speed:.2f} m/s</h3>"
+    + forward_figures[speed]
+    + (material_comparison if speed == 0.5 else "")
+    + (mpm_recheck if speed == 1.0 else "")
+    + "</section>"
+    for speed in sorted(forward_figures)
+)
 recording_text = (
     f"{len(forward_cases)} of {len(VARIANTS)} videos available. "
     f"Each terrain panel compares the same frozen policy at {' and '.join(f'{speed:.2f}' for speed in SPEEDS)} "
@@ -387,9 +387,7 @@ All sand beds start at 118 mm depth with density 1,600 kg/m³ and nominal fricti
         else ""
     )
     + render_videos(CASE_ROOT, ready_cases, gait, url_prefix=MEDIA_PREFIX, speeds=SPEEDS)
-    + forward_figure
-    + material_comparison
-    + mpm_recheck
+    + comparisons
     + "<h2>Training curves</h2>"
     + figures
     + """<details><summary>Material randomization and contact criteria</summary>
