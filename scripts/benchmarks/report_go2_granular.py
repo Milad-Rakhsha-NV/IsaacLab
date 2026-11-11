@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Publish only the validated rigid control and the current shallow-layer RFT study."""
+"""Publish only the validated rigid control and the current finite-layer RFT study."""
 
 from __future__ import annotations
 
@@ -69,8 +69,8 @@ rigid = training_figure(
     (("Metrics/min_foot_clearance", "Foot clearance from body centerline [m]"), ("Perf/total_fps", "Transitions/s")),
 )
 rft = training_figure(
-    "go2_rft_shallow_curriculum",
-    "New RFT training: shared gait criteria and reset-randomized shallow layers",
+    "go2_rft_knee_depth_curriculum",
+    "RFT training: shared gait criteria and reset-randomized 0–118 mm layers",
     "rft-training.png",
     (
         ("Curriculum/difficulty", "Material curriculum width [0–1]"),
@@ -85,14 +85,14 @@ case_names = (
     "rigid_gait_commands_123",
     "rigid_gait_commands_456",
     "rigid_gait_commands_789",
-    "rft_shallow_control",
-    "rft_shallow_stand_validation",
-    "rft_shallow_walk_validation",
-    "rft_shallow_maximum_validation",
-    "rft_shallow_commands_123",
-    "rft_shallow_commands_456",
-    "rft_shallow_commands_789",
-    "rft_shallow_mpm",
+    "rft_knee_depth_control",
+    "rft_knee_depth_stand_validation",
+    "rft_knee_depth_walk_validation",
+    "rft_knee_depth_maximum_validation",
+    "rft_knee_depth_commands_123",
+    "rft_knee_depth_commands_456",
+    "rft_knee_depth_commands_789",
+    "rft_knee_depth_mpm",
 )
 cases = []
 for name in case_names:
@@ -102,7 +102,7 @@ for name in case_names:
 
 gait = {}
 for case in cases:
-    if case["case"] not in ("rigid_gait_control", "rft_shallow_control"):
+    if case["case"] not in ("rigid_gait_control", "rft_knee_depth_control"):
         continue
     with np.load(ROOT / case["case"] / "rollout.npz") as data:
         poses = data["body_pose"]
@@ -147,7 +147,7 @@ figures = "".join(
         ("rft-training.png", "New RFT learning curves"),
         ("rigid-training.png", "Rigid-control learning curves"),
     )
-    if (OUT / name).exists()
+    if (rft if name == "rft-training.png" else rigid) is not None
 )
 new_status = rft_status.get("stage", "New RFT training is being prepared; final recordings follow training.")
 (OUT / "index.html").write_text(
@@ -159,12 +159,16 @@ grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
 article,figure{background:white;padding:20px;margin:0 0 24px;border-radius:10px}figure{margin:20px 0}
 h1,h2,h3{line-height:1.2}h3{margin-top:0}details{margin:12px 0}summary,a{color:#1d4ed8}
 code{overflow-wrap:anywhere}.status{padding:16px;background:#dbeafe}</style>
-<h1>Go2: shallow-layer RFT training</h1>
+<h1>Go2: RFT training in 0–118 mm sand layers</h1>
 <p>The rigid-ground control passed standing, walking, maximum-speed, steering and held-out command tests.
 The new RFT run uses the same robot, self-collision, posture and foot-placement criteria.</p>
-<p>The Go2 foot collider is 44 mm across. Training starts with <strong>0–22 mm of sand above a rigid floor</strong>.
-The depth range widens toward 0–100 mm after performance gates pass.
-Only material properties and layer depth have a curriculum; commands use the full range from the first reset.</p>
+<p>The Go2 knee-to-sole length is approximately 236 mm. Each resetting environment samples
+<strong>0–118 mm of sand above a rigid floor</strong>, capped at half that length from the first reset.
+Density, friction and strength have a performance-gated curriculum;
+depth and commands use their full ranges throughout.</p>
+<details><summary>Lower-leg measurement and depth limit</summary>
+<img src="../measurements/foot-lengths.png" alt="Go2 knee-to-sole length is 235.9 mm; half is 118 mm"
+style="max-width:520px;display:block;margin:auto"></details>
 <p class="status">"""
     + new_status
     + """</p>

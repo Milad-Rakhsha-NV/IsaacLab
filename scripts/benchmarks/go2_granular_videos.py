@@ -21,15 +21,16 @@ PRIMARY_VIDEOS = (
         "command trials, low foot slip and stepping with all four feet.",
     ),
     (
-        "rft_shallow_control",
+        "rft_knee_depth_control",
         "RFT-trained policy on RFT sand",
         "Go2 was trained with the validated locomotion settings and reset-randomized RFT materials. "
-        "Training starts with 0–22 mm of sand above a rigid floor and widens the depth range with performance.",
+        "Sand depth is sampled over 0–118 mm above a rigid floor, half the knee-to-sole length. "
+        "Density, friction and strength ranges widen with performance.",
         "This evaluates the new policy in its training simulator. The recording details specify layer depth "
         "and commands; held-out gait and tracking tests are reported separately.",
     ),
     (
-        "rft_shallow_mpm",
+        "rft_knee_depth_mpm",
         "Same RFT-trained policy on MPM sand",
         "The exact same new RFT-trained policy is evaluated in a particle-based MPM bed after training. "
         "No MPM particles or MPM training are used to learn the controller.",

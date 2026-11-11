@@ -32,9 +32,9 @@ OUT = ROOT / "live"
 RUNS = (
     (
         "rft",
-        "RFT: shallow-layer material curriculum",
-        "go2_rft_shallow_curriculum",
-        "go2-rft-shallow-training.service",
+        "RFT: 0–118 mm layers with material curriculum",
+        "go2_rft_knee_depth_curriculum",
+        "go2-rft-knee-depth-training.service",
         1500,
     ),
     ("rigid", "Validated rigid-ground control", "go2_rigid_gait_control", "go2-rigid-gait-training.service", 600),
@@ -169,7 +169,7 @@ def refresh() -> None:
             f"<p>{row['transitions'] / 1e6:.1f} million transitions · Training error: {error_text}<br>{material}<br>"
             "</p><details><summary>Run details</summary>"
             f"<p>Last checkpoint: {row['checkpoint']} · Event age: {row['event_age_seconds']} s</p>"
-            f"<a href='../training/{'rigid-gait' if row['key'] == 'rigid' else 'rft-shallow'}.log'>"
+            f"<a href='../training/{'rigid-gait' if row['key'] == 'rigid' else 'rft-knee-depth'}.log'>"
             "Training log</a></details></article>"
         )
     videos = render_videos(ROOT, evaluation.get("cases", []), gait)
@@ -195,15 +195,15 @@ def refresh() -> None:
         "<p>Both runs: 4,096 environments, seed 42, full commands from the first reset. "
         "Only RFT material randomization has a curriculum. MPM is used after training for inference.</p>"
         "<p><b>New RFT run:</b> self-collision, foot placement and contact/posture rewards match the rigid control. "
-        "The initial layer is 0–22 mm above a rigid floor, at most half the 44 mm foot diameter. "
-        "The performance-gated depth range grows toward 0–100 mm. Full commands are sampled from the start.</p>"
+        "Depth is sampled over 0–118 mm above a rigid floor, capped at half the 236 mm knee-to-sole length. "
+        "Material properties have a curriculum; depth and commands use their full ranges from the start.</p>"
         f"<section>{''.join(cards)}</section><img src='curves.png?t={int(time.time())}' alt='Live learning curves'>"
         f"<h2>Final policy comparisons</h2>{verdict}{videos}"
         f"<details><summary>Evaluation progress</summary><p>{evaluation_text}</p></details>"
         "<p>Material progression requires ≥95% episode completion and ≤0.10 m/s mean tracking error in "
         "two consecutive windows of at least 4,096 qualifying episodes. Training curves do not establish "
         "held-out convergence or MPM transfer.</p><p>Full target: density 1,400–1,800 kg/m³; friction 0.3–0.5; "
-        "roughness 0.6–1.0; strength multiplier 0.8–1.2; surface elevation ±0.02 m. "
+        "roughness 0.6–1.0; strength multiplier 0.8–1.2; layer depth 0–118 mm above a fixed floor. "
         "Commands: forward 0.1–0.5 m/s, lateral ±0.1 m/s, yaw ±0.3 rad/s; 10% standing.</p>"
         '<p><a href="../report/">Study report and graphs</a></p>'
         "<script>setInterval(()=>{if(![...document.querySelectorAll('video')].some(v=>!v.paused&&!v.ended))"

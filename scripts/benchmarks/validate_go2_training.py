@@ -44,7 +44,7 @@ def latest_checkpoint(family: str) -> Path | None:
 def main(rigid_only: bool = False) -> None:
     row = RUNS[1] if rigid_only else RUNS[0]
     field = "rigid" if rigid_only else "rft"
-    prefix = "rigid_gait" if rigid_only else "rft_shallow"
+    prefix = "rigid_gait" if rigid_only else "rft_knee_depth"
     status_path = ROOT / "training" / ("evaluation_status.json" if rigid_only else "rft-evaluation-status.json")
     progress = dict(stage="Training in progress; final-policy validation will follow", cases=[])
 
@@ -138,7 +138,7 @@ def main(rigid_only: bool = False) -> None:
             )
         if achieved < 0.999:
             evaluate(
-                "rft_shallow_achieved_validation",
+                "rft_knee_depth_achieved_validation",
                 checkpoint,
                 *options,
                 "--steps",
@@ -174,7 +174,7 @@ def main(rigid_only: bool = False) -> None:
         progress[f"{field}_control_accepted"] = all(gates.values())
         if not rigid_only and all(gates.values()):
             mpm = evaluate(
-                "rft_shallow_mpm",
+                "rft_knee_depth_mpm",
                 checkpoint,
                 "--field",
                 "mpm",

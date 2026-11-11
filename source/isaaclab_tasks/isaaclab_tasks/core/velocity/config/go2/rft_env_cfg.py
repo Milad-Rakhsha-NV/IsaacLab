@@ -98,7 +98,9 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     bed_depth: float | None = None
     """Optional finite-layer depth [m]; creates a labeled rigid substrate. None keeps a half-space."""
     material_difficulty = 1.0
-    initial_bed_depth_range = (0.0, 0.022)
+    knee_to_sole_length = 0.236
+    """Lower-leg length [m], rounded from 235.915 mm in the Go2 USD visual geometry."""
+    initial_bed_depth_range = (0.0, 0.118)
     bed_depth_range: tuple[float, float] | None = None
     """Resettable layer depth above a fixed substrate; None keeps the legacy elevation sampler."""
     gait: Go2GaitCfg | None = None
@@ -165,17 +167,17 @@ class Go2RigidEnvCfg(Go2RFTEnvCfg):
 
 @configclass
 class Go2RFTCurriculumEnvCfg(Go2RigidEnvCfg):
-    """Validated locomotion contract with shallow-to-deeper resettable RFT material."""
+    """Validated locomotion contract with resettable layers up to half the lower-leg length."""
 
     randomize_material = True
     curriculum_enabled = True
-    bed_depth = 0.022
-    bed_depth_range = (0.0, 0.10)
+    bed_depth = 0.118
+    bed_depth_range = (0.0, 0.118)
     sim: SimulationCfg = replace(
         Go2RFTEnvCfg().sim,
         physics=replace(
             Go2RFTEnvCfg().sim.physics,
-            solver_cfg=replace(Go2RFTEnvCfg().sim.physics.solver_cfg, surface_height=0.022, surface_bottom=0.0),
+            solver_cfg=replace(Go2RFTEnvCfg().sim.physics.solver_cfg, surface_height=0.118, surface_bottom=0.0),
         ),
     )
     scene: Go2RFTSceneCfg = replace(
@@ -183,10 +185,10 @@ class Go2RFTCurriculumEnvCfg(Go2RigidEnvCfg):
         bed=AssetBaseCfg(
             prim_path="/World/BedVisual",
             spawn=sim_utils.CuboidCfg(
-                size=(100.0, 100.0, 0.022),
+                size=(100.0, 100.0, 0.118),
                 collision_props=sim_utils.UsdPhysicsCollisionCfg(collision_enabled=False),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.68, 0.46, 0.25)),
             ),
-            init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.011)),
+            init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.059)),
         ),
     )

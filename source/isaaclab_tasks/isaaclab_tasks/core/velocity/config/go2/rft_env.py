@@ -127,15 +127,20 @@ class Go2RFTEnv(DirectRLEnv):
                     for row in self.rft.surface_inventory
                     if row["kind"] == "SPHERE" and row["body_label"].endswith("_foot")
                 ]
-                if not radii or cfg.initial_bed_depth_range[1] > min(radii) + 1e-8:
-                    raise ValueError("Initial layer depth must not exceed half the spherical Go2 foot diameter")
+                if (
+                    cfg.knee_to_sole_length <= 0
+                    or cfg.initial_bed_depth_range[1] > 0.5 * cfg.knee_to_sole_length + 1e-8
+                ):
+                    raise ValueError("Initial layer depth must not exceed half the Go2 knee-to-sole length")
                 if cfg.log_dir:
                     path = Path(cfg.log_dir)
                     path.mkdir(parents=True, exist_ok=True)
                     (path / "material_curriculum.json").write_text(
                         json.dumps(
                             dict(
-                                foot_diameter_m=2 * min(radii),
+                                knee_to_sole_length_m=cfg.knee_to_sole_length,
+                                initial_depth_limit_m=0.5 * cfg.knee_to_sole_length,
+                                collision_foot_diameter_m=2 * min(radii) if radii else None,
                                 initial_depth_range_m=cfg.initial_bed_depth_range,
                                 target_depth_range_m=cfg.bed_depth_range,
                                 substrate_height_m=cfg.sim.physics.solver_cfg.surface_bottom,

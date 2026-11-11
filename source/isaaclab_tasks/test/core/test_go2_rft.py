@@ -66,7 +66,8 @@ def test_go2_rft_articulation_and_masked_material_reset():
             cfg.curriculum_anchor_fraction = 0.0
             env._reset_idx(torch.arange(4, device=env.device))
             depth = env.rft.surface_height.numpy() - env.rft.surface_bottom.numpy()
-            assert (depth >= 0).all() and depth.max() <= 0.022
+            assert (depth >= 0).all() and depth.max() <= 0.118
+            assert depth.max() > 0.022  # The limit uses the lower leg, not the contact-sphere radius.
             ids = torch.tensor([0, 1], device=env.device)
             env.steps_sum[ids] = 20
             env.error_sum[ids] = 0.01
