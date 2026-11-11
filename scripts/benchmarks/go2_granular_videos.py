@@ -12,30 +12,30 @@ from pathlib import Path
 
 PRIMARY_VIDEOS = (
     (
-        "rigid_gait_control",
-        "Rigid-ground control: stand, walk, steer and stop",
-        "A fresh policy was trained on a rigid floor with self-collision, contact sensing, posture rewards "
-        "and foot-placement checks. The recording tests standing, walking at 0.30 m/s, the maximum "
-        "forward command of 0.50 m/s, lateral motion, turning and stopping.",
-        "This is the prerequisite for repeating the granular study. Acceptance also requires held-out "
-        "command trials, low foot slip and stepping with all four feet.",
+        "rigid_max_forward",
+        "Rigid-trained policy on a rigid floor",
+        "The validated rigid-ground policy walks at the maximum forward command from training. "
+        "This is the rigid-surface reference for the two granular recordings.",
+        "This policy was trained on a rigid floor. It is a separate reference policy; the two sand recordings "
+        "share the same RFT-trained weights.",
     ),
     (
-        "rft_knee_depth_control",
+        "rft_max_forward",
         "RFT-trained policy on RFT sand",
         "Go2 was trained with the validated locomotion settings and reset-randomized RFT materials. "
         "Sand depth is sampled over 0–118 mm above a rigid floor, half the knee-to-sole length. "
         "Density, friction and strength ranges widen with performance.",
-        "This evaluates the new policy in its training simulator. The recording details specify layer depth "
-        "and commands; held-out gait and tracking tests are reported separately.",
+        "This tests the final RFT checkpoint in its training simulator at fixed nominal material properties. "
+        "Its full-distribution validation still fails standing, slip and gait criteria, as detailed in the report.",
     ),
     (
-        "rft_knee_depth_mpm",
+        "mpm_max_forward",
         "Same RFT-trained policy on MPM sand",
         "The exact same new RFT-trained policy is evaluated in a particle-based MPM bed after training. "
         "No MPM particles or MPM training are used to learn the controller.",
-        "This is a transfer test. MPM resolution and coupling convergence must be checked before "
-        "differences can be interpreted as material-model accuracy.",
+        "This is an exploratory transfer test of the current checkpoint. Bed depth, density, friction and "
+        "command match the RFT recording. Material calibration, bed preparation and numerical convergence "
+        "are still needed to attribute differences to the force model.",
     ),
 )
 
@@ -61,23 +61,32 @@ def render_videos(root: Path, cases: list[dict], gait: dict) -> str:
         elif diagnostic:
             gait_text = f" Mean rear-foot spacing: {100 * diagnostic['mean_rear_foot_separation_m']:.1f} cm."
         checkpoint = html.escape(str(case["checkpoint"]))
-        commands = (
-            "Command sequence: stand; walk at 0.30 m/s; walk at 0.50 m/s; lateral motion; turn; stop."
-            if case.get("command_schedule")
-            else "Fixed forward command: 0.30 m/s; lateral/yaw commands: zero."
-        )
+        command = case.get("commands", [])
+        commands = "Command history is included in the evaluation data."
+        if command and len(command) == 1 and not case.get("command_schedule"):
+            forward, lateral, yaw = command[0]
+            maximum = " (training maximum)" if abs(forward - 0.5) < 1e-6 else ""
+            commands = f"Forward command: {forward:.2f} m/s{maximum}; lateral: {lateral:.2f} m/s; yaw: {yaw:.2f} rad/s."
         depth = case.get("substrate_depth") if case["field"] == "rft" else case.get("bed_depth")
-        layer = f"Sand layer depth: {1000 * depth:g} mm. " if case["field"] != "rigid" and depth is not None else ""
+        layer = f"Initial sand depth: {1000 * depth:g} mm. " if case["field"] != "rigid" and depth is not None else ""
+        boundary = ""
+        if case["field"] == "mpm":
+            exit_time = case.get("first_bed_exit_seconds")
+            boundary = (
+                f" The body entered the bed-edge margin at {exit_time:.2f} s."
+                if exit_time is not None
+                else " The body stayed within the bed's interior margin."
+            )
         cards.append(
             f"<article><h3>{html.escape(title)}</h3><p>{html.escape(description)}</p>"
-            f"<p><strong>{commands}</strong></p>"
+            f"<p><strong>{commands} {layer}</strong></p>"
             f"<video controls preload='metadata' src='../{name}/rollout.mp4' "
             f"poster='../{name}/preview.jpg' aria-label='{html.escape(title)}'></video>"
             f"<p><strong>{outcome}.</strong> Mean planar velocity error: "
-            f"{case['mean_velocity_error']:.3f} m/s.{gait_text}</p>"
+            f"{case['mean_velocity_error']:.3f} m/s.{gait_text}{boundary}</p>"
             f"<p>{html.escape(interpretation)}</p>"
             "<details><summary>Recording details</summary>"
-            f"<p>Duration: {duration:g} s. {layer}"
+            f"<p>Duration: {duration:g} s. "
             "Errors cover the full recording, including any interval after a fall. "
             "Green arrows show granular body forces; the rigid-floor clip has no granular load.</p>"
             f"<p>Saved policy: <code>{checkpoint}</code></p>"
@@ -86,6 +95,6 @@ def render_videos(root: Path, cases: list[dict], gait: dict) -> str:
     main = (
         "<div class='video-grid'>" + "".join(cards) + "</div>"
         if cards
-        else "<p>The repaired rigid-control recording will appear after training and validation finish.</p>"
+        else "<p>The three maximum-forward-command recordings are being generated.</p>"
     )
     return main

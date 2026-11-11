@@ -150,12 +150,14 @@ def main(rigid_only: bool = False) -> None:
                 str(achieved),
                 label="Checking the achieved material curriculum range",
             )
-        video_options = ["--steps", "1700", "--command_schedule"] if rigid_only else ["--steps", "500"]
         video = evaluate(
-            f"{prefix}_control",
+            "rigid_max_forward" if rigid_only else "rft_max_forward",
             checkpoint,
             *options,
-            *video_options,
+            "--steps",
+            "500",
+            "--speed",
+            "0.5",
             "--video",
             label=f"Recording the final {field.upper()} policy",
         )
@@ -174,14 +176,18 @@ def main(rigid_only: bool = False) -> None:
         progress[f"{field}_control_accepted"] = all(gates.values())
         if not rigid_only and all(gates.values()):
             mpm = evaluate(
-                "rft_knee_depth_mpm",
+                "mpm_max_forward",
                 checkpoint,
                 "--field",
                 "mpm",
                 "--steps",
-                "100",
+                "500",
+                "--speed",
+                "0.5",
                 "--bed_depth",
                 str(depth),
+                "--bed_length",
+                "7.0",
                 "--video",
                 label="Evaluating the same new policy in MPM (inference only)",
             )

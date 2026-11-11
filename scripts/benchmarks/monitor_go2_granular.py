@@ -126,6 +126,10 @@ def refresh() -> None:
         evaluation["stage"] = rft_evaluation["stage"]
         evaluation["cases"] = evaluation.get("cases", []) + rft_evaluation.get("cases", [])
         evaluation["rft_validation_gates"] = rft_evaluation.get("rft_validation_gates")
+    for name in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward"):
+        path = ROOT / name / "summary.json"
+        if path.exists():
+            evaluation.setdefault("cases", []).append(dict(case=name, **json.loads(path.read_text())))
     # Keep the live snapshot compact; per-body/material manifests stay in the case summaries.
     evaluation["cases"] = [
         {
@@ -136,12 +140,16 @@ def refresh() -> None:
                 "field",
                 "simulated_seconds",
                 "command_schedule",
+                "commands",
+                "substrate_depth",
+                "bed_depth",
+                "first_bed_exit_seconds",
                 "first_failure_seconds",
                 "failure_fraction",
                 "mean_velocity_error",
             )
         }
-        for case in evaluation.get("cases", [])
+        for case in {case["case"]: case for case in evaluation.get("cases", [])}.values()
     ]
     gait_path = ROOT / "report/gait_diagnostics.json"
     gait = json.loads(gait_path.read_text()) if gait_path.exists() else {}

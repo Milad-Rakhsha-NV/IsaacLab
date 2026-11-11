@@ -78,21 +78,21 @@ rft = training_figure(
     ),
 )
 case_names = (
-    "rigid_gait_control",
+    "rigid_max_forward",
+    "rft_max_forward",
+    "mpm_max_forward",
     "rigid_gait_stand_validation",
     "rigid_gait_walk_validation",
     "rigid_gait_maximum_validation",
     "rigid_gait_commands_123",
     "rigid_gait_commands_456",
     "rigid_gait_commands_789",
-    "rft_knee_depth_control",
     "rft_knee_depth_stand_validation",
     "rft_knee_depth_walk_validation",
     "rft_knee_depth_maximum_validation",
     "rft_knee_depth_commands_123",
     "rft_knee_depth_commands_456",
     "rft_knee_depth_commands_789",
-    "rft_knee_depth_mpm",
 )
 cases = []
 for name in case_names:
@@ -102,7 +102,7 @@ for name in case_names:
 
 gait = {}
 for case in cases:
-    if case["case"] not in ("rigid_gait_control", "rft_knee_depth_control"):
+    if case["case"] not in ("rigid_max_forward", "rft_max_forward", "mpm_max_forward"):
         continue
     with np.load(ROOT / case["case"] / "rollout.npz") as data:
         poses = data["body_pose"]
@@ -124,6 +124,35 @@ for case in cases:
             mean_rear_foot_separation_m=float(separation.mean()),
         )
 (OUT / "gait_diagnostics.json").write_text(json.dumps(gait, indent=2))
+
+forward_labels = {
+    "rigid_max_forward": "Rigid policy / rigid floor",
+    "rft_max_forward": "RFT policy / RFT sand",
+    "mpm_max_forward": "RFT policy / MPM sand",
+}
+forward_cases = [case for case in cases if case["case"] in forward_labels]
+forward_figure = ""
+if forward_cases:
+    fig, axes = plt.subplots(1, 3, figsize=(13, 3.5))
+    for case in forward_cases:
+        with np.load(ROOT / case["case"] / "rollout.npz") as data:
+            state = data["state"][:, 0]
+            for ax, column in zip(axes, (4, 8, 7), strict=True):
+                ax.plot(state[:, 0], state[:, column], label=forward_labels[case["case"]])
+    axes[0].axhline(0.5, color="grey", linestyle="--", label="Forward command")
+    axes[0].legend(fontsize=7)
+    for ax, label in zip(
+        axes, ("Forward speed [m/s]", "Planar tracking error [m/s]", "Height above initial surface [m]"), strict=True
+    ):
+        ax.set(xlabel="Simulation time [s]", ylabel=label)
+        ax.grid(alpha=0.2)
+    save(fig, "forward-comparison.png")
+    forward_figure = (
+        "<h2>Maximum-forward comparison</h2>"
+        "<p>All clips command 0.50 m/s forward with zero lateral and yaw commands. "
+        "The curves include the initial acceleration and any time after a fall.</p>"
+        "<img src='forward-comparison.png' alt='Speed, tracking error and body height for the three recordings'>"
+    )
 
 rigid_status_path = ROOT / "training/evaluation_status.json"
 rft_status_path = ROOT / "training/rft-evaluation-status.json"
@@ -150,16 +179,36 @@ figures = "".join(
     if (rft if name == "rft-training.png" else rigid) is not None
 )
 new_status = rft_status.get("stage", "New RFT training is being prepared; final recordings follow training.")
+gate_labels = {
+    "no_falls": "no falls",
+    "foot_placement": "foot placement",
+    "tracking": "velocity tracking",
+    "standing": "standing drift",
+    "contact_slip": "loaded-foot slip",
+    "capacity": "solver capacity",
+    "every_foot_steps": "stepping with every foot",
+    "full_material_curriculum": "full material curriculum",
+}
+failed_gates = [
+    gate_labels.get(key, key) for key, passed in rft_status.get("rft_validation_gates", {}).items() if not passed
+]
+validation_note = (
+    "<p><strong>RFT validation remains incomplete.</strong> Failed acceptance checks: "
+    + ", ".join(failed_gates)
+    + ". The MPM clip tests the current frozen checkpoint; it does not certify convergence or material equivalence.</p>"
+    if failed_gates
+    else ""
+)
 (OUT / "index.html").write_text(
     """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Go2: validated rigid control and new RFT training</title>
+<title>Go2: maximum-forward policy comparison</title>
 <style>body{font:16px/1.5 system-ui;max-width:1200px;margin:24px auto;padding:20px;background:#f1f5f9;color:#0f172a}
 video,img{width:100%;border-radius:6px}.video-grid{display:grid;
 grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
 article,figure{background:white;padding:20px;margin:0 0 24px;border-radius:10px}figure{margin:20px 0}
 h1,h2,h3{line-height:1.2}h3{margin-top:0}details{margin:12px 0}summary,a{color:#1d4ed8}
 code{overflow-wrap:anywhere}.status{padding:16px;background:#dbeafe}</style>
-<h1>Go2: RFT training in 0–118 mm sand layers</h1>
+<h1>Go2: maximum-forward policy comparison</h1>
 <p>The rigid-ground control passed standing, walking, maximum-speed, steering and held-out command tests.
 The new RFT run uses the same robot, self-collision, posture and foot-placement criteria.</p>
 <p>The Go2 knee-to-sole length is approximately 236 mm. Each resetting environment samples
@@ -171,12 +220,16 @@ depth and commands use their full ranges throughout.</p>
 style="max-width:520px;display:block;margin:auto"></details>
 <p class="status">"""
     + new_status
-    + """</p>
+    + "</p>"
+    + validation_note
+    + """
 <p><a href="../live/">Live status and learning curves</a></p>
 <h2>Current policy recordings</h2>
-<p>The rigid-control video includes standing, 0.30 m/s walking, the 0.50 m/s training maximum, steering and stopping.
-New RFT and MPM recordings will appear only for the new policy after training and evaluation.</p>"""
+<p>Three 10 s recordings use the maximum forward command, 0.50 m/s. The rigid-floor clip uses the validated
+rigid-trained policy. The RFT and MPM clips use the exact same final RFT-trained weights without fine-tuning.
+Both sand beds start at 118 mm depth with density 1,600 kg/m³ and nominal friction 0.4.</p>"""
     + render_videos(ROOT, cases, gait)
+    + forward_figure
     + "<h2>Training curves</h2>"
     + figures
     + """<details><summary>Material randomization and contact criteria</summary>

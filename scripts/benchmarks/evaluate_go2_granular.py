@@ -45,6 +45,7 @@ parser.add_argument("--proxy_relaxation", type=float, default=0.1)
 parser.add_argument("--mpm_modulus", type=float, default=1e15)
 parser.add_argument("--substeps", type=int, default=4)
 parser.add_argument("--bed_depth", type=float, default=0.4)
+parser.add_argument("--bed_length", type=float, default=2.0, help="MPM bed length along the forward axis [m].")
 parser.add_argument(
     "--substrate_depth", type=float, default=None, help="Optional RFT layer thickness; zero tests rigid limit."
 )
@@ -126,18 +127,18 @@ if args.field == "mpm":
     cfg.scene.floor = AssetBaseCfg(
         prim_path="/World/Floor",
         spawn=CuboidCfg(
-            size=(2.4, 1.6, 0.1),
+            size=(args.bed_length + 0.4, 1.6, 0.1),
             collision_props=UsdPhysicsCollisionCfg(collision_enabled=True),
             physics_material=Go2RigidEnvCfg().scene.substrate.spawn.physics_material,
             visual_material=PreviewSurfaceCfg(diffuse_color=(0.3, 0.3, 0.3)),
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.3, 0, -args.bed_depth - 0.05)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(args.bed_length / 2 - 0.7, 0, -args.bed_depth - 0.05)),
     )
     cfg.scene.sand = MPMObjectCfg(
         prim_path="{ENV_REGEX_NS}/Sand",
         spawn=MPMGridCfg(
             lower=(-0.7, -0.6, -args.bed_depth),
-            upper=(1.3, 0.6, 0),
+            upper=(args.bed_length - 0.7, 0.6, 0),
             voxel_size=args.voxel_size,
             particles_per_cell=2,
             particle_placement="cell_center",
@@ -169,7 +170,8 @@ if args.field == "mpm":
                         grid_type="sparse",
                         separate_worlds=True,
                         max_active_cell_count=max(
-                            1 << 19, 1 << int(np.ceil(np.log2(4.8 * args.bed_depth / args.voxel_size**3)))
+                            1 << 19,
+                            1 << int(np.ceil(np.log2(2.4 * args.bed_length * args.bed_depth / args.voxel_size**3))),
                         ),
                         max_leaf_node_count=1 << 15,
                         max_lower_node_count=1 << 11,
@@ -372,7 +374,9 @@ with launch_simulation(cfg):
                 args.field == "mpm"
                 and first_exit is None
                 and (
-                    np.any(local_p[:, 0] > 1.0) or np.any(local_p[:, 0] < -0.4) or np.any(np.abs(local_p[:, 1]) > 0.35)
+                    np.any(local_p[:, 0] > args.bed_length - 1.0)
+                    or np.any(local_p[:, 0] < -0.4)
+                    or np.any(np.abs(local_p[:, 1]) > 0.35)
                 )
             ):
                 first_exit = (step + 1) * env.step_dt
@@ -491,6 +495,7 @@ with launch_simulation(cfg):
             first_bottom_contact_seconds=first_bottom,
             bottom_contact_sampling="geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
             bed_depth=args.bed_depth,
+            bed_length=args.bed_length if mpm is not None else None,
             density=args.density,
             internal_friction=args.friction,
             roughness=args.roughness,
@@ -504,7 +509,7 @@ with launch_simulation(cfg):
             rigid_support_plane=args.field in ("rigid", "mpm") or args.field == "rft" and cfg.bed_depth is not None,
             material_randomization=cfg.randomize_material,
             voxel_size=args.voxel_size if mpm is not None else None,
-            mpm_floor_center_xy=[0.3, 0.0] if mpm is not None else None,
+            mpm_floor_center_xy=[args.bed_length / 2 - 0.7, 0.0] if mpm is not None else None,
             max_active_cell_count=cfg.sim.physics.solver_cfg.entries[1].solver_cfg.max_active_cell_count
             if mpm is not None
             else None,

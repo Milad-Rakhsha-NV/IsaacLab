@@ -1,17 +1,18 @@
-# Go2: validated rigid control and 0–118 mm RFT training
+# Go2: maximum-forward rigid, RFT and MPM comparison
 
-Updated November 10, 2026 (Pacific). **The new RFT domain-randomization run is active with 4,096 environments.** The report contains the validated rigid control and this run only. Previous RFT/MPM results have been removed from the report and dashboard.
+Updated November 10, 2026 (Pacific). **RFT training finished 1,500 iterations with 4,096 environments and the full material curriculum.** The final checkpoint is not accepted as converged: standing drift, loaded-foot slip, foot placement and stepping criteria failed. The report now compares the current policies at the maximum forward command; previous RFT/MPM experiments remain excluded.
 
 ## Current RFT run
 
 - Task: `Isaac-Velocity-Flat-UnitreeGo2-RFT-Curriculum-Direct`.
 - Run: `logs/rsl_rl/go2_rft_knee_depth_curriculum/2026-11-11_02-42-39/`.
-- The previous 0–22 mm start / 0–100 mm target run is superseded and excluded from the report. Fresh initialization, seed 42, 1,500 PPO iterations planned; 24 steps per environment per iteration.
+- The previous 0–22 mm start / 0–100 mm target run is superseded and excluded from the report. Fresh initialization, seed 42, 1,500 PPO iterations completed; 24 steps per environment per iteration.
 - Isaac Lab source at launch: `0e27c65786`; Newton pin: `6528eb5e7bb823fe35f0d238b2571431bb55a811`.
 - Native task checks passed from the installed pinned Newton package. No dependency synchronization runs while training is active.
-- MPM is excluded from training. Final frozen-policy evaluation runs automatically after training finishes.
+- MPM was excluded from training. The final frozen checkpoint is `model_1499.pt`. Training took 2,914.81 s (48.6 min) and collected 147,456,000 transitions.
+- The last training tracking error was 0.0356 m/s with material difficulty 1.0; these training metrics do not supersede the failed held-out acceptance checks.
 
-Training is not accepted as converged until the final material distribution and held-out gait/tracking checks pass. Current iteration counts, material difficulty, episode completion and tracking error are available on the live dashboard.
+The fixed nominal-material 20 s tests had tracking errors of 0.0761 m/s while standing, 0.0374 m/s at 0.30 m/s, and 0.0639 m/s at 0.50 m/s. Loaded-foot slip was 0.176–0.290 m/s, above the 0.10 m/s gate. At 0.30 m/s at least one foot did not register repeated swing/landing events. One of 384 held-out randomized trials violated foot placement; none fell. The policy therefore remains a diagnostic checkpoint.
 
 ## Material height and reset randomization
 
@@ -75,17 +76,35 @@ All seven specified acceptance gates passed. There were no falls or foot-placeme
 - All 19 Newton RFT tests pass. Newton and Isaac Lab formatting/lint checks pass.
 - The 16-environment, three-iteration PPO smoke passes with the shared gait criteria and corrected 0–118 mm layer range; its saved manifest records the 236 mm reference length and 118 mm cap.
 
-After training, the final RFT policy is tested on fixed stand/walk/maximum commands and three held-out full-distribution banks. Full material-curriculum completion is an acceptance gate. The final report will distinguish a stalled curriculum from full-distribution convergence. A new RFT video is recorded with explicit commands and layer depth.
+The final RFT policy was tested on fixed stand/walk/maximum commands and three held-out full-distribution banks. Full material-curriculum completion passed, but the gait and standing criteria above did not. The new recordings hold a single maximum forward command for their full duration.
 
-Only after those RFT checks pass is the same frozen policy evaluated in a depth-matched MPM bed. The MPM rigid entry includes the backing floor and uses the validated rigid solver settings. MPM resolution, preparation and coupling convergence remain necessary before treating transfer differences as material-model error.
+An exploratory MPM inference test completed with the same frozen RFT weights despite those failed gait gates. The robot stayed upright for 10 s, remained inside the bed margin, and had mean planar tracking error 0.2318 m/s. This is poorer command tracking than the RFT clip, not a passed transfer-validation result. The MPM rigid entry includes the backing floor and uses the validated rigid solver settings. MPM resolution, preparation and coupling convergence remain necessary before treating transfer differences as material-model error.
 
 The RFT configuration retains an experimental near-rest bearing term. Finite-layer clipping does not model confinement, compaction, evolving free surfaces or exact tangential sticking. The local numerical checks do not independently validate that material closure.
+
+## Current maximum-forward recordings
+
+All three recordings request **0.50 m/s forward**, zero lateral velocity and zero yaw, for **10 s**. The rigid clip uses its validated rigid-trained checkpoint (`model_599.pt`); both sand clips use the same final RFT checkpoint (`model_1499.pt`) without fine-tuning. Material parameters are fixed during recording.
+
+Both sand beds have a 118 mm initial depth, density 1,600 kg/m³, internal friction 0.4 and surface/internal friction ratio 1.0. Matching these inputs does not establish equivalence of the RFT and MPM constitutive laws. The MPM bed is 7 m long, with a 20 mm grid and 1,016,400 particles; its backing floor and bed-exit check use the same extent. The longer bed avoids reaching the old short bed's edge during a 10 s walk.
+
+| Recording | Mean planar velocity error | Fall |
+|---|---:|---|
+| Rigid policy / rigid floor | 0.0209 m/s | None in 10 s |
+| RFT policy / RFT sand | 0.0682 m/s | None in 10 s |
+| RFT policy / MPM sand | 0.2318 m/s | None in 10 s |
+
+All three videos contain 500 frames at 50 FPS, with the commanded vector `[0.5, 0, 0]` verified throughout their saved traces. The MPM run completed without execution errors, nonfinite particle positions or rigid-contact overflow. This is a single-seed inference comparison.
+
+The report shows these three clips, explicit command/depth captions, green granular-force arrows, and speed/error/height curves relative to the initial free surface. Numerical summaries and state traces remain linked from each recording.
 
 ## Report and live access
 
 - [Current report](http://localhost:18010/report/).
 - [Live status and learning curves](http://localhost:18010/live/), refreshed every 30 s.
-- [Validated rigid-control video](http://localhost:18010/rigid_gait_control/rollout.mp4).
+- [Rigid-trained policy on a rigid floor](http://localhost:18010/rigid_max_forward/rollout.mp4).
+- [RFT-trained policy on RFT sand](http://localhost:18010/rft_max_forward/rollout.mp4).
+- [Same RFT-trained policy on MPM sand](http://localhost:18010/mpm_max_forward/rollout.mp4).
 
 From a different machine, keep this tunnel running:
 
