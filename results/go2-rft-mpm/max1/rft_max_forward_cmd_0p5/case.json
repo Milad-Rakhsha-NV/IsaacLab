@@ -1,0 +1,18 @@
+{
+  "checkpoint": "logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+  "field": "rft",
+  "options": [
+    "--steps",
+    "500",
+    "--speed",
+    "0.5",
+    "--video",
+    "--policy_training_terrain",
+    "rft",
+    "--substrate_depth",
+    "0.118"
+  ],
+  "seed": 123,
+  "maximum": 1.0,
+  "source_ast_sha256": "ca9e5e10845e59f7a84cee5d03416392266b0e465e3f7a0d2e52dbb7597195fb"
+}

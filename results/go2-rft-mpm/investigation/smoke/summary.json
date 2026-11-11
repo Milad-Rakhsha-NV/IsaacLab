@@ -1,0 +1,41 @@
+{
+  "settings": {
+    "output": "logs/go2_granular/investigation/smoke",
+    "mode": "vertical",
+    "geometry": "sphere",
+    "device": "cuda:0",
+    "voxel_size": 0.02,
+    "substeps": 4,
+    "iterations": 50,
+    "settle": 0.25,
+    "depth": 0.04,
+    "speed": 0.1,
+    "bed_depth": 0.118,
+    "density": 1600.0,
+    "friction": 0.4,
+    "roughness": 1.0,
+    "modulus": 1000000000000000.0,
+    "domain_scale": 1.0,
+    "project": false
+  },
+  "particle_count": 14400,
+  "total_mass_kg": 22.656,
+  "wall_seconds": 4.5511461509158835,
+  "mean_force_N": [
+    0.0007646144203254548,
+    0.002637148269981929,
+    6.393747789272363
+  ],
+  "mean_rft_force_N": [
+    -3.409037200678237e-09,
+    3.3465254863547976e-08,
+    9.783163014529407
+  ],
+  "peak_force_N": 10.051079036613215,
+  "settled_rms_speed_m_s": 0.0006653445423580706,
+  "maximum_floor_penetration_m": 7.957220077514648e-05,
+  "maximum_probe_penetration_m": 0.00019255466759204865,
+  "momentum_balance_mean_relative": 1.1083775386996938e-05,
+  "container": "0.4 x 0.3 m scaled horizontally, frictionless sidewalls, rigid bottom",
+  "force_sampling": "sum of all collider impulses over each 5 ms frame divided by frame duration"
+}

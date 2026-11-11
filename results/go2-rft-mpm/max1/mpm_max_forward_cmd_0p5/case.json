@@ -1,0 +1,26 @@
+{
+  "checkpoint": "logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+  "field": "mpm",
+  "options": [
+    "--steps",
+    "500",
+    "--speed",
+    "0.5",
+    "--video",
+    "--policy_training_terrain",
+    "rft",
+    "--bed_depth",
+    "0.118",
+    "--bed_length",
+    "12.0",
+    "--bed_width",
+    "3.2",
+    "--max_active_cell_count",
+    "1048576",
+    "--settle_seconds",
+    "0.5"
+  ],
+  "seed": 123,
+  "maximum": 1.0,
+  "source_ast_sha256": "263ad3009c773e482eda34a096afcc18c5f76c4e67898db2bc0dbd4fa0f50c7f"
+}

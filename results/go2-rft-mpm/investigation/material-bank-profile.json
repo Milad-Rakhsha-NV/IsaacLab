@@ -1,0 +1,8 @@
+{
+  "voxel_size": 0.02,
+  "substeps": 4,
+  "mpm_iterations": 50,
+  "proxy_relaxation": 0.1,
+  "proxy_iterations": 1,
+  "transfer_scheme": "pic"
+}

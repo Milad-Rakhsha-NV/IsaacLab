@@ -1,0 +1,67 @@
+{
+  "max_forward_command": 1.0,
+  "num_envs": 4096,
+  "iterations": 1500,
+  "seed": 42,
+  "case_directory": "max1",
+  "status_file": "training/max1-evaluation-status.json",
+  "videos_ready": true,
+  "runs": [
+    [
+      "rft",
+      "RFT: forward commands up to 1.0 m/s",
+      "go2_rft_max1",
+      "go2-max1-rft-training.service",
+      1500
+    ],
+    [
+      "rigid",
+      "Rigid: forward commands up to 1.0 m/s",
+      "go2_rigid_max1",
+      "go2-max1-rigid-training.service",
+      1500
+    ]
+  ],
+  "log_files": {
+    "rigid": "rigid-max1.log",
+    "rft": "rft-max1.log"
+  },
+  "validation_cases": [
+    "rigid_stand_validation",
+    "rigid_walk_validation",
+    "rigid_maximum_validation",
+    "rft_stand_validation",
+    "rft_walk_validation",
+    "rft_maximum_validation",
+    "rigid_commands_123",
+    "rigid_commands_456",
+    "rigid_commands_789",
+    "rft_commands_123",
+    "rft_commands_456",
+    "rft_commands_789"
+  ],
+  "run_directories": {
+    "rft": "logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41",
+    "rigid": "logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41"
+  },
+  "published_videos": [
+    "rigid_max_forward",
+    "rigid_max_forward_cmd_0p5",
+    "rft_max_forward",
+    "rft_max_forward_cmd_0p5",
+    "mpm_max_forward",
+    "mpm_max_forward_cmd_0p5",
+    "rigid_mpm_max_forward",
+    "rigid_mpm_max_forward_cmd_0p5"
+  ],
+  "material_comparison_ready": true,
+  "video_speeds": [
+    1.0,
+    0.5
+  ],
+  "video_bed_width": 3.2,
+  "reused_maximum_command_trajectories": true,
+  "mpm_recheck_ready": true,
+  "half_speed_material_comparison_ready": true,
+  "go2_report_complete": true
+}

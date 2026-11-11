@@ -1,0 +1,16 @@
+{
+  "checkpoint": "logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+  "field": "rft",
+  "options": [
+    "--substrate_depth",
+    "0.118",
+    "--steps",
+    "500",
+    "--num_envs",
+    "128",
+    "--randomize"
+  ],
+  "seed": 789,
+  "maximum": 1.0,
+  "source_ast_sha256": "c35dcb5560f77bc919efc75ef1cc9489c7f4063fb785a0eaa2d5a6bcadf2956c"
+}

@@ -1,0 +1,13 @@
+{
+  "stage": "Reports published",
+  "completion": {
+    "probes": 50,
+    "probes_planned": 50,
+    "coupling": 8,
+    "coupling_planned": 8,
+    "materials": 6,
+    "materials_planned": 6
+  },
+  "mpm_reference_accepted": false,
+  "force_fit_accepted": false
+}

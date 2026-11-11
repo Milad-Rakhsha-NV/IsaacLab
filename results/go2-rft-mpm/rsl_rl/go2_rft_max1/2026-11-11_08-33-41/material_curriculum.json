@@ -1,0 +1,14 @@
+{
+  "knee_to_sole_length_m": 0.236,
+  "initial_depth_limit_m": 0.118,
+  "collision_foot_diameter_m": 0.04399999976158142,
+  "initial_depth_range_m": [
+    0.0,
+    0.118
+  ],
+  "target_depth_range_m": [
+    0.0,
+    0.118
+  ],
+  "substrate_height_m": 0.0
+}

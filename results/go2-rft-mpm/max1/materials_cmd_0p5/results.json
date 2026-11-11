@@ -1,0 +1,2455 @@
+{
+  "coupling": [],
+  "materials": [
+    {
+      "name": "lower-density-friction-rigid",
+      "policy": "rigid",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.06,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1400,
+        "friction": 0.3,
+        "roughness": 0.6,
+        "audit_forces": true,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "mpm",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": null,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rigid",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 68.63270359393209,
+        "first_failure_seconds": null,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.14,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.06,
+        "bed_length": 5.0,
+        "bed_width": 1.6,
+        "density": 1400.0,
+        "internal_friction": 0.3,
+        "roughness": 0.6,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": null,
+        "surface_heights": [
+          0.0
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": null,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": 0.02,
+        "mpm_floor_center_xy": [
+          1.8,
+          0.0
+        ],
+        "max_active_cell_count": 524288,
+        "proxy_relaxation": 0.1,
+        "proxy_iterations": 1,
+        "mpm_iterations": 50,
+        "transfer_scheme": "pic",
+        "mpm_preparation": {
+          "seconds": 0.5,
+          "rms_particle_speed_m_s": 0.006468208506703377,
+          "core_rms_particle_speed_m_s": 4.686313843649259e-07,
+          "minimum_particle_z_m": -0.060390371829271317,
+          "robot_fixed": true,
+          "entry_history_preserved": true,
+          "preparation_steps": 400
+        },
+        "actual_mpm_material": {
+          "young_modulus": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "poisson_ratio": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "friction": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "yield_pressure": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "viscosity": [
+            0.0,
+            0.0
+          ],
+          "dilatancy": [
+            0.0,
+            0.0
+          ],
+          "hardening": [
+            0.0,
+            0.0
+          ]
+        },
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": 1000000000000000.0,
+        "substeps": 4,
+        "force_sampling": "last coupled proxy feedback, including relaxation; not an interval average",
+        "failure_fraction": 0.0,
+        "per_env_velocity_error": [
+          0.3056724071254333
+        ],
+        "mean_velocity_error": 0.3056724071254333,
+        "final_position": [
+          [
+            0.632965087890625,
+            0.06849463284015656,
+            0.22150658071041107
+          ]
+        ],
+        "final_height": [
+          0.22150658071041107
+        ],
+        "mean_yaw_error": 0.09623709421915312,
+        "mean_absolute_joint_power_W": 40.878318316141765,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.18920528888702393,
+        "mean_external_vertical_N": 11.197463029664505,
+        "mean_rigid_contact_vertical_N": 137.03836467564105
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.11348295373904416,
+        "foot_placement_pass": true
+      }
+    },
+    {
+      "name": "lower-density-friction-rft",
+      "policy": "rft",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.06,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1400,
+        "friction": 0.3,
+        "roughness": 0.6,
+        "audit_forces": true,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "mpm",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": null,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rft",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 67.06332031905185,
+        "first_failure_seconds": null,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.12,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.06,
+        "bed_length": 5.0,
+        "bed_width": 1.6,
+        "density": 1400.0,
+        "internal_friction": 0.3,
+        "roughness": 0.6,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": null,
+        "surface_heights": [
+          0.0
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": null,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": 0.02,
+        "mpm_floor_center_xy": [
+          1.8,
+          0.0
+        ],
+        "max_active_cell_count": 524288,
+        "proxy_relaxation": 0.1,
+        "proxy_iterations": 1,
+        "mpm_iterations": 50,
+        "transfer_scheme": "pic",
+        "mpm_preparation": {
+          "seconds": 0.5,
+          "rms_particle_speed_m_s": 0.006468208506703377,
+          "core_rms_particle_speed_m_s": 4.686313843649259e-07,
+          "minimum_particle_z_m": -0.060390371829271317,
+          "robot_fixed": true,
+          "entry_history_preserved": true,
+          "preparation_steps": 400
+        },
+        "actual_mpm_material": {
+          "young_modulus": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "poisson_ratio": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "friction": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "yield_pressure": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "viscosity": [
+            0.0,
+            0.0
+          ],
+          "dilatancy": [
+            0.0,
+            0.0
+          ],
+          "hardening": [
+            0.0,
+            0.0
+          ]
+        },
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": 1000000000000000.0,
+        "substeps": 4,
+        "force_sampling": "last coupled proxy feedback, including relaxation; not an interval average",
+        "failure_fraction": 0.0,
+        "per_env_velocity_error": [
+          0.05774993586664399
+        ],
+        "mean_velocity_error": 0.05774993586664399,
+        "final_position": [
+          [
+            1.4620453119277954,
+            -0.11502426862716675,
+            0.28843823075294495
+          ]
+        ],
+        "final_height": [
+          0.28843823075294495
+        ],
+        "mean_yaw_error": 0.04786333427298814,
+        "mean_absolute_joint_power_W": 49.990495955149335,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.13117185235023499,
+        "mean_external_vertical_N": 16.650409405183588,
+        "mean_rigid_contact_vertical_N": 130.25960125029087
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.0859214145175482,
+        "foot_placement_pass": true
+      }
+    },
+    {
+      "name": "nominal-rigid",
+      "policy": "rigid",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.118,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1600,
+        "friction": 0.4,
+        "roughness": 1.0,
+        "audit_forces": true,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "mpm",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": null,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rigid",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 103.36894870502874,
+        "first_failure_seconds": 0.6,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.22,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.118,
+        "bed_length": 5.0,
+        "bed_width": 1.6,
+        "density": 1600.0,
+        "internal_friction": 0.4,
+        "roughness": 1.0,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": null,
+        "surface_heights": [
+          0.0
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": null,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": 0.02,
+        "mpm_floor_center_xy": [
+          1.8,
+          0.0
+        ],
+        "max_active_cell_count": 524288,
+        "proxy_relaxation": 0.1,
+        "proxy_iterations": 1,
+        "mpm_iterations": 50,
+        "transfer_scheme": "pic",
+        "mpm_preparation": {
+          "seconds": 0.5,
+          "rms_particle_speed_m_s": 0.010853110812604427,
+          "core_rms_particle_speed_m_s": 9.77623471953848e-07,
+          "minimum_particle_z_m": -0.11814338713884354,
+          "robot_fixed": true,
+          "entry_history_preserved": true,
+          "preparation_steps": 400
+        },
+        "actual_mpm_material": {
+          "young_modulus": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "poisson_ratio": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "friction": [
+            0.4000000059604645,
+            0.4000000059604645
+          ],
+          "yield_pressure": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "viscosity": [
+            0.0,
+            0.0
+          ],
+          "dilatancy": [
+            0.0,
+            0.0
+          ],
+          "hardening": [
+            0.0,
+            0.0
+          ]
+        },
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": 1000000000000000.0,
+        "substeps": 4,
+        "force_sampling": "last coupled proxy feedback, including relaxation; not an interval average",
+        "failure_fraction": 1.0,
+        "per_env_velocity_error": [
+          0.4319706233839194
+        ],
+        "mean_velocity_error": 0.4319706233839194,
+        "final_position": [
+          [
+            0.26318225264549255,
+            0.02295704558491707,
+            0.1292831301689148
+          ]
+        ],
+        "final_height": [
+          0.1292831301689148
+        ],
+        "mean_yaw_error": 0.12657014114782214,
+        "mean_absolute_joint_power_W": 48.755675633748375,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.15671595931053162,
+        "mean_external_vertical_N": 12.786323474158417,
+        "mean_rigid_contact_vertical_N": 134.88572673797609
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.1144101697518558,
+        "foot_placement_pass": true
+      }
+    },
+    {
+      "name": "nominal-rft",
+      "policy": "rft",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.118,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1600,
+        "friction": 0.4,
+        "roughness": 1.0,
+        "audit_forces": true,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "mpm",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": null,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rft",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 105.91857879702002,
+        "first_failure_seconds": null,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.2,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.118,
+        "bed_length": 5.0,
+        "bed_width": 1.6,
+        "density": 1600.0,
+        "internal_friction": 0.4,
+        "roughness": 1.0,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": null,
+        "surface_heights": [
+          0.0
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": null,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": 0.02,
+        "mpm_floor_center_xy": [
+          1.8,
+          0.0
+        ],
+        "max_active_cell_count": 524288,
+        "proxy_relaxation": 0.1,
+        "proxy_iterations": 1,
+        "mpm_iterations": 50,
+        "transfer_scheme": "pic",
+        "mpm_preparation": {
+          "seconds": 0.5,
+          "rms_particle_speed_m_s": 0.010853110812604427,
+          "core_rms_particle_speed_m_s": 9.77623471953848e-07,
+          "minimum_particle_z_m": -0.11814338713884354,
+          "robot_fixed": true,
+          "entry_history_preserved": true,
+          "preparation_steps": 400
+        },
+        "actual_mpm_material": {
+          "young_modulus": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "poisson_ratio": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "friction": [
+            0.4000000059604645,
+            0.4000000059604645
+          ],
+          "yield_pressure": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "viscosity": [
+            0.0,
+            0.0
+          ],
+          "dilatancy": [
+            0.0,
+            0.0
+          ],
+          "hardening": [
+            0.0,
+            0.0
+          ]
+        },
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": 1000000000000000.0,
+        "substeps": 4,
+        "force_sampling": "last coupled proxy feedback, including relaxation; not an interval average",
+        "failure_fraction": 0.0,
+        "per_env_velocity_error": [
+          0.1692717116077741
+        ],
+        "mean_velocity_error": 0.1692717116077741,
+        "final_position": [
+          [
+            1.019247055053711,
+            -0.09122953563928604,
+            0.23913945257663727
+          ]
+        ],
+        "final_height": [
+          0.23913945257663727
+        ],
+        "mean_yaw_error": 0.07391145286460718,
+        "mean_absolute_joint_power_W": 70.74439400990804,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.1222635805606842,
+        "mean_external_vertical_N": 35.23939554941753,
+        "mean_rigid_contact_vertical_N": 112.24063212275504
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.08289069918420605,
+        "foot_placement_pass": true
+      }
+    },
+    {
+      "name": "higher-density-friction-rigid",
+      "policy": "rigid",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.1,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1800,
+        "friction": 0.5,
+        "roughness": 0.8,
+        "audit_forces": true,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "mpm",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": null,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rigid",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 97.54573823697865,
+        "first_failure_seconds": 0.68,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.2,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.1,
+        "bed_length": 5.0,
+        "bed_width": 1.6,
+        "density": 1800.0,
+        "internal_friction": 0.5,
+        "roughness": 0.8,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": null,
+        "surface_heights": [
+          0.0
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": null,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": 0.02,
+        "mpm_floor_center_xy": [
+          1.8,
+          0.0
+        ],
+        "max_active_cell_count": 524288,
+        "proxy_relaxation": 0.1,
+        "proxy_iterations": 1,
+        "mpm_iterations": 50,
+        "transfer_scheme": "pic",
+        "mpm_preparation": {
+          "seconds": 0.5,
+          "rms_particle_speed_m_s": 0.014084015041589737,
+          "core_rms_particle_speed_m_s": 1.6950341432675486e-06,
+          "minimum_particle_z_m": -0.10041452944278717,
+          "robot_fixed": true,
+          "entry_history_preserved": true,
+          "preparation_steps": 400
+        },
+        "actual_mpm_material": {
+          "young_modulus": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "poisson_ratio": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "friction": [
+            0.5,
+            0.5
+          ],
+          "yield_pressure": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "viscosity": [
+            0.0,
+            0.0
+          ],
+          "dilatancy": [
+            0.0,
+            0.0
+          ],
+          "hardening": [
+            0.0,
+            0.0
+          ]
+        },
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": 1000000000000000.0,
+        "substeps": 4,
+        "force_sampling": "last coupled proxy feedback, including relaxation; not an interval average",
+        "failure_fraction": 1.0,
+        "per_env_velocity_error": [
+          0.4302237143615882
+        ],
+        "mean_velocity_error": 0.4302237143615882,
+        "final_position": [
+          [
+            0.26316553354263306,
+            0.023812714964151382,
+            0.1539308726787567
+          ]
+        ],
+        "final_height": [
+          0.1539308726787567
+        ],
+        "mean_yaw_error": 0.12281676309804122,
+        "mean_absolute_joint_power_W": 46.32523495356242,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.15770122408866882,
+        "mean_external_vertical_N": 16.285653431010722,
+        "mean_rigid_contact_vertical_N": 131.6011450856924
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.11475443753287351,
+        "foot_placement_pass": true
+      }
+    },
+    {
+      "name": "higher-density-friction-rft",
+      "policy": "rft",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.1,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1800,
+        "friction": 0.5,
+        "roughness": 0.8,
+        "audit_forces": true,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "mpm",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": null,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rft",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 96.75535336800385,
+        "first_failure_seconds": null,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.18,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.1,
+        "bed_length": 5.0,
+        "bed_width": 1.6,
+        "density": 1800.0,
+        "internal_friction": 0.5,
+        "roughness": 0.8,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": null,
+        "surface_heights": [
+          0.0
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": null,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": 0.02,
+        "mpm_floor_center_xy": [
+          1.8,
+          0.0
+        ],
+        "max_active_cell_count": 524288,
+        "proxy_relaxation": 0.1,
+        "proxy_iterations": 1,
+        "mpm_iterations": 50,
+        "transfer_scheme": "pic",
+        "mpm_preparation": {
+          "seconds": 0.5,
+          "rms_particle_speed_m_s": 0.014084015041589737,
+          "core_rms_particle_speed_m_s": 1.6950341432675486e-06,
+          "minimum_particle_z_m": -0.10041452944278717,
+          "robot_fixed": true,
+          "entry_history_preserved": true,
+          "preparation_steps": 400
+        },
+        "actual_mpm_material": {
+          "young_modulus": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "poisson_ratio": [
+            0.30000001192092896,
+            0.30000001192092896
+          ],
+          "friction": [
+            0.5,
+            0.5
+          ],
+          "yield_pressure": [
+            999999986991104.0,
+            999999986991104.0
+          ],
+          "viscosity": [
+            0.0,
+            0.0
+          ],
+          "dilatancy": [
+            0.0,
+            0.0
+          ],
+          "hardening": [
+            0.0,
+            0.0
+          ]
+        },
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": 1000000000000000.0,
+        "substeps": 4,
+        "force_sampling": "last coupled proxy feedback, including relaxation; not an interval average",
+        "failure_fraction": 0.0,
+        "per_env_velocity_error": [
+          0.12240015504881739
+        ],
+        "mean_velocity_error": 0.12240015504881739,
+        "final_position": [
+          [
+            1.1626572608947754,
+            -0.11043844372034073,
+            0.2561494708061218
+          ]
+        ],
+        "final_height": [
+          0.2561494708061218
+        ],
+        "mean_yaw_error": 0.06718111963632206,
+        "mean_absolute_joint_power_W": 67.36679325103759,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.11152289062738419,
+        "mean_external_vertical_N": 43.575039057522375,
+        "mean_rigid_contact_vertical_N": 104.14023564457894
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.07447675816710045,
+        "foot_placement_pass": true
+      }
+    }
+  ],
+  "reference": [
+    {
+      "name": "lower-density-friction-rft",
+      "policy": "rft",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.06,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1400,
+        "friction": 0.3,
+        "roughness": 0.6,
+        "audit_forces": true,
+        "substrate_depth": 0.06,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "rft",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": 0.06,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rft",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 15.528750747093,
+        "first_failure_seconds": null,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.12,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.06,
+        "bed_length": null,
+        "bed_width": null,
+        "density": 1400.0,
+        "internal_friction": 0.3,
+        "roughness": 0.6,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": [
+          [
+            1400.0,
+            0.30000001192092896,
+            0.18000000715255737,
+            221089.9375,
+            0.0,
+            0.03999999910593033,
+            0.8757399916648865
+          ]
+        ],
+        "surface_heights": [
+          0.05999999865889549
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": 0.87574,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": null,
+        "mpm_floor_center_xy": null,
+        "max_active_cell_count": null,
+        "proxy_relaxation": null,
+        "proxy_iterations": null,
+        "mpm_iterations": null,
+        "transfer_scheme": null,
+        "mpm_preparation": null,
+        "actual_mpm_material": null,
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": null,
+        "substeps": 4,
+        "force_sampling": "control-interval impulse average",
+        "failure_fraction": 0.0,
+        "per_env_velocity_error": [
+          0.04624245577821663
+        ],
+        "mean_velocity_error": 0.04624245577821663,
+        "final_position": [
+          [
+            1.4229062795639038,
+            -0.07277057319879532,
+            0.33430376648902893
+          ]
+        ],
+        "final_height": [
+          0.27430376410484314
+        ],
+        "mean_yaw_error": 0.03918105045643946,
+        "mean_absolute_joint_power_W": 48.68042215983073,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.1456865817308426,
+        "gait_pass_fraction": 1.0,
+        "min_signed_foot_y": 0.08401048183441162,
+        "mean_contact_slip_m_s": 0.13026894629001617,
+        "steps_per_foot": [
+          [
+            3,
+            3,
+            3,
+            3
+          ]
+        ],
+        "mean_external_vertical_N": 14.386457607895135,
+        "mean_rigid_contact_vertical_N": 132.51826611459256
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.0840104844372697,
+        "foot_placement_pass": true
+      }
+    },
+    {
+      "name": "nominal-rft",
+      "policy": "rft",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.118,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1600,
+        "friction": 0.4,
+        "roughness": 1.0,
+        "audit_forces": true,
+        "substrate_depth": 0.118,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "rft",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": 0.118,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rft",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 15.515337297925726,
+        "first_failure_seconds": null,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.18,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.118,
+        "bed_length": null,
+        "bed_width": null,
+        "density": 1600.0,
+        "internal_friction": 0.4,
+        "roughness": 1.0,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": [
+          [
+            1600.0,
+            0.4000000059604645,
+            0.4000000059604645,
+            487454.96875,
+            0.0,
+            0.03999999910593033,
+            0.8757399916648865
+          ]
+        ],
+        "surface_heights": [
+          0.11800000071525574
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": 0.87574,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": null,
+        "mpm_floor_center_xy": null,
+        "max_active_cell_count": null,
+        "proxy_relaxation": null,
+        "proxy_iterations": null,
+        "mpm_iterations": null,
+        "transfer_scheme": null,
+        "mpm_preparation": null,
+        "actual_mpm_material": null,
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": null,
+        "substeps": 4,
+        "force_sampling": "control-interval impulse average",
+        "failure_fraction": 0.0,
+        "per_env_velocity_error": [
+          0.06798724236587683
+        ],
+        "mean_velocity_error": 0.06798724236587683,
+        "final_position": [
+          [
+            1.3808808326721191,
+            -0.0910957083106041,
+            0.37420132756233215
+          ]
+        ],
+        "final_height": [
+          0.2562013268470764
+        ],
+        "mean_yaw_error": 0.035890709195518865,
+        "mean_absolute_joint_power_W": 59.697470105489096,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.09786728024482727,
+        "gait_pass_fraction": 1.0,
+        "min_signed_foot_y": 0.09111015498638153,
+        "mean_contact_slip_m_s": 0.264699786901474,
+        "steps_per_foot": [
+          [
+            3,
+            2,
+            3,
+            3
+          ]
+        ],
+        "mean_external_vertical_N": 136.29986391216516,
+        "mean_rigid_contact_vertical_N": 11.687856525927781
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.09111015195338515,
+        "foot_placement_pass": true
+      }
+    },
+    {
+      "name": "higher-density-friction-rft",
+      "policy": "rft",
+      "settings": {
+        "steps": 150,
+        "speed": 0.5,
+        "max_forward_command": 1.0,
+        "bed_depth": 0.1,
+        "bed_length": 5.0,
+        "settle_seconds": 0.5,
+        "density": 1800,
+        "friction": 0.5,
+        "roughness": 0.8,
+        "audit_forces": true,
+        "substrate_depth": 0.1,
+        "bed_width": 1.6
+      },
+      "summary": {
+        "robot": "go2",
+        "foot_body_names": [
+          "FL_foot",
+          "FR_foot",
+          "RL_foot",
+          "RR_foot"
+        ],
+        "foot_side_signs": [
+          1.0,
+          -1.0,
+          1.0,
+          -1.0
+        ],
+        "root_body_name": "base",
+        "robot_weight_N": 147.33641052246094,
+        "field": "rft",
+        "minimum_base_height": 0.16,
+        "ambient_fluid_density": 0.0,
+        "max_rigid_overflow": 0,
+        "surface_relative_height": true,
+        "validation_difficulty": 1.0,
+        "substrate_depth": 0.1,
+        "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/go2_rft_max1/2026-11-11_08-33-41/model_1499.pt",
+        "policy_training_terrain": "rft",
+        "steps": 150,
+        "seed": 123,
+        "simulated_seconds": 3.0,
+        "wall_seconds": 15.345009905053303,
+        "first_failure_seconds": null,
+        "body_labels": [
+          "/World/envs/env_0/Robot/base",
+          "/World/envs/env_0/Robot/FL_hip",
+          "/World/envs/env_0/Robot/FL_thigh",
+          "/World/envs/env_0/Robot/FL_calf",
+          "/World/envs/env_0/Robot/FL_foot",
+          "/World/envs/env_0/Robot/FR_hip",
+          "/World/envs/env_0/Robot/FR_thigh",
+          "/World/envs/env_0/Robot/FR_calf",
+          "/World/envs/env_0/Robot/FR_foot",
+          "/World/envs/env_0/Robot/Head_upper",
+          "/World/envs/env_0/Robot/Head_lower",
+          "/World/envs/env_0/Robot/RL_hip",
+          "/World/envs/env_0/Robot/RL_thigh",
+          "/World/envs/env_0/Robot/RL_calf",
+          "/World/envs/env_0/Robot/RL_foot",
+          "/World/envs/env_0/Robot/RR_hip",
+          "/World/envs/env_0/Robot/RR_thigh",
+          "/World/envs/env_0/Robot/RR_calf",
+          "/World/envs/env_0/Robot/RR_foot"
+        ],
+        "body_com": [
+          [
+            0.021111996844410896,
+            0.0,
+            -0.005365999881178141
+          ],
+          [
+            -0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            -0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            -0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            -0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.005400000140070915,
+            -0.0019399999873712659,
+            -0.0001049999991664663
+          ],
+          [
+            -0.0037400000728666782,
+            0.022299999371170998,
+            -0.03269999846816063
+          ],
+          [
+            0.00547999981790781,
+            0.0009749999735504389,
+            -0.11500000208616257
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "particles_finite": true,
+        "first_bed_exit_seconds": null,
+        "first_bottom_contact_seconds": 0.42,
+        "bottom_contact_sampling": "geometric foot-sphere proximity within 1 mm; not a contact-force measurement",
+        "bed_depth": 0.1,
+        "bed_length": null,
+        "bed_width": null,
+        "density": 1800.0,
+        "internal_friction": 0.5,
+        "roughness": 0.8,
+        "commands": [
+          [
+            0.5,
+            0.0,
+            0.0
+          ]
+        ],
+        "training_forward_command_range": [
+          0.1,
+          1.0
+        ],
+        "command_schedule": [],
+        "material_parameters": [
+          [
+            1800.0,
+            0.5,
+            0.4000000059604645,
+            1055065.5,
+            0.0,
+            0.03999999910593033,
+            0.8757399916648865
+          ]
+        ],
+        "surface_heights": [
+          0.10000000149011612
+        ],
+        "world_ids": [
+          0
+        ],
+        "execution_error": null,
+        "bearing": 0.87574,
+        "rigid_support_plane": true,
+        "material_randomization": false,
+        "voxel_size": null,
+        "mpm_floor_center_xy": null,
+        "max_active_cell_count": null,
+        "proxy_relaxation": null,
+        "proxy_iterations": null,
+        "mpm_iterations": null,
+        "transfer_scheme": null,
+        "mpm_preparation": null,
+        "actual_mpm_material": null,
+        "force_audit": true,
+        "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+        "mpm_modulus": null,
+        "substeps": 4,
+        "force_sampling": "control-interval impulse average",
+        "failure_fraction": 0.0,
+        "per_env_velocity_error": [
+          0.07692036675910155
+        ],
+        "mean_velocity_error": 0.07692036675910155,
+        "final_position": [
+          [
+            1.3247524499893188,
+            0.0038502891547977924,
+            0.3545561134815216
+          ]
+        ],
+        "final_height": [
+          0.2545561194419861
+        ],
+        "mean_yaw_error": 0.03340039419475943,
+        "mean_absolute_joint_power_W": 67.89691510518392,
+        "motor_saturation_fraction": 0.0,
+        "max_tilt_radians": 0.11030805110931396,
+        "gait_pass_fraction": 1.0,
+        "min_signed_foot_y": 0.08676529675722122,
+        "mean_contact_slip_m_s": 0.2576290965080261,
+        "steps_per_foot": [
+          [
+            3,
+            3,
+            3,
+            3
+          ]
+        ],
+        "mean_external_vertical_N": 147.3514770597685,
+        "mean_rigid_contact_vertical_N": -0.004680123971775174
+      },
+      "foot_geometry": {
+        "minimum_signed_foot_y_m": 0.08676529651983561,
+        "foot_placement_pass": true
+      }
+    }
+  ]
+}

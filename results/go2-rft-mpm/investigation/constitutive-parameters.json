@@ -1,0 +1,9 @@
+{
+  "pressure_Pa": 1000,
+  "internal_friction": 0.4,
+  "expected_tau_limit_Pa": 400,
+  "mapped_pressure": 1224.744873046875,
+  "mapped_deviatoric_norm": 400.0,
+  "actual_tau_limit_Pa": 399.9999694824219,
+  "convention": "tau=sqrt(s:s/2); low-pressure friction branch tau<=mu*P"
+}

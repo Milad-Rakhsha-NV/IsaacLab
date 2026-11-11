@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "steps": 150,
+    "speed": 0.5,
+    "bed_depth": 0.1,
+    "bed_length": 3.0,
+    "settle_seconds": 0.5,
+    "density": 1800,
+    "friction": 0.5,
+    "roughness": 0.8,
+    "audit_forces": true,
+    "substrate_depth": 0.1
+  },
+  "field": "rft",
+  "checkpoint": "logs/rsl_rl/go2_rft_knee_depth_curriculum/2026-11-11_02-42-39/model_1499.pt",
+  "source_ast_sha256": "bd79d72b4483fa8de1b2f4246b95c02adc675b9ce10f8da90c561376c99f4eb7"
+}

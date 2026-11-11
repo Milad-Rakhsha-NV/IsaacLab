@@ -1,0 +1,7 @@
+# Study artifacts use Git LFS so numerical traces and rendered media stay out of Git packfiles.
+*.npz filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+events.out.tfevents.* filter=lfs diff=lfs merge=lfs -text
+go2-rft-mpm/report/results.json filter=lfs diff=lfs merge=lfs -text
+go2-rft-mpm/training/max1-evaluation-status.json filter=lfs diff=lfs merge=lfs -text

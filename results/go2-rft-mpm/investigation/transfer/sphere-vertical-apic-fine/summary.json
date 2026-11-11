@@ -1,0 +1,46 @@
+{
+  "settings": {
+    "output": "logs/go2_granular/investigation/transfer/sphere-vertical-apic-fine",
+    "mode": "vertical",
+    "geometry": "sphere",
+    "device": "cuda:0",
+    "voxel_size": 0.005,
+    "substeps": 16,
+    "iterations": 200,
+    "tolerance": 0.0001,
+    "settle": 0.25,
+    "depth": 0.04,
+    "speed": 0.1,
+    "bed_depth": 0.118,
+    "density": 1600.0,
+    "friction": 0.4,
+    "roughness": 1.0,
+    "modulus": 1000000000000000.0,
+    "domain_scale": 1.0,
+    "project": false,
+    "transfer_scheme": "apic",
+    "rft_segments": 12,
+    "unload": false
+  },
+  "simulation_source_sha256": "67b404ec67fb209f4a7a4ff314a7a178db3a5455e967dca0de8a14f7aadf1ed2",
+  "particle_count": 921600,
+  "total_mass_kg": 22.656,
+  "wall_seconds": 159.8356807390228,
+  "mean_force_N": [
+    -0.0002739389744265018,
+    0.001167484333653034,
+    4.380014692959578
+  ],
+  "mean_rft_force_N": [
+    -1.911151533325513e-08,
+    -1.3020800669556078e-08,
+    9.042431159295898
+  ],
+  "peak_force_N": 9.120328968613647,
+  "settled_rms_speed_m_s": 1.0329673182241095e-05,
+  "maximum_floor_penetration_m": 5.1625072956085205e-05,
+  "maximum_probe_penetration_m": 0.0001427028328180313,
+  "momentum_balance_mean_relative": 0.00018886396288013223,
+  "container": "0.4 x 0.3 m scaled horizontally, frictionless sidewalls, rigid bottom",
+  "force_sampling": "sum of all collider impulses over each 5 ms frame divided by frame duration"
+}

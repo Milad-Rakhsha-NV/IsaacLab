@@ -1,0 +1,26 @@
+{
+  "checkpoint": "logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41/model_1499.pt",
+  "field": "mpm",
+  "options": [
+    "--steps",
+    "500",
+    "--speed",
+    "0.5",
+    "--video",
+    "--policy_training_terrain",
+    "rigid",
+    "--bed_depth",
+    "0.118",
+    "--bed_length",
+    "12.0",
+    "--bed_width",
+    "3.2",
+    "--max_active_cell_count",
+    "1048576",
+    "--settle_seconds",
+    "0.5"
+  ],
+  "seed": 123,
+  "maximum": 1.0,
+  "source_ast_sha256": "ca9e5e10845e59f7a84cee5d03416392266b0e465e3f7a0d2e52dbb7597195fb"
+}

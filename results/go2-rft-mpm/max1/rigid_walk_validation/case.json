@@ -1,0 +1,15 @@
+{
+  "checkpoint": "logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41/model_1499.pt",
+  "field": "rigid",
+  "options": [
+    "--steps",
+    "1000",
+    "--num_envs",
+    "16",
+    "--speed",
+    "0.5"
+  ],
+  "seed": 123,
+  "maximum": 1.0,
+  "source_ast_sha256": "c35dcb5560f77bc919efc75ef1cc9489c7f4063fb785a0eaa2d5a6bcadf2956c"
+}

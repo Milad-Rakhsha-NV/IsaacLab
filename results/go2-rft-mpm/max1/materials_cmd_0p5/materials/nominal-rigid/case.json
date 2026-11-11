@@ -1,0 +1,20 @@
+{
+  "settings": {
+    "steps": 150,
+    "speed": 0.5,
+    "max_forward_command": 1.0,
+    "bed_depth": 0.118,
+    "bed_length": 5.0,
+    "settle_seconds": 0.5,
+    "density": 1600,
+    "friction": 0.4,
+    "roughness": 1.0,
+    "audit_forces": true,
+    "bed_width": 1.6
+  },
+  "robot": "go2",
+  "field": "mpm",
+  "checkpoint": "logs/rsl_rl/go2_rigid_max1/2026-11-11_08-33-41/model_1499.pt",
+  "source_ast_sha256": "ca9e5e10845e59f7a84cee5d03416392266b0e465e3f7a0d2e52dbb7597195fb",
+  "newton_requirement": "newton[sim] @ git+https://github.com/Milad-Rakhsha-NV/newton.git@32f455bc4430f0954ae564fb40681fbaca95e7f3"
+}

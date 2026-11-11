@@ -1,0 +1,15 @@
+{
+  "settings": {
+    "steps": 100,
+    "speed": 0.5,
+    "bed_depth": 0.118,
+    "bed_length": 2.0,
+    "settle_seconds": 0.5,
+    "proxy_relaxation": 1.0,
+    "proxy_iterations": 4
+  },
+  "field": "mpm",
+  "checkpoint": "logs/rsl_rl/go2_rft_knee_depth_curriculum/2026-11-11_02-42-39/model_1499.pt",
+  "source_ast_sha256": "594d8fc2a82d750e4439d800b411d2379446bb6f7bcc6668190f287f75fa33f2",
+  "newton_requirement": "newton[sim] @ git+https://github.com/Milad-Rakhsha-NV/newton.git@32f455bc4430f0954ae564fb40681fbaca95e7f3"
+}
