@@ -27,7 +27,7 @@ Isaac Lab provides:
 
 Key source locations are [the direct task configuration](source/isaaclab_tasks/isaaclab_tasks/core/velocity/config/go2/rft_env_cfg.py), [the RFT adapter](source/isaaclab_newton/isaaclab_newton/physics/rft_solver.py), [the evaluator](scripts/benchmarks/evaluate_go2_granular.py), and [the report generator](scripts/benchmarks/report_go2_granular.py).
 
-## Training configuration
+## Go2 training configuration
 
 Both fresh runs used **4,096 environments**, **1,500 PPO iterations**, **24 steps per environment per iteration**, and **seed 42**: 147,456,000 training transitions per policy. The final checkpoint is `model_1499.pt`. The policy acts at 50 Hz.
 
@@ -62,7 +62,7 @@ uv run isaaclab train --rl_library rsl_rl \
 
 The saved configurations, TensorBoard events, curriculum records and final checkpoints are archived under `results/go2-rft-mpm/rsl_rl/`.
 
-## Frozen-policy results
+## Go2 frozen-policy results
 
 Each final recording lasts 10 s, contains 500 frames at 50 FPS, uses seed 123 and requests zero lateral velocity and yaw. Both commands evaluate the **same policies trained up to 1.0 m/s**.
 
@@ -90,7 +90,7 @@ The published report also includes short three-material comparisons at 0.5 m/s a
 - MPM has not passed the force-convergence gate. Matching density, friction and depth does not establish an equivalent RFT/MPM response.
 - The 1.0 m/s MPM collapse is coupling-sensitive. Smaller time steps alone did not remove it; four coupling passes or full feedback avoided the failure threshold in controlled **2 s** tests. Those checks do not establish accurate tracking or 10 s stability. The main videos retain the original numerical configuration.
 - RFT omits evolving free surfaces, compaction and plastic history. Its near-rest bearing term is experimental, and exact tangential sticking is absent.
-- Provisional G1 environments and smoke checks are present, including stable implicit-fast joint-drive integration and rigid/RFT/MPM drive parity before contact. **No full G1 training or G1 results are included.**
+- The G1 extension has completed rigid training and passed all seven held-out acceptance gates. RFT training is in progress with a thin-to-deep material curriculum; the full G1 transfer study is not yet complete. See [G1 status and configuration](G1_RFT_STATUS.md) and the [live G1 report](http://localhost:18010/g1/report/).
 
 The G1 drive regression failed before the integrator fix and passed afterward; the final focused file passed two tests. The regression protects bounded implicit-drive motion and unchanged free-space control through each coupling path, distinct from the existing leg-surface/reset test. No test-only production API was introduced.
 

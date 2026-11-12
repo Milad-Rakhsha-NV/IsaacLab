@@ -24,6 +24,38 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path("logs/go2_granular/g1")
 
 
+def material_curriculum(events: EventAccumulator, out: Path, iteration: int) -> str:
+    """Show the achieved curriculum and sampled depths separately from the target range."""
+    tags = events.Tags()["scalars"]
+    if "Curriculum/difficulty" not in tags:
+        return ""
+    fig, axes = plt.subplots(1, 2, figsize=(11, 3))
+    for axis, tag, label, scale in (
+        (0, "Curriculum/difficulty", "Material difficulty", 1),
+        (1, "Material/depth_mean", "Mean reset depth", 1000),
+        (1, "Material/depth_max", "Maximum reset depth", 1000),
+    ):
+        if tag in tags:
+            values = events.Scalars(tag)
+            axes[axis].plot([v.step for v in values], [scale * v.value for v in values], label=label)
+    axes[0].set(ylabel="Material difficulty", ylim=(-0.02, 1.02))
+    axes[1].set(ylabel="Sampled layer depth [mm]")
+    axes[1].axhline(118, color="grey", linestyle="--", label="Target maximum: 118 mm")
+    for ax in axes:
+        ax.set(xlabel="PPO iteration")
+        ax.grid(alpha=0.2)
+        ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out / "material-curriculum.png", dpi=150)
+    plt.close(fig)
+    return (
+        "<h3>RFT material curriculum</h3>"
+        "<p>Difficulty controls both material-property spread and layer depth. The depth traces summarize resetting "
+        "environments; the dashed line is the target maximum. Commands keep their full range throughout training.</p>"
+        f"<img src='material-curriculum.png?v={iteration}' alt='Achieved material difficulty and reset layer depths'>"
+    )
+
+
 def publish() -> None:
     """Read completed outputs; never treat training reward as a convergence decision."""
     out = ROOT / "report"
@@ -42,6 +74,7 @@ def publish() -> None:
     has_training = False
     counts = []
     rows = []
+    curriculum = ""
     for policy, label, color in (("rigid", "Rigid", "tab:blue"), ("rft", "RFT", "tab:orange")):
         runs = sorted(Path("logs/rsl_rl", f"g1_granular_{policy}_max1").glob("20*"))
         if not runs:
@@ -51,6 +84,8 @@ def publish() -> None:
         tags = events.Tags()["scalars"]
         count = events.Scalars("Perf/total_fps")[-1].step + 1 if "Perf/total_fps" in tags else 0
         counts.append(count)
+        if policy == "rft":
+            curriculum = material_curriculum(events, out, count)
         difficulty = (
             f"{events.Scalars('Curriculum/difficulty')[-1].value:.0%}" if "Curriculum/difficulty" in tags else "—"
         )
@@ -235,7 +270,7 @@ Controlled G1 tests compare both feedback factors and four-pass refinement.</p>
 <p><strong>MPM force convergence and material equivalence remain unvalidated.</strong> These are exploratory transfers.
 Support plots include contacts after failure, including non-foot contacts.
 A completed training budget is separate from passing gait checks.</p>"""
-    page += figures + videos + ("<h2>Comparisons</h2>" if plots else "") + "".join(plots) + numerics
+    page += figures + curriculum + videos + ("<h2>Comparisons</h2>" if plots else "") + "".join(plots) + numerics
     page += (
         "<script>setInterval(()=>{if(![...document.querySelectorAll('video')].some(v=>!v.paused&&!v.ended))"
         "location.reload()},30000)</script>"
