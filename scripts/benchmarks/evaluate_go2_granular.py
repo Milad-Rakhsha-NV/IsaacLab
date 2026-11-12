@@ -159,6 +159,7 @@ if args.field == "mpm":
     cfg.randomize_material = False
     cfg.scene.robot = rigid_cfg.scene.robot
     cfg.scene.bed = None
+    cfg.scene.substrate = None
     cfg.scene.floor = AssetBaseCfg(
         prim_path="/World/Floor",
         spawn=CuboidCfg(
