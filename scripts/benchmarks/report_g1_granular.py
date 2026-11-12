@@ -24,6 +24,40 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path("logs/go2_granular/g1")
 
 
+def validation_measurements(status: dict) -> str:
+    """Expose frozen-policy checks and their thresholds independently of training return."""
+    labels = {
+        "stand_validation": "Standing · 20 s · 16 environments",
+        "walk_validation": "0.50 m/s · 20 s · 16 environments",
+        "maximum_validation": "1.00 m/s · 20 s · 16 environments",
+        **{f"random_{seed}": f"Randomized bank · seed {seed} · 10 s · 128 environments" for seed in (123, 456, 789)},
+    }
+    rows = []
+    for case in status.get("cases", []):
+        policy, _, name = case["case"].partition("_")
+        if policy not in ("rigid", "rft") or name not in labels:
+            continue
+        rows.append(
+            f"<tr><td>{policy.upper()}</td><td><a href='../evaluations/{case['case']}/summary.json'>"
+            f"{labels[name]}</a></td><td>{case['mean_velocity_error']:.3f}</td>"
+            f"<td>{case['failure_fraction']:.1%}</td><td>{case['gait_pass_fraction']:.1%}</td>"
+            f"<td>{case['mean_contact_slip_m_s']:.3f}</td></tr>"
+        )
+    if not rows:
+        return ""
+    return (
+        "<details><summary>Held-out validation measurements and criteria</summary>"
+        "<p>These frozen-policy tests use no observation noise or action exploration. The randomized banks sample "
+        "commands for both policies and full-range materials for RFT. Criteria require zero falls, valid foot "
+        "placement in every environment, mean tracking error below 0.10 m/s and standing drift below 0.03 m/s. "
+        "Loaded-foot velocity must stay below 0.10 m/s. Both feet must register at least three step events "
+        "in each fixed walking trial. "
+        "The loaded-foot metric uses ankle/body velocity and includes rolling; it is a proxy for slip.</p>"
+        "<table><tr><th>Policy</th><th>Trial</th><th>Tracking error [m/s]</th><th>Falls</th>"
+        "<th>Valid foot placement</th><th>Loaded-foot velocity [m/s]</th></tr>" + "".join(rows) + "</table></details>"
+    )
+
+
 def material_curriculum(events: EventAccumulator, out: Path, iteration: int, offset: int) -> str:
     """Show the achieved curriculum and sampled depths separately from the target range."""
     tags = events.Tags()["scalars"]
@@ -298,7 +332,15 @@ Controlled G1 tests compare both feedback factors and four-pass refinement.</p>
 <p><strong>MPM force convergence and material equivalence remain unvalidated.</strong> These are exploratory transfers.
 Support plots include contacts after failure, including non-foot contacts.
 A completed training budget is separate from passing gait checks.</p>"""
-    page += figures + curriculum + videos + ("<h2>Comparisons</h2>" if plots else "") + "".join(plots) + numerics
+    page += (
+        figures
+        + curriculum
+        + validation_measurements(status)
+        + videos
+        + ("<h2>Comparisons</h2>" if plots else "")
+        + "".join(plots)
+        + numerics
+    )
     page += (
         "<script>setInterval(()=>{if(![...document.querySelectorAll('video')].some(v=>!v.paused&&!v.ended))"
         "location.reload()},30000)</script>"
