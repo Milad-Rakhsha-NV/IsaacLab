@@ -996,8 +996,8 @@ full-biped reference, especially when a boundary exit is recorded.</p>
         nominal = {r["name"]: r for r in evaluations.get("cases", []) if "_mpm_nominal_" in r["name"]}
         if nominal:
             page += """<section><h2>Nominal MPM: checkpoints under identical settings</h2>
-<p>The original RFT checkpoint is evaluated again with the same new MPM settings as the continuations.
-This separates additional training from changes to the inference simulator. The two continued policies
+<p>Completed checkpoints are compared using the same MPM settings. Original-checkpoint re-evaluation
+is pending while the coarse-policy batch is stopped for the foot-resolution study. The two continued policies
 share their initial weights and exposure; the corrected variant combines the bearing correction,
 force-informed parameters and wider reset ranges. Each comparison remains a single short trial.</p>
 <table><tr><th>Policy</th><th>Total PPO iterations</th><th>Command [m/s]</th><th>Duration [s]</th>
