@@ -11,6 +11,8 @@ Both repositories use branch **`milad/rft-mpm`**:
 
 The archived Go2 and initial G1 experiments used Newton `32f455bc4430f0954ae564fb40681fbaca95e7f3`. The current dependency pins corrected revision `277c30238619349d343104191d8e40582fa7ac70` from the personal fork. Existing snapshots retain their original solver provenance. The [G1 force-verification follow-up](G1_RFT_REFINEMENT.md) identifies and corrects energy generation in the added bearing extension, establishes a refined isolated-foot MPM reference and evaluates additional training with force-informed reset ranges.
 
+**Current validation remains failed for prolonged static support and held-out wrench matching.** Corrected RFT exhibits timestep-dependent creep under a sustained load. The revised policy can obtain most standing support from its rigid backing floor. Learned transfer performance must therefore be read as an exploratory surrogate-training result, rather than validation of an equivalent granular material.
+
 ## Implementation
 
 Newton provides `SolverRFT`: a triangular-surface force integrator based on the published 3D-RFT angular fit. It clips surfaces to the occupied layer, integrates depth-dependent traction and torque, exposes per-world GPU material/height arrays, composes with rigid dynamics, and records granular impulses. Finite-layer clipping, rigid-contact export and restoration of MPM history between proxy passes were added during this study. See the [Newton summary](https://github.com/Milad-Rakhsha/newton/blob/milad/rft-mpm/RFT_MPM_STUDY.md).

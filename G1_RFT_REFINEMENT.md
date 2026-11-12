@@ -22,9 +22,17 @@ A vertical prismatic fixture separates inertial mass from applied load. At 158.1
 
 ## Force-informed profile
 
-The corrected RFT fit uses moving insertion/drag wrenches and a simulated loaded-foot response. Unloaded holds, rotations and withdrawal remain held out. Selected strength multiplier: **0.7102**; bearing multiplier: **0.45**; bulk friction: **0.4**; effective interface/internal ratio: **0.3**; velocity regularization: **0.04 m/s**. Corrected RFT settles to 97.4 mm with four substeps, 4.1% from fine MPM. Eight substeps give 93.1 mm, a 4.6% change from the four-substep result.
+The corrected RFT fit uses moving insertion/drag wrenches and a simulated loaded-foot response at two seconds. Unloaded holds, rotations and withdrawal remain held out. Selected strength multiplier: **0.7102**; bearing multiplier: **0.45**; bulk friction: **0.4**; effective interface/internal ratio: **0.3**; velocity regularization: **0.04 m/s**. At two seconds, corrected RFT reaches 97.4 mm with four substeps, 4.1% from fine MPM. Eight substeps give 93.1 mm, a 4.6% change from the four-substep result.
 
 **Held-out wrench matching still fails.** This is an exploratory force-informed approximation, not a validated equivalent material. The fitted RFT interface ratio is effective; MPM retains ratio 1.0. A local memoryless closure cannot represent evolving cavities or plastic loading history.
+
+## Prolonged static-hold failure
+
+The two-second agreement is a transient response fit. With the same 158.13 N load, corrected RFT keeps creeping: four substeps reach the backing floor around 7.7 s. At ten seconds, depths are approximately 118.1, 109.9, 100.2 and 94.7 mm with 4, 8, 16 and 32 substeps. Early drift decreases from about 4.75 to 2.61, 1.26 and 0.65 mm/s. This approximately linear timestep dependence implicates explicit near-rest force coupling. The constitutive work-cycle correction does not supply an implicit static reaction selection.
+
+**Static support remains unvalidated.** The retrained policy uses an exploratory profile that fails this prolonged-hold gate. Rigid backing-floor support can contribute substantially in finite-layer locomotion. Further randomization alone does not resolve this numerical sticking problem; an implicit reaction/sticking treatment requires a separate solver change and renewed validation.
+
+The hold criterion permits at most 2 mm depth change between 2 and 10 s, without backing-floor proximity. All four RFT timestep settings fail. A 10 mm MPM long-hold control changes only about 0.03 mm over that interval and remains clear of the floor. Its coarser depth is grid-biased, so this additional control assesses hold stability rather than supplying the fine calibration target.
 
 ## Training and inference protocol
 
@@ -38,6 +46,21 @@ The observation/action contract, actuators and rewards are unchanged. Native che
 MPM trials use a maximum 3 s observation window and end 0.5 s after a first body-failure threshold. Videos contain their actual simulated frames and state their durations. Failure time is the primary transfer outcome; the material plot reports tracking before failure, while raw summaries retain full-rollout tracking. Native videos run for 10 s. No rollout resets hide falls.
 
 The source audit confirms the same bulk yield invariant, `sqrt(0.5*s:s) <= mu*P`, in both solvers and exact-volume cell-centered MPM particle initialization. MPM and coupled-proxy source are unchanged between the original and corrected Newton revisions. MPM includes material inertia and evolving loading history. RFT's optional inertial correction remains disabled, and the calibration at 0.1 m/s does not establish accuracy at every walking-foot velocity.
+
+Both 1,000-iteration continuations have completed. The revised run's final 100-iteration mean return is 12.66 versus 12.44 in the preceding window, a 1.75% increase; final mean episode length is 488.9 of 500 steps. These are descriptive single-seed training trends. The different material distributions make held-out trials more informative than comparing training returns alone.
+
+| Native RFT check | Extra-training control | Revised profile |
+|---|---:|---:|
+| Standing planar error, 20 s × 16 environments | 0.035 m/s; first threshold at 10.04 s | 0.004 m/s; no threshold |
+| 0.50 m/s planar error, 20 s × 16 environments | 0.071 m/s | 0.056 m/s |
+| 1.00 m/s planar error, 20 s × 16 environments | 0.098 m/s | 0.119 m/s |
+| Acceptance gates passed | 4/8 | 5/8 |
+
+The revised policy has no body failures across its six native trials, including three independent 128-environment randomization banks. One of the 384 randomized environments violates foot placement. Maximum-command tracking and the loaded-foot velocity proxy also fail their gates. The proxy is not measured grain-relative slip.
+
+Late in the revised standing trial (15–20 s), recorded upward granular force averages **23.0 N against 316.3 N weight**, about **7.3%**. Exact transformed foot colliders remain within 1 mm of the backing floor throughout that window. Under steady momentum balance, most remaining support is inferred to come from the substrate; rigid-contact force is not directly recorded in this trial. The low drift therefore does not establish granular static support.
+
+The final rigid-floor and RFT recordings at both commands are available in the live report. The MPM material bank, renewed transfer recordings, original-checkpoint ablation and whole-robot grid checks remain in progress.
 
 ## Reproduction and outputs
 

@@ -5,8 +5,8 @@
 
 """Calibrate corrected RFT using moving tractions and a simulated loaded-foot response.
 
-Static support is selected through a load-controlled simulation, rather than
-equating the reaction of an unloaded prescribed hold with a bearing capacity.
+The short-time loaded response constrains the fit. It does not validate static
+support; prolonged holds and timestep refinement are separate acceptance checks.
 """
 
 import argparse
@@ -176,7 +176,7 @@ def main(args):
         ),
         interpretation=(
             "Corrected dissipative bearing. Unloaded history remains held out; "
-            "matching loaded settling does not establish force equivalence."
+            "matching a short-time loaded depth does not establish static or force equivalence."
         ),
     )
     (args.output / "calibration.json").write_text(json.dumps(record, indent=2) + "\n")

@@ -118,7 +118,7 @@ def loaded_plot():
             version = "Original" if path.parent.name in ("rft-bearing-original", "rft-bearing-zero") else "Corrected"
             label = (
                 f"{version} RFT · bearing {c['bearing']:.3g} · strength {c.get('strength_multiplier', 1):.3g}"
-                f" · {c['load']:g} N · {c['substeps']} substeps"
+                f" · {c['load']:g} N · {c['substeps']} substeps · {c['seconds']:g} s"
             )
         if path.parent.name in plotted:
             with np.load(path.parent / "trace.npz") as d:
@@ -143,6 +143,146 @@ def loaded_plot():
     fig.savefig(ROOT / "loaded-settling.png", dpi=150)
     plt.close(fig)
     return "".join(rows)
+
+
+def long_hold_plot():
+    """Expose accumulated near-rest drift that a short depth comparison can miss."""
+    paths = sorted((ROOT / "loaded").glob("rft-calibrated-long-*/summary.json"))
+    if not paths:
+        return ""
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    rows, timesteps, slopes, records = [], [], [], []
+    mpm = ROOT / "loaded/mpm-10mm-long10s/summary.json"
+    if mpm.exists():
+        paths.append(mpm)
+    for path in paths:
+        s = read(path)
+        if not s:
+            continue
+        c = s["settings"]
+        with np.load(path.parent / "trace.npz") as data:
+            trace = data["trace"]
+        early = (trace[:, 0] >= 1.5) & (trace[:, 0] <= 2)
+        slope = 1000 * float(np.polyfit(trace[early, 0], trace[early, 4], 1)[0])
+        at_two = 1000 * float(np.interp(2, trace[:, 0], trace[:, 4]))
+        dt = 5 / c["substeps"]
+        label = f"RFT · {c['substeps']} substeps" if c["field"] == "rft" else "MPM · 10 mm grid"
+        axes[0].plot(trace[:, 0], trace[:, 4] * 1000, label=label)
+        if c["field"] == "rft":
+            timesteps.append(dt)
+            slopes.append(slope)
+        records.append(
+            dict(
+                fixture=path.parent.name,
+                field=c["field"],
+                timestep_ms=dt,
+                depth_at_2s_mm=at_two,
+                depth_at_10s_mm=1000 * s["final_sole_depth_m"],
+                drift_2_to_10s_mm=1000 * s["final_sole_depth_m"] - at_two,
+                early_drift_mm_s=slope,
+                backing_floor_proximity=s["backing_floor_proximity"],
+            )
+        )
+        rows.append(
+            f"<tr><td>{label}</td><td>{dt:g}</td><td>{at_two:.1f}</td>"
+            f"<td>{1000 * s['final_sole_depth_m']:.1f}</td><td>{slope:.3f}</td>"
+            f"<td>{'Yes' if s['backing_floor_proximity'] else 'No'}</td></tr>"
+        )
+    if timesteps:
+        order = np.argsort(timesteps)
+        dt, drift = np.array(timesteps)[order], np.array(slopes)[order]
+        axes[1].loglog(dt, drift, "o-", label="Measured RFT drift")
+        axes[1].loglog(dt, drift[0] * dt / dt[0], "--", label="Proportional to timestep")
+        axes[1].legend(fontsize=8)
+    axes[0].axvline(2, color="grey", ls=":")
+    axes[0].axhline(118, color="grey", ls="--", label="Backing floor")
+    axes[0].set(xlabel="Time after release [s]", ylabel="Sole depth [mm]")
+    axes[1].set(xlabel="Rigid/RFT timestep [ms]", ylabel="Depth drift at 1.5–2 s [mm/s]")
+    axes[0].legend(fontsize=7)
+    for ax in axes:
+        ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(ROOT / "static-drift.png", dpi=150)
+    plt.close(fig)
+    analysis = dict(
+        results=records,
+        maximum_allowed_drift_mm=2.0,
+        rft_static_accepted=all(
+            abs(r["drift_2_to_10s_mm"]) <= 2 and not r["backing_floor_proximity"]
+            for r in records
+            if r["field"] == "rft"
+        ),
+        interpretation="Prolonged hold: at most 2 mm depth change from 2 to 10 s and no backing-floor proximity.",
+    )
+    (ROOT / "static-hold-analysis.json").write_text(json.dumps(analysis, indent=2) + "\n")
+    return "".join(rows)
+
+
+def standing_support():
+    """Separate recorded granular support from geometric proximity to the substrate."""
+    geometry = read(ROOT / "geometry.json")
+    if not geometry:
+        return {}
+    vertices = np.array(
+        next(s for s in geometry["surfaces"] if s["body_label"].endswith("/left_ankle_roll_link"))["vertices"]
+    )
+    rows = []
+    for name, start, end in (("control_stand", 1.5, 5), ("matched_stand", 1.5, 5), ("matched_stand", 15, 20)):
+        path = ROOT / "evaluations" / name
+        summary = read(path / "summary.json")
+        if not summary:
+            continue
+        feet = [
+            i
+            for i, label in enumerate(summary["body_labels"])
+            if label.endswith(("/left_ankle_roll_link", "/right_ankle_roll_link"))
+        ]
+        with np.load(path / "rollout.npz") as data:
+            t = data["state"][:, 0, 0]
+            mask = (t >= start) & (t <= end)
+            pose = data["body_pose"][mask][:, feet]
+            xyz, scalar = pose[:, :, None, 3:6], pose[:, :, None, 6:7]
+            rotated = vertices[None, None] + 2 * np.cross(xyz, np.cross(xyz, vertices) + scalar * vertices)
+            sole = (pose[:, :, None, :3] + rotated)[:, :, :, 2].min(-1)
+            force = data["body_wrench"][mask, :, 2].sum(1) / len(summary["commands"])
+        rows.append(
+            dict(
+                case=name,
+                window_seconds=[start, end],
+                granular_upward_force_N=float(force.mean()),
+                weight_N=summary["robot_weight_N"],
+                granular_force_over_weight=float(force.mean() / summary["robot_weight_N"]),
+                sole_within_1mm_of_floor_fraction=float((sole <= 0.001).mean()),
+                minimum_sole_z_m=float(sole.min()),
+            )
+        )
+    record = dict(
+        results=rows,
+        interpretation=(
+            "Granular force is recorded as an interval average. Geometric sole proximity is not a contact-force "
+            "measurement. Other support is inferred from steady momentum balance, not directly measured."
+        ),
+    )
+    (ROOT / "diagnostics").mkdir(exist_ok=True)
+    (ROOT / "diagnostics/standing-support.json").write_text(json.dumps(record, indent=2) + "\n")
+    return record
+
+
+def support_section(support):
+    """Explain why low standing drift alone does not validate granular support."""
+    for row in support.get("results", []):
+        if row["case"] == "matched_stand" and row["window_seconds"][0] == 15:
+            return (
+                "<section><h2>Backing-floor support in the standing trial</h2>"
+                "<p>During seconds 15–20, the revised policy's mean upward granular force is "
+                f"{row['granular_upward_force_N']:.1f} N against {row['weight_N']:.1f} N weight "
+                f"({row['granular_force_over_weight']:.1%}). The exact transformed foot mesh is within "
+                "1 mm of the backing floor throughout this window.</p>"
+                "<p>Most remaining support is inferred to come from the substrate under steady momentum balance. "
+                "Rigid-contact force was not directly recorded in this trial. Low standing drift therefore "
+                "does not validate granular sticking.</p></section>"
+            )
+    return ""
 
 
 def policy_plots(cases):
@@ -250,6 +390,62 @@ def reference_plot(cases):
     return "".join(rows)
 
 
+def render_policy_videos(cases):
+    """Keep terrain roles, commands and pending recordings clear in a fixed order."""
+    roles = (
+        (
+            "rigid",
+            "rigid",
+            "Rigid-trained policy on a rigid floor",
+            "The accepted rigid-ground checkpoint is evaluated on its training surface.",
+        ),
+        (
+            "matched",
+            "rft",
+            "Revised RFT-trained policy on RFT sand",
+            "The final revised checkpoint is evaluated at fixed nominal properties in its RFT training simulator.",
+        ),
+        (
+            "matched",
+            "mpm",
+            "Revised RFT-trained policy on MPM sand",
+            "The exact same revised weights are tested in a particle bed after training. "
+            "MPM provides no training data.",
+        ),
+        (
+            "rigid",
+            "mpm",
+            "Rigid-trained policy on MPM sand",
+            "The same rigid checkpoint as the rigid-floor clip is tested in the identical MPM bed and command.",
+        ),
+    )
+    videos = {(r["policy"], r["field"], r["summary"]["commands"][0][0]): r for r in cases if r.get("video")}
+    page = (
+        '<section id="videos"><h2>Final policy recordings</h2>'
+        "<p>Green arrows show granular body forces at 1 m per 200 N. RFT arrows are control-interval averages; "
+        "MPM arrows show the last coupling feedback. Recording durations are stated below each clip.</p>"
+    )
+    for policy, field, title, description in roles:
+        page += f'<article><h3>{html.escape(title)}</h3><p>{description}</p><div class="pair">'
+        for speed in (0.5, 1.0):
+            page += f"<div><h4>Command: {speed:.2f} m/s forward</h4>"
+            row = videos.get((policy, field, speed))
+            if row is None:
+                page += "<p>Recording pending.</p></div>"
+                continue
+            s, name = row["summary"], row["name"]
+            failure = s["first_failure_seconds"]
+            outcome = "No body threshold reached" if failure is None else f"First body threshold: {failure:.2f} s"
+            page += (
+                f'<video controls preload="metadata" src="evaluations/{name}/rollout.mp4" '
+                f'poster="evaluations/{name}/preview.jpg"></video>'
+                f"<p>{s['simulated_seconds']:g} s; mean planar error {s['mean_velocity_error']:.3f} m/s. "
+                f"{outcome}.</p></div>"
+            )
+        page += "</div></article>"
+    return page + "</section>"
+
+
 def publish():
     """Show measured outcomes and failed gates without inferring physical validation."""
     foot = read(ROOT / "status.json")
@@ -258,6 +454,8 @@ def publish():
     surface = read(ROOT / "surface-convergence.json")
     geometry_plot()
     loaded_rows = loaded_plot()
+    drift_rows = long_hold_plot()
+    support = standing_support()
     gate_rows = []
     for name, check in foot.get("checks", {}).items():
         maximum_f = max(p["force_error"] for p in check["phases"])
@@ -275,6 +473,9 @@ table{border-collapse:collapse}td,th{padding:8px;border:1px solid #cbd5e1}code{o
 a,summary{color:#1d4ed8}.status{background:#dbeafe;padding:16px}</style>
 <h1>G1: force matching and policy transfer</h1>
 <p><a href="../baseline-report/">Original G1 study</a> · <a href="training.html">Training status</a></p>
+<p><a href="#videos">Videos</a> · <a href="#comparison-050">0.50 m/s comparison</a> ·
+<a href="#comparison-100">1.00 m/s comparison</a> · <a href="#training">Learning curves</a> ·
+<a href="#static">Static-support failure</a></p>
 <p>Prescribed-foot tests isolate force response, loaded-foot tests examine support and settling,
 and matched training continuations examine learned robustness. MPM supplies no training transitions.
 Numerical self-convergence, force agreement and policy transfer are separate acceptance questions.</p>"""
@@ -283,6 +484,12 @@ Numerical self-convergence, force agreement and policy transfer are separate acc
         page += (
             f'<p class="status">Revised training: {revised.get("completed_iterations", 0):,} / '
             f"{revised['iterations']:,} additional iterations. {html.escape(revised['stage'])}.</p>"
+        )
+    if drift_rows:
+        page += (
+            '<p class="status"><strong>Static-support and held-out force-matching gates fail.</strong> '
+            "The revised policy is an exploratory transfer study; "
+            "the solver is not validated as an equivalent material.</p>"
         )
     work = read(ROOT / "bearing-work.json")
     if work:
@@ -335,6 +542,28 @@ The unloaded hold alone cannot determine the admissible static support under bod
 <table><tr><th>Fixture</th><th>Final sole depth [mm]</th><th>Final mean speed [m/s]</th>
 <th>Final mean support [N]</th><th>Backing-floor proximity</th></tr>"""
     page += loaded_rows + "</table></details></section>"
+    if drift_rows:
+        page += (
+            """<section id="static"><h2>Static support remains unvalidated</h2>
+<p><strong>The short-time depth fit does not establish static equilibrium.</strong> Under the same
+158.13 N load, corrected RFT continues to creep. At the training timestep (four substeps), it reaches
+the backing floor around 7.7 s. At ten seconds, sole depths are approximately 118.1, 109.9, 100.2 and
+94.7 mm with 4, 8, 16 and 32 substeps respectively. Early drift approximately halves with each timestep
+refinement. This implicates explicit near-rest coupling; the force-law correction alone does not resolve it.</p>
+<p>The earlier 4.1% agreement is a comparison at two seconds. The revised training profile remains
+exploratory, and prolonged static support is a failed acceptance gate. Finite-layer locomotion can draw
+support from the rigid backing floor. An implicit sticking/reaction treatment requires separate solver work.</p>
+<p>The prolonged-hold criterion allows at most 2 mm additional penetration between 2 and 10 s,
+with no backing-floor proximity.</p>
+<p>The 10 mm MPM control changes by approximately 0.03 mm between 2 and 10 s. Its depth is biased
+by the coarse grid; this additional run checks long-hold stability. The finer calibration references
+are reported separately.</p>
+<img src="static-drift.png" alt="Long loaded holds reveal timestep-dependent RFT creep">
+<table><tr><th>Fixture</th><th>Timestep [ms]</th><th>Depth at 2 s [mm]</th><th>Depth at 10 s [mm]</th>
+<th>Early drift [mm/s]</th><th>Backing-floor proximity</th></tr>"""
+            + drift_rows
+            + "</table></section>"
+        )
     page += "<section><h2>RFT force approximation</h2>"
     verification = read(ROOT / "diagnostics/loaded-refinement.json")
     if verification.get("mpm_coupling_relative_depth_change") is not None:
@@ -368,7 +597,7 @@ held out. The local model has no evolving surface or plastic loading history.</p
         loaded = c.get("loaded_result", {})
         if loaded:
             page += (
-                f"<p>Calibration load: {loaded['settings']['load']:.2f} N. Corrected RFT settles to "
+                f"<p>Calibration load: {loaded['settings']['load']:.2f} N. At two seconds, corrected RFT reaches "
                 f"{1000 * loaded['final_sole_depth_m']:.1f} mm versus "
                 f"{1000 * calibration['loaded_measurement']['final_sole_depth_m']:.1f} mm in fine MPM. "
                 "The fitted interface ratio is an effective RFT parameter; MPM retains ratio 1.0.</p>"
@@ -379,7 +608,8 @@ held out. The local model has no evolving surface or plastic loading history.</p
         if low_mpm and low_rft:
             error = abs(low_rft["final_sole_depth_m"] / low_mpm["final_sole_depth_m"] - 1)
             page += (
-                f"<p>At the held-out 80 N load, RFT settles to {1000 * low_rft['final_sole_depth_m']:.1f} mm "
+                "<p>At the held-out 80 N load and two seconds, RFT reaches "
+                f"{1000 * low_rft['final_sole_depth_m']:.1f} mm "
                 f"versus {1000 * low_mpm['final_sole_depth_m']:.1f} mm in 5 mm MPM, a {error:.1%} difference. "
                 "At 316.26 N, RFT reaches the backing floor; MPM settles about 2.7 mm above it. "
                 "The high-load case is strongly affected by the finite substrate.</p>"
@@ -401,7 +631,7 @@ held out. The local model has no evolving surface or plastic loading history.</p
         )
     else:
         page += "<p>Calibration awaits the loaded-foot reference.</p>"
-    page += "</section><section><h2>Training at full material difficulty</h2>"
+    page += '</section><section id="training"><h2>Training at full material difficulty</h2>'
     page += """<p>The original-model control and force-informed variant start from the same original RFT
 checkpoint, with reset optimizer state, seed 42 and 4,096 environments. Each continuation receives
 1,000 additional PPO iterations with full material distributions from its first episode.
@@ -427,6 +657,17 @@ The force-informed model and wider randomization form an exploratory combined ch
     )
     if (ROOT / "retraining.png").exists():
         page += '<img src="retraining.png" alt="Matched full-range learning curves">'
+    convergence = read(ROOT / "training-convergence.json")
+    if convergence:
+        c = convergence["runs"]["matched"]
+        change = c["Train/mean_reward"]["relative_change"]
+        page += (
+            f"<p>Over the final two 100-iteration windows, revised-policy mean return changes by {change:+.1%}; "
+            f"final mean episode length is {c['Train/mean_episode_length']['final100_mean']:.1f} / 500 steps. "
+            "These describe a late training trend, rather than prove optimality or robustness. "
+            "The variants sample different material distributions; "
+            "held-out rollouts provide separate acceptance checks.</p>"
+        )
     profile = read(ROOT / "rft-profile.json")
     if profile:
         page += (
@@ -483,6 +724,7 @@ The tracking bars average only measurements before the first threshold, includin
 The detailed table also retains full-rollout errors. Each material/command/policy combination is
 one deterministic trial. These are distinct conditions, rather than repeated trials supporting statistical claims.</p>
 </section>"""
+        page += support_section(support)
         if reference_rows:
             page += (
                 """<section><h2>Whole-robot grid sensitivity</h2>
@@ -524,7 +766,8 @@ force-informed parameters and wider reset ranges. Each comparison remains a sing
             page += "</table></section>"
         for speed in (0.5, 1.0):
             page += (
-                f'<section><h2>Comparison at {speed:.2f} m/s</h2><img src="comparison-{speed:g}.png" '
+                f'<section id="comparison-{int(speed * 100):03d}"><h2>Comparison at {speed:.2f} m/s</h2>'
+                f'<img src="comparison-{speed:g}.png" '
                 'alt="Forward velocity, base clearance and tilt comparisons">'
                 "<p>Dotted lines mark first body-failure thresholds. Curves continue after failure; "
                 "different durations are stated beside each recording.</p></section>"
@@ -544,29 +787,7 @@ force-informed parameters and wider reset ranges. Each comparison remains a sing
             "</table><p>Metrics include acceleration and time after failure. "
             "Rollouts continue without resets.</p></section></details>"
         )
-        videos = [row for row in evaluations.get("cases", []) if row.get("video")]
-        if videos:
-            page += "<section><h2>Final policy recordings</h2>"
-            for policy, field in dict.fromkeys((row["policy"], row["field"]) for row in videos):
-                title = (
-                    LABELS.get(policy, policy)
-                    + " on "
-                    + {"rft": "RFT sand", "mpm": "MPM sand", "rigid": "a rigid floor"}[field]
-                )
-                page += f'<article><h3>{html.escape(title)}</h3><div class="pair">'
-                for row in (r for r in videos if r["policy"] == policy and r["field"] == field):
-                    s = row["summary"]
-                    name = row["name"]
-                    speed = s["commands"][0][0]
-                    page += (
-                        f"<div><h4>Command: {speed:.2f} m/s forward</h4>"
-                        f'<video controls preload="metadata" src="evaluations/{name}/rollout.mp4" '
-                        f'poster="evaluations/{name}/preview.jpg"></video>'
-                        f"<p>{s['simulated_seconds']:g} s; mean planar error "
-                        f"{s['mean_velocity_error']:.3f} m/s.</p></div>"
-                    )
-                page += "</div></article>"
-            page += "</section>"
+        page += render_policy_videos(evaluations.get("cases", []))
     else:
         page += "<section><h2>Held-out inference</h2><p>Native and MPM comparisons follow training.</p></section>"
     page += (
