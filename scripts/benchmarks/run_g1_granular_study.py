@@ -382,7 +382,8 @@ def main() -> None:
                 ]
                 with (ROOT / f"materials-{speed:g}-{phase}.log").open("w") as log:
                     subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
-            policy_report(material_root, material_root, speed=speed)
+            analysis = policy_report(material_root, material_root, speed=speed)
+            write_json(material_root / "policy-analysis.json", analysis)
         status["complete"] = True
         update("G1 training, acceptance checks, eight paired-speed videos and material plots completed")
     except Exception as error:

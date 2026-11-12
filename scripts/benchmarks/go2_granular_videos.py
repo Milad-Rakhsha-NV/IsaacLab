@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Shared explanations for the four final-policy videos in the Go2 study."""
+"""Shared explanations for the four final-policy comparisons in granular studies."""
 
 from __future__ import annotations
 
@@ -89,6 +89,12 @@ def render_videos(
     for base, title, training, terrain, description, interpretation in PRIMARY_VIDEOS:
         if robot != "Go2":
             description = description.replace("Go2", robot).replace(", half the knee-to-sole length", "")
+        if robot == "G1" and base == "rft_max_forward":
+            description = (
+                "G1 starts from the accepted rigid-ground policy and fine-tunes in reset-randomized RFT materials. "
+                "The material curriculum widens layer depth from 0–10 mm to 0–118 mm above a rigid floor "
+                "and expands the density, friction and strength ranges."
+            )
         clips = []
         for name, role, speed in variants:
             if role != base:

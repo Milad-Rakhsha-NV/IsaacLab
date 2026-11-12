@@ -38,7 +38,8 @@ def recorded_outcome(status: dict, cases: list[dict]) -> str:
         '<p class="status">'
         f"<strong>Recorded outcomes:</strong> rigid passes {sum(rigid.values())}/{len(rigid)} acceptance checks; "
         f"RFT passes {sum(rft.values())}/{len(rft)}, including full material coverage. "
-        f"In MPM, {stable['rft']}/2 RFT-policy recordings and {stable['rigid']}/2 rigid-policy recordings stay "
+        f"In the 118 mm reference MPM bed, {stable['rft']}/2 RFT-policy recordings and "
+        f"{stable['rigid']}/2 rigid-policy recordings stay "
         "above the body failure thresholds for all 10 s. These are one-seed trials at 0.5 and 1.0 m/s; "
         "MPM force convergence and material equivalence remain unvalidated.</p>"
     )
@@ -50,21 +51,33 @@ def material_settings(folder: Path) -> str:
     if not path.exists():
         return ""
     rows = []
+    trials = []
     for case in json.loads(path.read_text())["results"]:
-        if case["policy"] != "rft":
-            continue
         values = case["settings"]
-        label = case["name"].removesuffix("-rft").replace("-", " ").capitalize()
-        rows.append(
-            f"<tr><td>{html.escape(label)}</td><td>{values['density']:,.0f}</td>"
-            f"<td>{values['friction']:g}</td><td>{values['roughness']:g}</td>"
-            f"<td>{1000 * values['bed_depth']:g}</td></tr>"
+        label = html.escape(case["name"].rsplit("-", 1)[0].replace("-", " ").capitalize())
+        if case["policy"] == "rft":
+            rows.append(
+                f"<tr><td>{label}</td><td>{values['density']:,.0f}</td>"
+                f"<td>{values['friction']:g}</td><td>{values['roughness']:g}</td>"
+                f"<td>{1000 * values['bed_depth']:g}</td></tr>"
+            )
+        summary = case["summary"]
+        first = summary["first_failure_seconds"]
+        outcome = f"None in {summary['simulated_seconds']:g} s" if first is None else f"{first:.2f} s"
+        trials.append(
+            f"<tr><td>{label}</td><td>{case['policy'].upper()}</td>"
+            f"<td>{summary['mean_velocity_error']:.3f}</td><td>{outcome}</td></tr>"
         )
     return (
         "<table><tr><th>Setting</th><th>Density [kg/m³]</th><th>Internal friction</th>"
         "<th>Surface/internal friction ratio</th><th>Initial depth [mm]</th></tr>"
         + "".join(rows)
         + "</table><p>Parameters vary together across rows. The RFT reference uses strength multiplier 1.0.</p>"
+        "<details><summary>Short MPM material-trial measurements</summary>"
+        "<p>These 3 s trials use the same frozen policies and 0.5 m/s command. "
+        "Avoiding a body failure during this short window does not establish 10 s stability.</p>"
+        "<table><tr><th>Setting</th><th>Policy</th><th>Tracking error [m/s]</th>"
+        "<th>First body failure threshold</th></tr>" + "".join(trials) + "</table></details>"
     )
 
 

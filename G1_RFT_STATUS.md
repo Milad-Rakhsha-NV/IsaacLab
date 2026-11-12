@@ -1,8 +1,8 @@
 # G1: rigid, RFT and MPM policy study
 
-Both G1 training stages, native-simulator checks and all eight final 10 s videos are complete on `milad/rft-mpm`. The rigid baseline passes all seven gates. RFT reaches the full material curriculum and passes five of eight gates; foot placement, tracking and loaded-foot velocity remain failed. Both policies reach body failure thresholds in MPM at 0.5 and 1.0 m/s. The three-material MPM comparison and final results archive are in progress.
+Both G1 training stages, native-simulator checks and all eight final 10 s videos are complete on `milad/rft-mpm`. The rigid baseline passes all seven gates. RFT reaches the full material curriculum and passes five of eight gates; foot placement, tracking and loaded-foot velocity remain failed. Both policies reach body failure thresholds in MPM at 0.5 and 1.0 m/s. The three-material comparison, eight videos, plots and reproducible results archive are complete.
 
-[Live G1 report](http://localhost:18010/g1/report/) · [Generated live status](http://localhost:18010/g1/STATUS.md) · [Published Go2 results](results/go2-rft-mpm/README.md)
+[Live G1 report](http://localhost:18010/g1/report/) · [Generated live status](http://localhost:18010/g1/STATUS.md) · [Published G1 results](results/g1-rft-mpm/README.md) · [Published Go2 results](results/go2-rft-mpm/README.md)
 
 ## Training and policy initialization
 
@@ -111,6 +111,29 @@ The controlled 2 s coupling checks give:
 
 At 0.5 m/s, the outcome depends on feedback smoothing; one and four passes both fail with full updates. At 1.0 m/s, all three settings fail. These short checks and the long recordings do not establish MPM force convergence or material equivalence.
 
+## Three-material inference comparison
+
+The same frozen checkpoints receive a 0.5 m/s forward command for 3 s in each prepared 5 × 3.2 m MPM bed. The numerical profile uses four substeps, one coupling pass and feedback factor 1.0. Separate RFT references use the same RFT checkpoint and each row's material inputs, with strength multiplier 1.0.
+
+| Setting | Density [kg/m³] | Internal friction | Surface/internal ratio | Initial depth |
+|---|---:|---:|---:|---:|
+| Lower density / friction | 1,400 | 0.3 | 0.6 | 60 mm |
+| Nominal | 1,600 | 0.4 | 1.0 | 118 mm |
+| Higher density / friction | 1,800 | 0.5 | 0.8 | 100 mm |
+
+| Material setting | Policy | Tracking error [m/s] | First body failure threshold |
+|---|---|---:|---|
+| Lower density friction | RIGID | 0.464 | 1.50 s |
+| Lower density friction | RFT | 0.131 | None in 3 s |
+| Nominal | RIGID | 0.461 | 1.16 s |
+| Nominal | RFT | 0.486 | 1.74 s |
+| Higher density friction | RIGID | 0.467 | 1.18 s |
+| Higher density friction | RFT | 0.458 | 2.42 s |
+
+In the thinner, lower-density/friction bed, RFT remains above the body failure thresholds for the 3 s trial, while the rigid policy fails at 1.50 s. Its mean tracking error is 0.131 m/s versus 0.464 m/s for the rigid policy. This is a short, single-seed result with substantial backing-floor support; it does not establish 10 s transfer stability. Density, friction and depth vary together, so the comparison cannot isolate one material parameter. The longer 118 mm reference recordings still fail for both policies at both commands.
+
+All six MPM cases and all three RFT references retain finite states, have no capacity overflow and avoid the base-position bed-exit check. RFT-reference errors are 0.088, 0.113 and 0.145 m/s, respectively, with no body failure thresholds reached in 3 s. The support figure separates granular feedback from rigid contacts; contacts after collapse are included. These input matches do not establish equivalent force response.
+
 ## Shared mechanics and numerical checks
 
 The direct tasks use the maintained minimal G1 asset with 37 actuated joints and 123 actor/critic inputs, including base linear velocity. Both policies use identical mechanics, actuators, observations, rewards, self-collision and implicit-fast integration. The shared foot-slip penalty is 1.0. Native tests verify full-leg coupling, clone-local reset and rigid/RFT/MPM drive parity before material contact; the focused file passes two tests.
@@ -125,4 +148,4 @@ A G1-specific MPM scene inheritance bug retained the rigid plane at the free sur
 
 RFT omits evolving surfaces, compaction and plastic history; the bearing extension remains experimental. Matching density, friction and depth does not establish RFT/MPM material equivalence. The earlier standalone MPM force-convergence gate remains failed, and G1-specific force calibration is unvalidated. Support includes backing-floor and non-foot contacts after collapse, so total support alone does not establish successful walking. Native contact sensors are unavailable through the MPM proxy coupler; MPM evaluation disables gait rewards/sensors while preserving actor inputs.
 
-Registered tasks are `Isaac-Velocity-Flat-G1-Granular-Rigid-Direct` and `Isaac-Velocity-Flat-G1-Granular-RFT-Direct`. The durable controller is [run_g1_granular_study.py](scripts/benchmarks/run_g1_granular_study.py), and the report generator is [report_g1_granular.py](scripts/benchmarks/report_g1_granular.py). Generated artifacts currently remain under ignored `logs/go2_granular/g1/` and `logs/rsl_rl/`; the final archive is pending.
+Registered tasks are `Isaac-Velocity-Flat-G1-Granular-Rigid-Direct` and `Isaac-Velocity-Flat-G1-Granular-RFT-Direct`. The durable controller is [run_g1_granular_study.py](scripts/benchmarks/run_g1_granular_study.py), and the report generator is [report_g1_granular.py](scripts/benchmarks/report_g1_granular.py). The committed [G1 results archive](results/g1-rft-mpm/README.md) contains the static HTML report, all eight final videos, combined training curves, both command comparisons, material/coupling plots, raw traces, final checkpoints and saved configurations. Its manifest records expanded-file hashes and source revisions. Original runtime outputs remain under ignored `logs/go2_granular/g1/` and `logs/rsl_rl/`.

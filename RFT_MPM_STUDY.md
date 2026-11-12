@@ -110,9 +110,11 @@ All eight primary G1 recordings are complete. Both policies use the same prepare
 | RFT / MPM sand | 1.00 m/s | 0.940 m/s | 1.14 s |
 | Rigid / MPM sand | 1.00 m/s | 0.943 m/s | 0.90 s |
 
-The three-material MPM comparison and committed results archive are in progress. The live report already contains all eight videos, shared learning curves, both command comparisons and six short MPM coupling checks.
+The completed three-material comparison includes six 3 s MPM trials and three RFT references at 0.5 m/s. In the thinner, lower-density/friction bed, RFT remains above the body failure thresholds for the 3 s trial, while the rigid policy fails at 1.50 s. Its mean tracking error is 0.131 m/s versus 0.464 m/s for the rigid policy. This is a short, single-seed result with substantial backing-floor support; it does not establish 10 s transfer stability. Density, friction and depth vary together, so the comparison cannot isolate one material parameter. The longer 118 mm reference recordings still fail for both policies at both commands.
 
-See [G1 methods, validation and status](G1_RFT_STATUS.md) and the [live G1 report](http://localhost:18010/g1/report/) for the remaining comparisons.
+The [G1 results archive](results/g1-rft-mpm/README.md) contains all eight final videos, combined learning curves, both command comparisons, material and coupling plots, raw traces, final checkpoints and training configurations, with a hash manifest.
+
+See [G1 methods, validation and status](G1_RFT_STATUS.md) and the [live G1 report](http://localhost:18010/g1/report/) for all methods and measurements.
 
 The G1 drive regression failed before the integrator fix and passed afterward; the final focused file passed two tests. The regression protects bounded implicit-drive motion and unchanged free-space control through each coupling path, distinct from the existing leg-surface/reset test. No test-only production API was introduced.
 
@@ -121,3 +123,7 @@ The G1 drive regression failed before the integrator fix and passed afterward; t
 The [results README](results/go2-rft-mpm/README.md) explains the archive, Git LFS retrieval, serving the report, checking file hashes, and restoring inputs for plot regeneration. The [report HTML](results/go2-rft-mpm/report/index.html), eight videos, graphs, raw trajectories, material probes, final checkpoints and training configurations are committed with this branch. Large binary artifacts are stored through Git LFS.
 
 The existing machine-local preview remains at `http://localhost:18010/report/` through the established SSH tunnel. The committed report can be served independently from any machine with a clone; it does not require the original workspace or running training services.
+
+## Published G1 report and data
+
+The [G1 results README](results/g1-rft-mpm/README.md) describes the two-stage training protocol, complete results, Git LFS retrieval and static report serving. The [common results index](results/README.md) links both studies. The live G1 preview is [http://localhost:18010/g1/report/](http://localhost:18010/g1/report/) through the established SSH tunnel.
