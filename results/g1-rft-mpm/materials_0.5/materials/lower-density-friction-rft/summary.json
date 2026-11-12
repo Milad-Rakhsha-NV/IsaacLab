@@ -1,0 +1,401 @@
+{
+  "robot": "g1",
+  "foot_body_names": [
+    "left_ankle_roll_link",
+    "right_ankle_roll_link"
+  ],
+  "foot_side_signs": [
+    1.0,
+    -1.0
+  ],
+  "root_body_name": "pelvis",
+  "robot_weight_N": 316.263916015625,
+  "field": "mpm",
+  "minimum_base_height": 0.4,
+  "ambient_fluid_density": 0.0,
+  "max_rigid_overflow": 0,
+  "surface_relative_height": true,
+  "validation_difficulty": 1.0,
+  "substrate_depth": null,
+  "checkpoint": "/home/horde/Documents/Repos/IsaacLab/logs/rsl_rl/g1_granular_rft_max1/2026-11-12_01-41-04/model_2998.pt",
+  "policy_training_terrain": "rft",
+  "steps": 150,
+  "seed": 123,
+  "simulated_seconds": 3.0,
+  "wall_seconds": 134.49396302108653,
+  "first_failure_seconds": null,
+  "body_labels": [
+    "/World/envs/env_0/Robot/pelvis",
+    "/World/envs/env_0/Robot/left_hip_pitch_link",
+    "/World/envs/env_0/Robot/left_hip_roll_link",
+    "/World/envs/env_0/Robot/left_hip_yaw_link",
+    "/World/envs/env_0/Robot/left_knee_link",
+    "/World/envs/env_0/Robot/left_ankle_pitch_link",
+    "/World/envs/env_0/Robot/left_ankle_roll_link",
+    "/World/envs/env_0/Robot/pelvis_contour_link",
+    "/World/envs/env_0/Robot/right_hip_pitch_link",
+    "/World/envs/env_0/Robot/right_hip_roll_link",
+    "/World/envs/env_0/Robot/right_hip_yaw_link",
+    "/World/envs/env_0/Robot/right_knee_link",
+    "/World/envs/env_0/Robot/right_ankle_pitch_link",
+    "/World/envs/env_0/Robot/right_ankle_roll_link",
+    "/World/envs/env_0/Robot/torso_link",
+    "/World/envs/env_0/Robot/head_link",
+    "/World/envs/env_0/Robot/imu_link",
+    "/World/envs/env_0/Robot/left_shoulder_pitch_link",
+    "/World/envs/env_0/Robot/left_shoulder_roll_link",
+    "/World/envs/env_0/Robot/left_shoulder_yaw_link",
+    "/World/envs/env_0/Robot/left_elbow_pitch_link",
+    "/World/envs/env_0/Robot/left_elbow_roll_link",
+    "/World/envs/env_0/Robot/left_palm_link",
+    "/World/envs/env_0/Robot/left_five_link",
+    "/World/envs/env_0/Robot/left_six_link",
+    "/World/envs/env_0/Robot/left_three_link",
+    "/World/envs/env_0/Robot/left_four_link",
+    "/World/envs/env_0/Robot/left_zero_link",
+    "/World/envs/env_0/Robot/left_one_link",
+    "/World/envs/env_0/Robot/left_two_link",
+    "/World/envs/env_0/Robot/logo_link",
+    "/World/envs/env_0/Robot/right_shoulder_pitch_link",
+    "/World/envs/env_0/Robot/right_shoulder_roll_link",
+    "/World/envs/env_0/Robot/right_shoulder_yaw_link",
+    "/World/envs/env_0/Robot/right_elbow_pitch_link",
+    "/World/envs/env_0/Robot/right_elbow_roll_link",
+    "/World/envs/env_0/Robot/right_palm_link",
+    "/World/envs/env_0/Robot/right_five_link",
+    "/World/envs/env_0/Robot/right_six_link",
+    "/World/envs/env_0/Robot/right_three_link",
+    "/World/envs/env_0/Robot/right_four_link",
+    "/World/envs/env_0/Robot/right_zero_link",
+    "/World/envs/env_0/Robot/right_one_link",
+    "/World/envs/env_0/Robot/right_two_link"
+  ],
+  "body_com": [
+    [
+      0.0,
+      0.0,
+      -0.07604999840259552
+    ],
+    [
+      0.001962000038474798,
+      0.04939199984073639,
+      -0.0009410000056959689
+    ],
+    [
+      0.02475699968636036,
+      -0.0010359999723732471,
+      -0.08632300049066544
+    ],
+    [
+      -0.053553998470306396,
+      -0.011477000080049038,
+      -0.14067000150680542
+    ],
+    [
+      0.005504999775439501,
+      0.006533999927341938,
+      -0.11662899702787399
+    ],
+    [
+      -0.007269000168889761,
+      0.0,
+      0.011137000285089016
+    ],
+    [
+      0.024762000888586044,
+      1.9999999494757503e-05,
+      -0.012525999918580055
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.001962000038474798,
+      -0.04939199984073639,
+      -0.0009410000056959689
+    ],
+    [
+      0.02475699968636036,
+      0.0010359999723732471,
+      -0.08632300049066544
+    ],
+    [
+      -0.053553998470306396,
+      0.011477000080049038,
+      -0.14067000150680542
+    ],
+    [
+      0.005504999775439501,
+      -0.006533999927341938,
+      -0.11662899702787399
+    ],
+    [
+      -0.007269000168889761,
+      0.0,
+      0.011137000285089016
+    ],
+    [
+      0.024762000888586044,
+      -1.9999999494757503e-05,
+      -0.012525999918580055
+    ],
+    [
+      0.0019712229259312153,
+      0.0026690203230828047,
+      0.16936510801315308
+    ],
+    [
+      0.0013806684873998165,
+      0.0002843094989657402,
+      0.4203418791294098
+    ],
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      -0.0014309999532997608,
+      0.04881099984049797,
+      0.0013040000339969993
+    ],
+    [
+      -0.0034149999264627695,
+      0.006955000106245279,
+      -0.06459800153970718
+    ],
+    [
+      0.000375000003259629,
+      -0.00443999981507659,
+      -0.07237400114536285
+    ],
+    [
+      0.06449700146913528,
+      0.0028729999903589487,
+      0.0
+    ],
+    [
+      0.08181100338697433,
+      0.0014540000120177865,
+      0.0010000000474974513
+    ],
+    [
+      0.05578422546386719,
+      0.0014850938459858298,
+      -0.00032670143991708755
+    ],
+    [
+      0.03625612333416939,
+      -0.0015725046396255493,
+      0.00026989917387254536
+    ],
+    [
+      0.023759108036756516,
+      0.001352572930045426,
+      0.0001196686498587951
+    ],
+    [
+      0.03625612333416939,
+      -0.0015725046396255493,
+      0.00026989917387254536
+    ],
+    [
+      0.023759108036756516,
+      0.001352572930045426,
+      0.0001196686498587951
+    ],
+    [
+      -0.026046644896268845,
+      -0.008775112219154835,
+      1.0860479960683733e-05
+    ],
+    [
+      -0.0018153814598917961,
+      -0.03270571678876877,
+      -0.00018587117665447295
+    ],
+    [
+      -0.001352572930045426,
+      -0.023759108036756516,
+      -0.0001196686498587951
+    ],
+    [
+      -0.003065564902499318,
+      5.625031917588785e-05,
+      0.24526458978652954
+    ],
+    [
+      -0.0014309999532997608,
+      -0.04881099984049797,
+      0.0013040000339969993
+    ],
+    [
+      -0.0034149999264627695,
+      -0.006955000106245279,
+      -0.06459800153970718
+    ],
+    [
+      0.000375000003259629,
+      0.00443999981507659,
+      -0.07237400114536285
+    ],
+    [
+      0.06449700146913528,
+      -0.0028729999903589487,
+      0.0
+    ],
+    [
+      0.08181100338697433,
+      -0.0014540000120177865,
+      0.0010000000474974513
+    ],
+    [
+      0.05578422546386719,
+      -0.0014850938459858298,
+      -0.00032670143991708755
+    ],
+    [
+      0.03625612333416939,
+      0.0015725046396255493,
+      0.00026989917387254536
+    ],
+    [
+      0.023759108036756516,
+      -0.001352572930045426,
+      0.0001196686498587951
+    ],
+    [
+      0.03625612333416939,
+      0.0015725046396255493,
+      0.00026989917387254536
+    ],
+    [
+      0.023759108036756516,
+      -0.001352572930045426,
+      0.0001196686498587951
+    ],
+    [
+      -0.026046644896268845,
+      0.008775112219154835,
+      1.0860479960683733e-05
+    ],
+    [
+      -0.0018153814598917961,
+      0.03270571678876877,
+      -0.00018587117665447295
+    ],
+    [
+      -0.001352572930045426,
+      0.023759108036756516,
+      -0.0001196686498587951
+    ]
+  ],
+  "particles_finite": true,
+  "first_bed_exit_seconds": null,
+  "first_bottom_contact_seconds": 0.16,
+  "bottom_contact_sampling": "foot origin minus nominal 40 mm sole offset; not a contact-force measurement",
+  "bed_depth": 0.06,
+  "bed_length": 5.0,
+  "bed_width": 3.2,
+  "density": 1400.0,
+  "internal_friction": 0.3,
+  "roughness": 0.6,
+  "commands": [
+    [
+      0.5,
+      0.0,
+      0.0
+    ]
+  ],
+  "training_forward_command_range": [
+    0.1,
+    1.0
+  ],
+  "command_schedule": [],
+  "material_parameters": null,
+  "surface_heights": [
+    0.0
+  ],
+  "world_ids": [
+    0
+  ],
+  "execution_error": null,
+  "bearing": null,
+  "rigid_support_plane": true,
+  "material_randomization": false,
+  "voxel_size": 0.02,
+  "mpm_floor_center_xy": [
+    1.8,
+    0.0
+  ],
+  "max_active_cell_count": 1048576,
+  "proxy_relaxation": 1.0,
+  "proxy_iterations": 1,
+  "mpm_iterations": 50,
+  "transfer_scheme": "pic",
+  "mpm_preparation": {
+    "seconds": 0.5,
+    "rms_particle_speed_m_s": 0.005102410912513733,
+    "core_rms_particle_speed_m_s": 7.09871017079422e-07,
+    "minimum_particle_z_m": -0.06039052829146385,
+    "robot_fixed": true,
+    "entry_history_preserved": true,
+    "preparation_steps": 400
+  },
+  "actual_mpm_material": {
+    "young_modulus": [
+      999999986991104.0,
+      999999986991104.0
+    ],
+    "poisson_ratio": [
+      0.30000001192092896,
+      0.30000001192092896
+    ],
+    "friction": [
+      0.30000001192092896,
+      0.30000001192092896
+    ],
+    "yield_pressure": [
+      999999986991104.0,
+      999999986991104.0
+    ],
+    "viscosity": [
+      0.0,
+      0.0
+    ],
+    "dilatancy": [
+      0.0,
+      0.0
+    ],
+    "hardening": [
+      0.0,
+      0.0
+    ]
+  },
+  "force_audit": true,
+  "support_force_sampling": "Applied external body impulse and rigid-contact resultant inferred from whole-robot momentum balance",
+  "mpm_modulus": 1000000000000000.0,
+  "substeps": 4,
+  "force_sampling": "last coupled proxy feedback, including relaxation; not an interval average",
+  "failure_fraction": 0.0,
+  "per_env_velocity_error": [
+    0.13109650565932193
+  ],
+  "mean_velocity_error": 0.13109650565932193,
+  "final_position": [
+    [
+      1.1922932863235474,
+      -0.22217442095279694,
+      0.6275177597999573
+    ]
+  ],
+  "final_height": [
+    0.6275177597999573
+  ],
+  "mean_yaw_error": 0.2885203765270611,
+  "mean_absolute_joint_power_W": 390.35437393188477,
+  "motor_saturation_fraction": 0.007927927927927928,
+  "max_tilt_radians": 0.18245747685432434
+}

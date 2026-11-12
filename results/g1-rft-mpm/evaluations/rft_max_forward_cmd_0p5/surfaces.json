@@ -1,0 +1,156 @@
+[
+  {
+    "shape": 46,
+    "body": 3,
+    "body_label": "/World/envs/env_0/Robot/left_hip_yaw_link",
+    "label": "/World/envs/env_0/Robot/left_hip_yaw_link/GranularLegCollider/geometry/mesh",
+    "kind": "CAPSULE",
+    "scale": [
+      0.04500000178813934,
+      0.0518779382109642,
+      0.0
+    ],
+    "local_pose": [
+      -0.039145998656749725,
+      -0.0008667500223964453,
+      -0.08861249685287476,
+      -0.021658748388290405,
+      0.9781982898712158,
+      4.433465778494605e-19,
+      -0.20654067397117615
+    ],
+    "triangles": 288
+  },
+  {
+    "shape": 47,
+    "body": 4,
+    "body_label": "/World/envs/env_0/Robot/left_knee_link",
+    "label": "/World/envs/env_0/Robot/left_knee_link/GranularLegCollider/geometry/mesh",
+    "kind": "CAPSULE",
+    "scale": [
+      0.03500000014901161,
+      0.11504878848791122,
+      0.0
+    ],
+    "local_pose": [
+      0.0,
+      0.0020343500655144453,
+      -0.15003499388694763,
+      0.9999771118164062,
+      0.0,
+      0.0,
+      -0.006779118906706572
+    ],
+    "triangles": 288
+  },
+  {
+    "shape": 48,
+    "body": 10,
+    "body_label": "/World/envs/env_0/Robot/right_hip_yaw_link",
+    "label": "/World/envs/env_0/Robot/right_hip_yaw_link/GranularLegCollider/geometry/mesh",
+    "kind": "CAPSULE",
+    "scale": [
+      0.04500000178813934,
+      0.0518779382109642,
+      0.0
+    ],
+    "local_pose": [
+      -0.039145998656749725,
+      0.0008667500223964453,
+      -0.08861249685287476,
+      0.021658748388290405,
+      0.9781982898712158,
+      -4.433465778494605e-19,
+      -0.20654067397117615
+    ],
+    "triangles": 288
+  },
+  {
+    "shape": 49,
+    "body": 11,
+    "body_label": "/World/envs/env_0/Robot/right_knee_link",
+    "label": "/World/envs/env_0/Robot/right_knee_link/GranularLegCollider/geometry/mesh",
+    "kind": "CAPSULE",
+    "scale": [
+      0.03500000014901161,
+      0.11504878848791122,
+      0.0
+    ],
+    "local_pose": [
+      0.0,
+      -0.0020343500655144453,
+      -0.15003499388694763,
+      0.9999771118164062,
+      0.0,
+      0.0,
+      0.006779118906706572
+    ],
+    "triangles": 288
+  },
+  {
+    "shape": 50,
+    "body": 6,
+    "body_label": "/World/envs/env_0/Robot/left_ankle_roll_link",
+    "label": "/World/envs/env_0/Robot/left_ankle_roll_link/Cube",
+    "kind": "CONVEX_MESH",
+    "scale": [
+      0.20310921967029572,
+      0.06546924263238907,
+      0.018507879227399826
+    ],
+    "local_pose": [
+      0.035917047411203384,
+      2.220446049250313e-16,
+      -0.025170065462589264,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "triangles": 12
+  },
+  {
+    "shape": 51,
+    "body": 13,
+    "body_label": "/World/envs/env_0/Robot/right_ankle_roll_link",
+    "label": "/World/envs/env_0/Robot/right_ankle_roll_link/Cube",
+    "kind": "CONVEX_MESH",
+    "scale": [
+      0.20310921967029572,
+      0.06546924263238907,
+      0.018507879227399826
+    ],
+    "local_pose": [
+      0.035917047411203384,
+      2.220446049250313e-16,
+      -0.025170065462589264,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "triangles": 12
+  },
+  {
+    "shape": 52,
+    "body": 14,
+    "body_label": "/World/envs/env_0/Robot/torso_link",
+    "label": "/World/envs/env_0/Robot/torso_link/Cube",
+    "kind": "CONVEX_MESH",
+    "scale": [
+      0.11999999731779099,
+      0.22021764516830444,
+      0.2897578775882721
+    ],
+    "local_pose": [
+      -0.0062025305815041065,
+      0.0,
+      0.16476322710514069,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "triangles": 12
+  }
+]

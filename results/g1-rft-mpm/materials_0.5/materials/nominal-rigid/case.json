@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "steps": 150,
+    "speed": 0.5,
+    "max_forward_command": 1.0,
+    "bed_depth": 0.118,
+    "bed_length": 5.0,
+    "settle_seconds": 0.5,
+    "proxy_iterations": 1,
+    "proxy_relaxation": 1.0,
+    "substeps": 4,
+    "bed_width": 3.2,
+    "max_active_cell_count": 1048576,
+    "density": 1600,
+    "friction": 0.4,
+    "roughness": 1.0,
+    "audit_forces": true
+  },
+  "robot": "g1",
+  "field": "mpm",
+  "checkpoint": "logs/rsl_rl/g1_granular_rigid_max1/2026-11-12_00-40-08/model_1499.pt",
+  "source_ast_sha256": "3b872d1034e6393e36cef63850a85a2666c58722e9cdb30ae254660970cb7806",
+  "newton_requirement": "newton[sim] @ git+https://github.com/Milad-Rakhsha/newton.git@32f455bc4430f0954ae564fb40681fbaca95e7f3"
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "passive",
+    "substeps": 4,
+    "failure": 1.32,
+    "tracking": 0.20657347629720058,
+    "peak_joint_speed": 3.2902679443359375,
+    "height_min": -0.006468906998634338
+  },
+  {
+    "mode": "passive",
+    "substeps": 16,
+    "failure": 1.34,
+    "tracking": 0.2081421737212782,
+    "peak_joint_speed": 3.2842788696289062,
+    "height_min": -0.006894506514072418
+  },
+  {
+    "mode": "rigid-policy",
+    "substeps": 4,
+    "failure": 2.14,
+    "tracking": 0.6362262789607048,
+    "peak_joint_speed": 10.351964950561523,
+    "height_min": 0.016493722796440125
+  },
+  {
+    "mode": "rigid-policy",
+    "substeps": 16,
+    "failure": 2.16,
+    "tracking": 0.6356150004267692,
+    "peak_joint_speed": 10.205042839050293,
+    "height_min": 0.015214517712593079
+  }
+]

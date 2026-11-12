@@ -1,0 +1,27 @@
+{
+  "checkpoint": "logs/rsl_rl/g1_granular_rigid_max1/2026-11-12_00-40-08/model_1499.pt",
+  "field": "mpm",
+  "policy": "rigid",
+  "options": [
+    "--steps",
+    "500",
+    "--speed",
+    "1.0",
+    "--video",
+    "--bed_depth",
+    "0.118",
+    "--bed_length",
+    "12",
+    "--bed_width",
+    "3.2",
+    "--max_active_cell_count",
+    "1048576",
+    "--settle_seconds",
+    "0.5",
+    "--proxy_relaxation",
+    "1.0"
+  ],
+  "seed": 123,
+  "worker_ast": "3b872d1034e6393e36cef63850a85a2666c58722e9cdb30ae254660970cb7806",
+  "environment_sha256": "247ad5b31c2b077c427dcfbfc79ae086d240889a4853eb1c167470b911b8bef9"
+}

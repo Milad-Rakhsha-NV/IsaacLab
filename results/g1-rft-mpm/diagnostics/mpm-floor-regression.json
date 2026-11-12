@@ -1,0 +1,19 @@
+{
+  "contract": "No rigid support at the initial free surface; the backing floor is 118 mm below it",
+  "records": [
+    {
+      "case": "rigid-mpm-contact-invalid-surface-floor",
+      "initial_window_seconds": 0.1,
+      "mean_absolute_rigid_support_N": 252.49414443969727,
+      "tolerance_N": 15.813195800781251,
+      "passed": false
+    },
+    {
+      "case": "rigid-mpm-contact",
+      "initial_window_seconds": 0.1,
+      "mean_absolute_rigid_support_N": 0.1046978309750557,
+      "tolerance_N": 15.813195800781251,
+      "passed": true
+    }
+  ]
+}

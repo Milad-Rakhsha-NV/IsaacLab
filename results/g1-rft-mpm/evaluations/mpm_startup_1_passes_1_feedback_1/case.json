@@ -1,0 +1,29 @@
+{
+  "checkpoint": "logs/rsl_rl/g1_granular_rft_max1/2026-11-12_01-41-04/model_2998.pt",
+  "field": "mpm",
+  "policy": "rft",
+  "options": [
+    "--steps",
+    "100",
+    "--speed",
+    "1.0",
+    "--bed_depth",
+    "0.118",
+    "--bed_length",
+    "5",
+    "--bed_width",
+    "3.2",
+    "--max_active_cell_count",
+    "1048576",
+    "--settle_seconds",
+    "0.5",
+    "--proxy_iterations",
+    "1",
+    "--proxy_relaxation",
+    "1.0",
+    "--audit_forces"
+  ],
+  "seed": 123,
+  "worker_ast": "3b872d1034e6393e36cef63850a85a2666c58722e9cdb30ae254660970cb7806",
+  "environment_sha256": "247ad5b31c2b077c427dcfbfc79ae086d240889a4853eb1c167470b911b8bef9"
+}

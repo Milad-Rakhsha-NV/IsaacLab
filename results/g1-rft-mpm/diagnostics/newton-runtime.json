@@ -1,0 +1,15 @@
+{
+  "computational_commit": "32f455bc4430f0954ae564fb40681fbaca95e7f3",
+  "files": [
+    {
+      "path": "_src/solvers/rft/solver_rft.py",
+      "sha256": "a160b29669601d0360a0158d79ac1861fe07648236972358cdf559bbb1b91970",
+      "installed_equals_study_worktree": true
+    },
+    {
+      "path": "_src/solvers/coupled/solver_coupled_proxy.py",
+      "sha256": "716617f0a3e74872cd6b7deeed6bb3ceca21b7e9e247dc4f61c64c7de25fceb7",
+      "installed_equals_study_worktree": true
+    }
+  ]
+}

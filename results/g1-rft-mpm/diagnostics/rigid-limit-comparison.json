@@ -1,0 +1,43 @@
+{
+  "reference": "evaluations/rigid_max_forward_cmd_0p5",
+  "zero_layer": "diagnostics/thin-layer-0",
+  "selected_environment": 0,
+  "notes": "Same fixed policy and commands; native movie uses one environment and seed123, zero-layer check uses16 environments and seed42. Neither uses observation noise or stochastic actions. World positions use different clone origins; compare displacement from the first sample.",
+  "comparisons": [
+    {
+      "array": "joint_pos",
+      "max_abs_difference": 2.1576881408691406e-05,
+      "rms_difference": 1.2398006674629869e-06
+    },
+    {
+      "array": "joint_vel",
+      "max_abs_difference": 0.0005388259887695312,
+      "rms_difference": 2.3759694158798084e-05
+    },
+    {
+      "array": "actions",
+      "max_abs_difference": 0.00020025670528411865,
+      "rms_difference": 9.639035852160305e-06
+    },
+    {
+      "array": "commands",
+      "max_abs_difference": 0.0,
+      "rms_difference": 0.0
+    },
+    {
+      "array": "body_frame_velocity",
+      "max_abs_difference": 1.817941665649414e-05,
+      "rms_difference": 2.2851070518174285e-06
+    },
+    {
+      "array": "surface_relative_height",
+      "max_abs_difference": 1.3113021850585938e-06,
+      "rms_difference": 2.5302154155720623e-07
+    },
+    {
+      "array": "world_displacement_from_first_sample",
+      "max_abs_difference": 2.07724078791216e-05,
+      "rms_difference": 6.271263164091751e-06
+    }
+  ]
+}

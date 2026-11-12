@@ -1,0 +1,15 @@
+{
+  "checkpoint": "logs/rsl_rl/g1_granular_rigid_max1/2026-11-12_00-40-08/model_1499.pt",
+  "field": "rigid",
+  "policy": "rigid",
+  "options": [
+    "--steps",
+    "500",
+    "--num_envs",
+    "128",
+    "--randomize"
+  ],
+  "seed": 456,
+  "worker_ast": "aa955b9288182fa7a4448053cc00bdeeb76773204ecdca9980f0816eb800d6a7",
+  "environment_sha256": "271480cd8a532b80d3e88578b7c58c4e5ea6797554cadf06a9efdff4687af99a"
+}

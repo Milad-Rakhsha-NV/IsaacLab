@@ -5,3 +5,5 @@
 events.out.tfevents.* filter=lfs diff=lfs merge=lfs -text
 go2-rft-mpm/report/results.json filter=lfs diff=lfs merge=lfs -text
 go2-rft-mpm/training/max1-evaluation-status.json filter=lfs diff=lfs merge=lfs -text
+g1-rft-mpm/status.json filter=lfs diff=lfs merge=lfs -text
+g1-rft-mpm/report/results.json filter=lfs diff=lfs merge=lfs -text
