@@ -1,0 +1,98 @@
+{
+  "results": [
+    {
+      "substeps": 4,
+      "depths_2s_m": [
+        0.06803734600543976,
+        0.11804237961769104,
+        0.11839163303375244
+      ],
+      "depths_10s_m": [
+        0.08836820721626282,
+        0.11804746091365814,
+        0.11839163303375244
+      ],
+      "creep_2_to_10s_m": [
+        0.02033086121082306,
+        5.081295967102051e-06,
+        0.0
+      ],
+      "substrate_proximity_10s": [
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "substeps": 8,
+      "depths_2s_m": [
+        0.06132984161376953,
+        0.11653843522071838,
+        0.11839156597852707
+      ],
+      "depths_10s_m": [
+        0.07910527288913727,
+        0.11801041662693024,
+        0.11839156597852707
+      ],
+      "creep_2_to_10s_m": [
+        0.017775431275367737,
+        0.001471981406211853,
+        0.0
+      ],
+      "substrate_proximity_10s": [
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "substeps": 16,
+      "depths_2s_m": [
+        0.057055409997701645,
+        0.10852408409118652,
+        0.11837846040725708
+      ],
+      "depths_10s_m": [
+        0.06985493749380112,
+        0.11800520867109299,
+        0.11839177459478378
+      ],
+      "creep_2_to_10s_m": [
+        0.012799527496099472,
+        0.009481124579906464,
+        1.3314187526702881e-05
+      ],
+      "substrate_proximity_10s": [
+        false,
+        true,
+        true
+      ]
+    }
+  ],
+  "loads_N": [
+    18.417051315307617,
+    36.834102630615234,
+    55.25115394592285
+  ],
+  "initialization": "At rest at an admissible preloaded depth; no landing impact",
+  "initial_depths_m": [
+    0.05231651836777199,
+    0.099133036735544,
+    0.116
+  ],
+  "initial_bearing_capacity_N": [
+    20.258758544921875,
+    40.51750183105469,
+    47.816307067871094
+  ],
+  "foot_radius_m": 0.022,
+  "triangles_per_foot": 128,
+  "quadrature_order": 6,
+  "bed_depth_m": 0.118,
+  "bearing": 0.87574,
+  "velocity_regularization_m_s": 0.04,
+  "source_sha256": "5fd63684a27ff843cb89a3107dc3daa4984a2b3c34384cf0157ddb67cd8df56b",
+  "newton_kernel_sha256": "940b390b8b1921c74cf1f120ef9976f22892d12c5e1148f60967ad6ac572b12b",
+  "interpretation": "Vertical prismatic 1 kg intruders with independent applied loads. Nominal load is one quarter of measured Go2 weight; this is a solver fixture, not articulated standing or a matched MPM validation."
+}

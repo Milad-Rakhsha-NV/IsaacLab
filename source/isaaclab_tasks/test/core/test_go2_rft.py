@@ -8,6 +8,7 @@
 import numpy as np
 import pytest
 import torch
+from isaaclab_newton.physics.rft_solver_cfg import RFTSurfaceResolutionCfg
 
 from isaaclab.app import launch_simulation
 
@@ -24,6 +25,23 @@ def test_go2_rft_articulation_and_masked_material_reset():
     fail here; plate-only tests cannot detect these Isaac Lab integration errors.
     """
     cfg = Go2RFTCurriculumEnvCfg()
+    cfg.sim.physics.solver_cfg.surface_resolution = [
+        RFTSurfaceResolutionCfg(
+            shape_pattern=r".*/Robot/[^/]+_foot/.*", sphere_subdivisions=2, primitive_quadrature_order=6
+        ),
+        RFTSurfaceResolutionCfg(
+            shape_pattern=r".*/Robot/[^/]+_calf/collisions/mesh_1",
+            segments=16,
+            axial_segments=3,
+            primitive_quadrature_order=3,
+        ),
+        RFTSurfaceResolutionCfg(
+            shape_pattern=r".*/Robot/[^/]+_calf/collisions/mesh_2",
+            segments=16,
+            axial_segments=2,
+            primitive_quadrature_order=3,
+        ),
+    ]
     cfg.curriculum_enabled = False
     cfg.scene.num_envs = 4
     cfg.sim.visualizer_cfgs = []
@@ -34,6 +52,11 @@ def test_go2_rft_articulation_and_masked_material_reset():
             assert obs["policy"].shape == (4, 45)
             assert obs["critic"].shape == (4, 48)
             assert env.rft.model.particle_count == 0
+            assert env.rft.curved_point_count == 4 * 4 * (128 * 6**2 + (128 + 96) * 3**2)
+            counts = np.bincount(env.rft.triangle_body.numpy(), minlength=env.rft.model.body_count)
+            for surface in env.rft.surface_inventory:
+                if surface["body_label"].endswith("_foot"):
+                    assert counts[surface["body"]] == 128
             names = {row["body_label"].split("/")[-1] for row in env.rft.surface_inventory}
             for leg in ("FL", "FR", "RL", "RR"):
                 assert {f"{leg}_hip", f"{leg}_thigh", f"{leg}_calf", f"{leg}_foot"} <= names
@@ -144,11 +167,19 @@ def test_go2_rft_articulation_and_masked_material_reset():
 
             # With every foot above the rigid floor, sufficiently loaded RFT
             # surfaces must count as foot contact even when native contacts are zero.
-            env.material[:, 3] = 5000.0
+            # The first material substep alone must exceed the 1 N contact
+            # threshold when averaged over the control interval. Later substeps
+            # may release pressure as an unloaded foot starts withdrawing.
+            env.material[:, 3] = 25000.0
             env.material[:, 5] = 100.0  # Keep this controlled load in the near-rest bearing regime.
             env._reset_idx(torch.arange(4, device=env.device))
             env.scene.write_data_to_sim()
             env.sim.forward()
+            state = env.sim.backend_manager.backend.state_0
+            initial_load = env.rft.evaluate(state).numpy()
+            foot_bodies = [r["body"] for r in env.rft.surface_inventory if r["body_label"].endswith("_foot")]
+            first_interval_load = initial_load[foot_bodies, 2] * cfg.sim.dt / cfg.sim.physics.num_substeps / env.step_dt
+            assert first_interval_load.min() > 1.0
             env.step(torch.zeros(4, 12, device=env.device))
             assert env.contact_forces.data.net_normal_forces_w.torch.norm(dim=-1).max() < 1e-4
             assert env.gait_body_contact[:, env.foot_sensor_ids].all()

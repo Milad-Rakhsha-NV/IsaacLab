@@ -1,0 +1,397 @@
+{
+  "results": [
+    {
+      "kind": "octasphere",
+      "resolution": 2,
+      "label": "octasphere 2",
+      "raw_triangles_per_foot": 128,
+      "integrated_triangles_per_foot": 128,
+      "quadrature_order": 0,
+      "analytic_points_per_foot": 0,
+      "lower_hemisphere_triangles": 64,
+      "maximum_edge_m": 0.012701706029474735,
+      "sphere_area_relative_error": 0.04865992069244385,
+      "force_relative_error": 0.07022924721240997,
+      "torque_relative_error": 0.07417327165603638,
+      "force_error_p95": 0.22199727594852448,
+      "torque_error_p95": 0.16038896143436432,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0455096997320652,
+          "torque_error_p95": 0.013273803517222404
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.1750766932964325,
+          "torque_error_p95": 0.061941519379615784
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.18771715462207794,
+          "torque_error_p95": 0.16428324580192566
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.2594847083091736,
+          "torque_error_p95": 0.1655006855726242
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.26836147904396057,
+          "torque_error_p95": 0.3891408443450928
+        }
+      ]
+    },
+    {
+      "kind": "curvedsphere",
+      "resolution": 2,
+      "label": "curvedsphere 2",
+      "raw_triangles_per_foot": 128,
+      "integrated_triangles_per_foot": 128,
+      "quadrature_order": 2,
+      "analytic_points_per_foot": 512,
+      "lower_hemisphere_triangles": 64,
+      "maximum_edge_m": 0.012701706029474735,
+      "sphere_area_relative_error": 0.04865992069244385,
+      "force_relative_error": 0.0049343714490532875,
+      "torque_relative_error": 0.013236076571047306,
+      "force_error_p95": 0.01574026606976986,
+      "torque_error_p95": 0.032910484820604324,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0014170370995998383,
+          "torque_error_p95": 0.0010692864889279008
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.015114551410079002,
+          "torque_error_p95": 0.008557573892176151
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.024320529773831367,
+          "torque_error_p95": 0.026343481615185738
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.01603725180029869,
+          "torque_error_p95": 0.04000582545995712
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.012994061224162579,
+          "torque_error_p95": 0.07297004759311676
+        }
+      ]
+    },
+    {
+      "kind": "curvedsphere",
+      "resolution": 3,
+      "label": "curvedsphere 3",
+      "raw_triangles_per_foot": 128,
+      "integrated_triangles_per_foot": 128,
+      "quadrature_order": 3,
+      "analytic_points_per_foot": 1152,
+      "lower_hemisphere_triangles": 64,
+      "maximum_edge_m": 0.012701706029474735,
+      "sphere_area_relative_error": 0.04865992069244385,
+      "force_relative_error": 0.002324931090697646,
+      "torque_relative_error": 0.006377092562615871,
+      "force_error_p95": 0.007139891851693392,
+      "torque_error_p95": 0.014466623775660992,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0009489079238846898,
+          "torque_error_p95": 0.0005767691764049232
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0051575289107859135,
+          "torque_error_p95": 0.0030590014066547155
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.012668976560235023,
+          "torque_error_p95": 0.014257766306400299
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.007987797260284424,
+          "torque_error_p95": 0.015583576634526253
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.006244647316634655,
+          "torque_error_p95": 0.024747667834162712
+        }
+      ]
+    },
+    {
+      "kind": "curvedsphere",
+      "resolution": 4,
+      "label": "curvedsphere 4",
+      "raw_triangles_per_foot": 128,
+      "integrated_triangles_per_foot": 128,
+      "quadrature_order": 4,
+      "analytic_points_per_foot": 2048,
+      "lower_hemisphere_triangles": 64,
+      "maximum_edge_m": 0.012701706029474735,
+      "sphere_area_relative_error": 0.04865992069244385,
+      "force_relative_error": 0.000990693224593997,
+      "torque_relative_error": 0.002778021153062582,
+      "force_error_p95": 0.002833989216014743,
+      "torque_error_p95": 0.006335095502436161,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0003662514209281653,
+          "torque_error_p95": 0.00020724238129332662
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0018485573818907142,
+          "torque_error_p95": 0.0011757424799725413
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.005052274093031883,
+          "torque_error_p95": 0.005054030567407608
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.0035061989910900593,
+          "torque_error_p95": 0.010989027097821236
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.002833989216014743,
+          "torque_error_p95": 0.018831226974725723
+        }
+      ]
+    },
+    {
+      "kind": "curvedsphere",
+      "resolution": 6,
+      "label": "curvedsphere 6",
+      "raw_triangles_per_foot": 128,
+      "integrated_triangles_per_foot": 128,
+      "quadrature_order": 6,
+      "analytic_points_per_foot": 4608,
+      "lower_hemisphere_triangles": 64,
+      "maximum_edge_m": 0.012701706029474735,
+      "sphere_area_relative_error": 0.04865992069244385,
+      "force_relative_error": 0.0007671467028558254,
+      "torque_relative_error": 0.0020645379554480314,
+      "force_error_p95": 0.002317490056157112,
+      "torque_error_p95": 0.005313434638082981,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0003469726361799985,
+          "torque_error_p95": 0.0002553539234213531
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0010809967061504722,
+          "torque_error_p95": 0.0007711716461926699
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.0033321199007332325,
+          "torque_error_p95": 0.004712793044745922
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.0028005861677229404,
+          "torque_error_p95": 0.006152772344648838
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.002132812514901161,
+          "torque_error_p95": 0.007873130030930042
+        }
+      ]
+    },
+    {
+      "kind": "curvedsphere",
+      "resolution": 10,
+      "label": "curvedsphere 10",
+      "raw_triangles_per_foot": 128,
+      "integrated_triangles_per_foot": 128,
+      "quadrature_order": 10,
+      "analytic_points_per_foot": 12800,
+      "lower_hemisphere_triangles": 64,
+      "maximum_edge_m": 0.012701706029474735,
+      "sphere_area_relative_error": 0.04865992069244385,
+      "force_relative_error": 0.00038817751919850707,
+      "torque_relative_error": 0.0010770559310913086,
+      "force_error_p95": 0.0011922962730750442,
+      "torque_error_p95": 0.00242626597173512,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0001513348543085158,
+          "torque_error_p95": 0.00011892482871189713
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.00045476568629965186,
+          "torque_error_p95": 0.000333639356540516
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.002001412445679307,
+          "torque_error_p95": 0.0020264543127268553
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.0015025179600343108,
+          "torque_error_p95": 0.003770186100155115
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.0011922962730750442,
+          "torque_error_p95": 0.00602332130074501
+        }
+      ]
+    },
+    {
+      "kind": "curvedsphere",
+      "resolution": 16,
+      "label": "curvedsphere 16",
+      "raw_triangles_per_foot": 128,
+      "integrated_triangles_per_foot": 128,
+      "quadrature_order": 16,
+      "analytic_points_per_foot": 32768,
+      "lower_hemisphere_triangles": 64,
+      "maximum_edge_m": 0.012701706029474735,
+      "sphere_area_relative_error": 0.04865992069244385,
+      "force_relative_error": 0.0,
+      "torque_relative_error": 0.0,
+      "force_error_p95": 0.0,
+      "torque_error_p95": 0.0,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        }
+      ]
+    }
+  ],
+  "radius_m": 0.022,
+  "depths_m": [
+    0.001,
+    0.003,
+    0.01,
+    0.025,
+    0.044
+  ],
+  "velocities_m_s": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -0.1
+    ],
+    [
+      0.3,
+      0,
+      -0.02
+    ],
+    [
+      1,
+      0,
+      -0.1
+    ],
+    [
+      0,
+      0,
+      0.1
+    ]
+  ],
+  "angular_velocities_rad_s": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      8,
+      0
+    ]
+  ],
+  "orientations_rpy_rad": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0.3,
+      0.2,
+      0.1
+    ],
+    [
+      0.7,
+      0.4,
+      0.3
+    ]
+  ],
+  "materials": [
+    {
+      "internal_friction": 0.3,
+      "roughness": 0.6
+    },
+    {
+      "internal_friction": 0.3,
+      "roughness": 1.0
+    },
+    {
+      "internal_friction": 0.5,
+      "roughness": 0.6
+    },
+    {
+      "internal_friction": 0.5,
+      "roughness": 1.0
+    }
+  ],
+  "density_kg_m3": 1600,
+  "bearing": 0.87574,
+  "velocity_regularization_m_s": 0.04,
+  "prescribed_states_per_material": 150,
+  "reference_segments": null,
+  "reference_quadrature_order": 16,
+  "wall_seconds": 2.099072473938577,
+  "rft_kernel_sha256": "940b390b8b1921c74cf1f120ef9976f22892d12c5e1148f60967ad6ac572b12b",
+  "source_sha256": "e5f202cf6ed7d7767ca2c53f28a9dfe0ee5268a2a1b2b8b648d93b6d4cea5963",
+  "interpretation": "Prescribed centered sphere probes, not robot-policy validation or material validation. Refinement changes curved geometry and its quadrature together. Torques are about the sphere center. Percentiles use 1 N / 0.01 Nm denominator floors. Near-zero-area pole triangles remain in solver counts."
+}

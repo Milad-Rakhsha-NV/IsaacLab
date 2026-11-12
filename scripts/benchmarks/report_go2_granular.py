@@ -332,6 +332,9 @@ article,figure{background:white;padding:20px;margin:0 0 24px;border-radius:10px}
 h1,h2,h3{line-height:1.2}h3{margin-top:0}details{margin:12px 0}summary,a{color:#1d4ed8}
 code{overflow-wrap:anywhere}.status{padding:16px;background:#dbeafe}</style>
 <h1>Go2: policy comparison at two forward speeds</h1>
+<p class="status"><a href="../../go2-contact-refinement/">Go2 contact-resolution follow-up</a>:
+128 triangles per spherical foot, selective lower-calf refinement, accuracy, cost and static-support checks.
+The policy videos below retain their original solver and coarse training surfaces.</p>
 <p>The rigid and RFT runs use the same robot, self-collision, posture and foot-placement criteria.
 Their standing, tracking, slip and stepping acceptance checks are reported separately.</p>
 <p>The Go2 knee-to-sole length is approximately 236 mm. Each resetting environment samples

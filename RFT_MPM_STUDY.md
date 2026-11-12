@@ -9,11 +9,25 @@ Both repositories use branch **`milad/rft-mpm`**:
 | [Milad-Rakhsha-NV/IsaacLab](https://github.com/Milad-Rakhsha-NV/IsaacLab/tree/milad/rft-mpm) | `milad-rakhsha-nv` | `/home/horde/Documents/Repos/IsaacLab` |
 | [Milad-Rakhsha/newton](https://github.com/Milad-Rakhsha/newton/tree/milad/rft-mpm) | `milad-rakhsha` | `/home/horde/Documents/Repos/newton-go2-rft` |
 
-The archived Go2 and initial G1 experiments used Newton `32f455bc4430f0954ae564fb40681fbaca95e7f3`. The current dependency pins corrected revision `277c30238619349d343104191d8e40582fa7ac70` from the personal fork. Existing snapshots retain their original solver provenance. The [G1 force-verification follow-up](G1_RFT_REFINEMENT.md) identifies and corrects energy generation in the added bearing extension, establishes a refined isolated-foot MPM reference and evaluates additional training with force-informed reset ranges.
+The archived Go2 and initial G1 experiments used Newton `32f455bc4430f0954ae564fb40681fbaca95e7f3`.
+The G1 follow-up uses corrected revision `277c30238619349d343104191d8e40582fa7ac70`. The current dependency
+pins `6cf5b879d576c19279183ee9da0dc4de039a080f`, adding opt-in curved-patch integration for the
+[Go2 contact-resolution follow-up](GO2_RFT_REFINEMENT.md). Existing snapshots retain their original solver
+provenance and separate runtimes. The [G1 force-verification follow-up](G1_RFT_REFINEMENT.md) identifies and
+corrects energy generation in the added bearing extension, establishes a refined isolated-foot MPM
+reference and evaluates additional training with force-informed reset ranges.
 
 **Current validation remains failed for prolonged static support and held-out wrench matching.** Corrected RFT exhibits timestep-dependent creep under a sustained load. The revised policy can obtain most standing support from its rigid backing floor. Learned transfer performance must therefore be read as an exploratory surrogate-training result, rather than validation of an equivalent granular material.
 
-Foot-resolution audits now also gate future training. G1's current two-triangle sole has about 18% pooled torque error in the recorded-motion sweep; 128 sole triangles reduce it to about 0.6%. Go2 uses a small spherical collider: its current surface has 15.6 mm maximum edges and about 19% pooled torque error in prescribed sphere probes. Uniform 1,280- and 5,120-triangle spheres reduce that error to approximately 3.3% and 1.4%. These are numerical self-convergence results, with larger errors in difficult individual conditions. The [follow-up methods](G1_RFT_REFINEMENT.md) distinguish geometry, quadrature, static coupling and material validity. Existing policies retain their coarse meshes; further coarse-policy MPM rendering is stopped while selective foot refinement is investigated.
+Current implementation work focuses on Go2; G1 remains on hold. The new Go2 candidate keeps **128 triangles
+over each entire spherical foot**, refining only its two distal calf colliders. Analytic curved normals and
+Gauss integration improve accuracy without raising the triangle budget. On common recorded Go2 motion,
+pooled foot force/torque differences decrease from 6.09%/12.25% to 0.51%/0.94% against higher-order
+integration. Whole-environment cost rises about 1.81 times at 4,096 worlds. Direct force-evaluation cost,
+calf percentile accuracy, individual outliers and static support still miss proposed targets; the candidate
+is **not cleared for new training**. The [portable report and raw measurements](results/go2-contact-refinement)
+separate these numerical findings from material and policy validation. Existing policy videos retain their
+original coarse surfaces.
 
 ## Implementation
 

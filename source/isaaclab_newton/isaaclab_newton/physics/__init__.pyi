@@ -37,6 +37,7 @@ __all__ = [
     "NewtonSolverCfg",
     "RFTSolver",
     "RFTSolverCfg",
+    "RFTSurfaceResolutionCfg",
     "create_builder",
     "VBDSolver",
     "VBDSolverCfg",
@@ -72,7 +73,7 @@ from .newton_manager import NewtonManager, create_newton_builder
 from .newton_manager_cfg import NewtonCfg, NewtonShapeCfg, NewtonSoftContactCfg, NewtonSolverCfg
 from .newton_solver import NewtonSolver
 from .rft_solver import RFTSolver
-from .rft_solver_cfg import RFTSolverCfg
+from .rft_solver_cfg import RFTSolverCfg, RFTSurfaceResolutionCfg
 from .vbd_solver import VBDSolver
 from .vbd_solver_cfg import VBDSolverCfg
 from .xpbd_solver import XPBDSolver

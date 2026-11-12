@@ -1,0 +1,3821 @@
+{
+  "results": [
+    {
+      "candidate": "legacy",
+      "quadrature_order": 0,
+      "triangles_per_robot": 1536,
+      "analytic_points_per_robot": 0,
+      "feet": {
+        "force": {
+          "pooled": 0.06091338023543358,
+          "p95": 0.1274820864200592,
+          "maximum": 0.37105095386505127,
+          "absolute_maximum": 9.353683471679688,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.12252435088157654,
+          "p95": 0.33271557092666626,
+          "maximum": 2.5252349376678467,
+          "absolute_maximum": 0.08778023719787598,
+          "denominator_floor": 0.01
+        }
+      },
+      "calves": {
+        "force": {
+          "pooled": 0.03272649273276329,
+          "p95": 0.04756656289100647,
+          "maximum": 0.19567254185676575,
+          "absolute_maximum": 7.877445220947266,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.04000116139650345,
+          "p95": 0.07428015768527985,
+          "maximum": 0.3287421464920044,
+          "absolute_maximum": 0.4083032011985779,
+          "denominator_floor": 0.01
+        }
+      },
+      "by_height": [
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.17883577942848206,
+              "p95": 0.00787235889583826,
+              "maximum": 0.046968623995780945,
+              "absolute_maximum": 0.046968623995780945,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.5361220836639404,
+              "p95": 0.007248660083860159,
+              "maximum": 0.017069125548005104,
+              "absolute_maximum": 0.0001706912589725107,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.17246487736701965,
+              "p95": 0.007952066138386726,
+              "maximum": 0.04844977706670761,
+              "absolute_maximum": 0.04844977706670761,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.40780800580978394,
+              "p95": 0.008275214582681656,
+              "maximum": 0.02109270729124546,
+              "absolute_maximum": 0.0002109270717483014,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.17246495187282562,
+              "p95": 0.029515225440263748,
+              "maximum": 0.17982836067676544,
+              "absolute_maximum": 0.17982836067676544,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.40780800580978394,
+              "p95": 0.030714619904756546,
+              "maximum": 0.07828855514526367,
+              "absolute_maximum": 0.0007828855304978788,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.16347388923168182,
+              "p95": 0.030218718573451042,
+              "maximum": 0.18501120805740356,
+              "absolute_maximum": 0.18501120805740356,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.324025958776474,
+              "p95": 0.037382323294878006,
+              "maximum": 0.10167364031076431,
+              "absolute_maximum": 0.0010167363798245788,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.08117260783910751,
+              "p95": 0.1461840569972992,
+              "maximum": 0.37105095386505127,
+              "absolute_maximum": 0.5472208857536316,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.18407338857650757,
+              "p95": 0.16481950879096985,
+              "maximum": 0.40790173411369324,
+              "absolute_maximum": 0.004079017322510481,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.04516463726758957,
+              "p95": 0.022991515696048737,
+              "maximum": 0.048037365078926086,
+              "absolute_maximum": 0.1392539143562317,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.04322429373860359,
+              "p95": 0.04460977762937546,
+              "maximum": 0.07127783447504044,
+              "absolute_maximum": 0.00605382164940238,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.07591740041971207,
+              "p95": 0.1391637921333313,
+              "maximum": 0.3649371862411499,
+              "absolute_maximum": 0.5591219663619995,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.1476271003484726,
+              "p95": 0.17041994631290436,
+              "maximum": 0.427689790725708,
+              "absolute_maximum": 0.004276897758245468,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.04499544948339462,
+              "p95": 0.023485247045755386,
+              "maximum": 0.048027995973825455,
+              "absolute_maximum": 0.13972237706184387,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.04311167448759079,
+              "p95": 0.04214349761605263,
+              "maximum": 0.07128572463989258,
+              "absolute_maximum": 0.006055712234228849,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.07591742277145386,
+              "p95": 0.1699458509683609,
+              "maximum": 0.3649372458457947,
+              "absolute_maximum": 2.0752625465393066,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.1476271152496338,
+              "p95": 0.42799627780914307,
+              "maximum": 1.1018340587615967,
+              "absolute_maximum": 0.015874313190579414,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0449955016374588,
+              "p95": 0.04536645486950874,
+              "maximum": 0.0841534286737442,
+              "absolute_maximum": 0.5186010003089905,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.04311160370707512,
+              "p95": 0.08464722335338593,
+              "maximum": 0.1891208440065384,
+              "absolute_maximum": 0.022476637735962868,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.06982280313968658,
+              "p95": 0.16980010271072388,
+              "maximum": 0.3536114990711212,
+              "absolute_maximum": 2.1501190662384033,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.13011972606182098,
+              "p95": 0.4533357620239258,
+              "maximum": 0.7880120873451233,
+              "absolute_maximum": 0.01688740961253643,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.044790275394916534,
+              "p95": 0.04637869819998741,
+              "maximum": 0.0846930667757988,
+              "absolute_maximum": 0.5215058922767639,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.042849116027355194,
+              "p95": 0.07200160622596741,
+              "maximum": 0.1361277550458908,
+              "absolute_maximum": 0.02248866856098175,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.06991147994995117,
+              "p95": 0.11791522800922394,
+              "maximum": 0.3425738215446472,
+              "absolute_maximum": 1.175121784210205,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.16974656283855438,
+              "p95": 0.4561257064342499,
+              "maximum": 0.9563667178153992,
+              "absolute_maximum": 0.009563666768372059,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.045235566794872284,
+              "p95": 0.07053017616271973,
+              "maximum": 0.15066905319690704,
+              "absolute_maximum": 0.5821347236633301,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.047640759497880936,
+              "p95": 0.13058564066886902,
+              "maximum": 0.3287421464920044,
+              "absolute_maximum": 0.029628705233335495,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.06588639318943024,
+              "p95": 0.11369425058364868,
+              "maximum": 0.33595359325408936,
+              "absolute_maximum": 1.1962493658065796,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.1327585130929947,
+              "p95": 0.2897849380970001,
+              "maximum": 1.0175409317016602,
+              "absolute_maximum": 0.01017540879547596,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.04469453543424606,
+              "p95": 0.06782328337430954,
+              "maximum": 0.1438836306333542,
+              "absolute_maximum": 0.603736937046051,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0460471548140049,
+              "p95": 0.11435248702764511,
+              "maximum": 0.22392387688159943,
+              "absolute_maximum": 0.03274243324995041,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.06588640064001083,
+              "p95": 0.11369422823190689,
+              "maximum": 0.33595356345176697,
+              "absolute_maximum": 4.440051555633545,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.13275854289531708,
+              "p95": 0.45577526092529297,
+              "maximum": 1.2489991188049316,
+              "absolute_maximum": 0.037767477333545685,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.044694673269987106,
+              "p95": 0.07197214663028717,
+              "maximum": 0.19108353555202484,
+              "absolute_maximum": 2.2408759593963623,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.04604716971516609,
+              "p95": 0.12378785014152527,
+              "maximum": 0.3198268711566925,
+              "absolute_maximum": 0.1215285062789917,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.06172555685043335,
+              "p95": 0.10777928680181503,
+              "maximum": 0.3238203227519989,
+              "absolute_maximum": 4.605876445770264,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.11599549651145935,
+              "p95": 0.35764074325561523,
+              "maximum": 1.376458764076233,
+              "absolute_maximum": 0.041021671146154404,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.04480766877532005,
+              "p95": 0.07747738808393478,
+              "maximum": 0.19567254185676575,
+              "absolute_maximum": 2.3912272453308105,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.04486073926091194,
+              "p95": 0.11959733068943024,
+              "maximum": 0.2370082288980484,
+              "absolute_maximum": 0.12318481504917145,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.06455271691083908,
+              "p95": 0.11160224676132202,
+              "maximum": 0.3301627039909363,
+              "absolute_maximum": 2.3898062705993652,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.17141471803188324,
+              "p95": 0.567767858505249,
+              "maximum": 2.018213987350464,
+              "absolute_maximum": 0.020182140171527863,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.033542368561029434,
+              "p95": 0.049592114984989166,
+              "maximum": 0.07623547315597534,
+              "absolute_maximum": 1.8164217472076416,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.04141119122505188,
+              "p95": 0.07710447162389755,
+              "maximum": 0.1937679648399353,
+              "absolute_maximum": 0.09839767217636108,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.061556797474622726,
+              "p95": 0.10650903731584549,
+              "maximum": 0.3233373463153839,
+              "absolute_maximum": 2.4357104301452637,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.13271717727184296,
+              "p95": 0.3426468074321747,
+              "maximum": 1.208182692527771,
+              "absolute_maximum": 0.02159779518842697,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.03132112696766853,
+              "p95": 0.04521666467189789,
+              "maximum": 0.06929666548967361,
+              "absolute_maximum": 1.8746479749679565,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.038550108671188354,
+              "p95": 0.05942024290561676,
+              "maximum": 0.09954176098108292,
+              "absolute_maximum": 0.09864669293165207,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.06155679374933243,
+              "p95": 0.10650915652513504,
+              "maximum": 0.32333746552467346,
+              "absolute_maximum": 9.04047966003418,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.13271716237068176,
+              "p95": 0.36765655875205994,
+              "maximum": 2.5252349376678467,
+              "absolute_maximum": 0.08016330003738403,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.03132115304470062,
+              "p95": 0.04521704465150833,
+              "maximum": 0.06929651647806168,
+              "absolute_maximum": 6.957970142364502,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.03855021670460701,
+              "p95": 0.059420421719551086,
+              "maximum": 0.09954186528921127,
+              "absolute_maximum": 0.3661397099494934,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.05852320045232773,
+              "p95": 0.09984240680932999,
+              "maximum": 0.3108765184879303,
+              "absolute_maximum": 9.353683471679688,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.11417682468891144,
+              "p95": 0.3363366425037384,
+              "maximum": 1.2256982326507568,
+              "absolute_maximum": 0.08778023719787598,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.03230556473135948,
+              "p95": 0.04636062681674957,
+              "maximum": 0.06694215536117554,
+              "absolute_maximum": 7.877445220947266,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.04045393690466881,
+              "p95": 0.056803084909915924,
+              "maximum": 0.08636342734098434,
+              "absolute_maximum": 0.4083032011985779,
+              "denominator_floor": 0.01
+            }
+          }
+        }
+      ]
+    },
+    {
+      "candidate": "faceted128",
+      "quadrature_order": 0,
+      "triangles_per_robot": 2032,
+      "analytic_points_per_robot": 0,
+      "feet": {
+        "force": {
+          "pooled": 0.05219581350684166,
+          "p95": 0.09855334460735321,
+          "maximum": 0.4654562473297119,
+          "absolute_maximum": 10.209744453430176,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.09863585978746414,
+          "p95": 0.2687355875968933,
+          "maximum": 2.561856508255005,
+          "absolute_maximum": 0.06256720423698425,
+          "denominator_floor": 0.01
+        }
+      },
+      "calves": {
+        "force": {
+          "pooled": 0.024317633360624313,
+          "p95": 0.03563942015171051,
+          "maximum": 0.18503347039222717,
+          "absolute_maximum": 4.550734519958496,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.026243939995765686,
+          "p95": 0.05164683610200882,
+          "maximum": 0.4862281084060669,
+          "absolute_maximum": 0.24666623771190643,
+          "denominator_floor": 0.01
+        }
+      },
+      "by_height": [
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.1157313659787178,
+              "p95": 0.005300404503941536,
+              "maximum": 0.02197420410811901,
+              "absolute_maximum": 0.02197420410811901,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.3432093858718872,
+              "p95": 0.004510273691266775,
+              "maximum": 0.01191740296781063,
+              "absolute_maximum": 0.0001191740229842253,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.1103462502360344,
+              "p95": 0.0052387649193406105,
+              "maximum": 0.022843249142169952,
+              "absolute_maximum": 0.022843249142169952,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.26936912536621094,
+              "p95": 0.006019156891852617,
+              "maximum": 0.014141444116830826,
+              "absolute_maximum": 0.00014141443534754217,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.11034633964300156,
+              "p95": 0.019444432109594345,
+              "maximum": 0.08478620648384094,
+              "absolute_maximum": 0.08478620648384094,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.26936909556388855,
+              "p95": 0.022340940311551094,
+              "maximum": 0.052487943321466446,
+              "absolute_maximum": 0.0005248794332146645,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.1040559858083725,
+              "p95": 0.020629918202757835,
+              "maximum": 0.08816395699977875,
+              "absolute_maximum": 0.08816395699977875,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.22141703963279724,
+              "p95": 0.026287393644452095,
+              "maximum": 0.05352028086781502,
+              "absolute_maximum": 0.0005352027947083116,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.06669735163450241,
+              "p95": 0.11294299364089966,
+              "maximum": 0.4654562473297119,
+              "absolute_maximum": 0.645341157913208,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.14123763144016266,
+              "p95": 0.10331099480390549,
+              "maximum": 0.33399343490600586,
+              "absolute_maximum": 0.0033399341627955437,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.027303744107484818,
+              "p95": 0.02145547978579998,
+              "maximum": 0.047356776893138885,
+              "absolute_maximum": 0.07839150726795197,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.025509990751743317,
+              "p95": 0.03563655912876129,
+              "maximum": 0.09449446201324463,
+              "absolute_maximum": 0.0033736159093677998,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.06253442913293839,
+              "p95": 0.11209297180175781,
+              "maximum": 0.45811155438423157,
+              "absolute_maximum": 0.6472778916358948,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.12091143429279327,
+              "p95": 0.12107326835393906,
+              "maximum": 0.3287260830402374,
+              "absolute_maximum": 0.0032872608862817287,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.02721785008907318,
+              "p95": 0.021601933985948563,
+              "maximum": 0.04744201898574829,
+              "absolute_maximum": 0.07848188281059265,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.02517707087099552,
+              "p95": 0.03073849529027939,
+              "maximum": 0.09369481354951859,
+              "absolute_maximum": 0.0034981861244887114,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.06253443658351898,
+              "p95": 0.13929417729377747,
+              "maximum": 0.45811155438423157,
+              "absolute_maximum": 2.402463912963867,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.12091142684221268,
+              "p95": 0.38879451155662537,
+              "maximum": 0.8468789458274841,
+              "absolute_maximum": 0.012201130390167236,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.027217848226428032,
+              "p95": 0.04247337579727173,
+              "maximum": 0.11163439601659775,
+              "absolute_maximum": 0.291299968957901,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.02517710067331791,
+              "p95": 0.06527167558670044,
+              "maximum": 0.19434043765068054,
+              "absolute_maximum": 0.012983860448002815,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.05781662464141846,
+              "p95": 0.13957302272319794,
+              "maximum": 0.4431816339492798,
+              "absolute_maximum": 2.4344167709350586,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.11249122768640518,
+              "p95": 0.322828471660614,
+              "maximum": 0.7866171598434448,
+              "absolute_maximum": 0.01206092070788145,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.02716897800564766,
+              "p95": 0.04295457899570465,
+              "maximum": 0.11154429614543915,
+              "absolute_maximum": 0.29185861349105835,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.02482431009411812,
+              "p95": 0.058376509696245193,
+              "maximum": 0.14544032514095306,
+              "absolute_maximum": 0.013187632896006107,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.05941680818796158,
+              "p95": 0.09823977947235107,
+              "maximum": 0.4424932897090912,
+              "absolute_maximum": 1.3562382459640503,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.1240711435675621,
+              "p95": 0.2787958085536957,
+              "maximum": 0.7769775390625,
+              "absolute_maximum": 0.007769775111228228,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.03107488341629505,
+              "p95": 0.0676257386803627,
+              "maximum": 0.1754351407289505,
+              "absolute_maximum": 0.32640931010246277,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.03225317597389221,
+              "p95": 0.10341913998126984,
+              "maximum": 0.39302903413772583,
+              "absolute_maximum": 0.01869215816259384,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.05604228377342224,
+              "p95": 0.09673861414194107,
+              "maximum": 0.43438076972961426,
+              "absolute_maximum": 1.3573682308197021,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.10424157977104187,
+              "p95": 0.23995229601860046,
+              "maximum": 0.7796107530593872,
+              "absolute_maximum": 0.007796107325702906,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.030726773664355278,
+              "p95": 0.06493154168128967,
+              "maximum": 0.16537274420261383,
+              "absolute_maximum": 0.35052043199539185,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.030618835240602493,
+              "p95": 0.07372989505529404,
+              "maximum": 0.4862281084060669,
+              "absolute_maximum": 0.02059638686478138,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.05604230612516403,
+              "p95": 0.09673865139484406,
+              "maximum": 0.43438073992729187,
+              "absolute_maximum": 5.038063049316406,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.10424162447452545,
+              "p95": 0.3624844551086426,
+              "maximum": 1.2966244220733643,
+              "absolute_maximum": 0.028936341404914856,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.030726803466677666,
+              "p95": 0.069950632750988,
+              "maximum": 0.18461307883262634,
+              "absolute_maximum": 1.3010224103927612,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.030618829652667046,
+              "p95": 0.09079688787460327,
+              "maximum": 0.486227422952652,
+              "absolute_maximum": 0.07644712179899216,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.05226026475429535,
+              "p95": 0.09538023918867111,
+              "maximum": 0.41819238662719727,
+              "absolute_maximum": 5.083523750305176,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.09776145219802856,
+              "p95": 0.2981557846069336,
+              "maximum": 1.2761430740356445,
+              "absolute_maximum": 0.029215143993496895,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.030847642570734024,
+              "p95": 0.07257018238306046,
+              "maximum": 0.18503347039222717,
+              "absolute_maximum": 1.388689398765564,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.029574323445558548,
+              "p95": 0.08767535537481308,
+              "maximum": 0.44820842146873474,
+              "absolute_maximum": 0.07819756865501404,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.055858876556158066,
+              "p95": 0.09195594489574432,
+              "maximum": 0.43282821774482727,
+              "absolute_maximum": 2.7317047119140625,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.12323708087205887,
+              "p95": 0.3537842035293579,
+              "maximum": 1.6336393356323242,
+              "absolute_maximum": 0.016336392611265182,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.024570472538471222,
+              "p95": 0.03672947734594345,
+              "maximum": 0.09822978079319,
+              "absolute_maximum": 1.0556018352508545,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.027841320261359215,
+              "p95": 0.06711689382791519,
+              "maximum": 0.17304043471813202,
+              "absolute_maximum": 0.05911247059702873,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.05317292362451553,
+              "p95": 0.08710858225822449,
+              "maximum": 0.424405038356781,
+              "absolute_maximum": 2.7313339710235596,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.10173274576663971,
+              "p95": 0.2723308205604553,
+              "maximum": 0.9239782094955444,
+              "absolute_maximum": 0.01651727966964245,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.02392890676856041,
+              "p95": 0.03657158836722374,
+              "maximum": 0.09187643975019455,
+              "absolute_maximum": 1.1306349039077759,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.026371490210294724,
+              "p95": 0.04615636542439461,
+              "maximum": 0.13056868314743042,
+              "absolute_maximum": 0.06437555700540543,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.053172919899225235,
+              "p95": 0.08710853010416031,
+              "maximum": 0.42440491914749146,
+              "absolute_maximum": 10.137726783752441,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.1017327606678009,
+              "p95": 0.33355462551116943,
+              "maximum": 2.561856508255005,
+              "absolute_maximum": 0.061306241899728775,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.023928893730044365,
+              "p95": 0.036571722477674484,
+              "maximum": 0.09187605232000351,
+              "absolute_maximum": 4.196521282196045,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.026371493935585022,
+              "p95": 0.046155739575624466,
+              "maximum": 0.13056884706020355,
+              "absolute_maximum": 0.2389407753944397,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.05000431090593338,
+              "p95": 0.08339706063270569,
+              "maximum": 0.40770599246025085,
+              "absolute_maximum": 10.209744453430176,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.09474721550941467,
+              "p95": 0.2680376470088959,
+              "maximum": 1.1000739336013794,
+              "absolute_maximum": 0.06256720423698425,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.023814549669623375,
+              "p95": 0.036660633981227875,
+              "maximum": 0.08644748479127884,
+              "absolute_maximum": 4.550734519958496,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.025434108451008797,
+              "p95": 0.04018668085336685,
+              "maximum": 0.082501620054245,
+              "absolute_maximum": 0.24666623771190643,
+              "denominator_floor": 0.01
+            }
+          }
+        }
+      ]
+    },
+    {
+      "candidate": "selected",
+      "quadrature_order": null,
+      "triangles_per_robot": 2032,
+      "analytic_points_per_robot": 26496,
+      "feet": {
+        "force": {
+          "pooled": 0.005119393579661846,
+          "p95": 0.013924972154200077,
+          "maximum": 0.038211945444345474,
+          "absolute_maximum": 1.015120029449463,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.009352031163871288,
+          "p95": 0.026965951547026634,
+          "maximum": 0.15350790321826935,
+          "absolute_maximum": 0.010810679756104946,
+          "denominator_floor": 0.01
+        }
+      },
+      "calves": {
+        "force": {
+          "pooled": 0.008192445151507854,
+          "p95": 0.019570406526327133,
+          "maximum": 0.08237627893686295,
+          "absolute_maximum": 1.4522794485092163,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.006202861666679382,
+          "p95": 0.022920124232769012,
+          "maximum": 0.1707366555929184,
+          "absolute_maximum": 0.04053522273898125,
+          "denominator_floor": 0.01
+        }
+      },
+      "by_height": [
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.050189051777124405,
+              "p95": 0.0034768865443766117,
+              "maximum": 0.006105219945311546,
+              "absolute_maximum": 0.006105219945311546,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.07470167428255081,
+              "p95": 0.0009437549742870033,
+              "maximum": 0.002621251856908202,
+              "absolute_maximum": 2.6212517695967108e-05,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.04878002777695656,
+              "p95": 0.0035644746385514736,
+              "maximum": 0.006187704857438803,
+              "absolute_maximum": 0.006187704857438803,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.07792968302965164,
+              "p95": 0.0015867864713072777,
+              "maximum": 0.004402985330671072,
+              "absolute_maximum": 4.4029853597749025e-05,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.048780009150505066,
+              "p95": 0.013230036944150925,
+              "maximum": 0.022966502234339714,
+              "absolute_maximum": 0.022966502234339714,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.07792965322732925,
+              "p95": 0.0058895740658044815,
+              "maximum": 0.01634228602051735,
+              "absolute_maximum": 0.0001634228538023308,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.0472416877746582,
+              "p95": 0.013486303389072418,
+              "maximum": 0.025906279683113098,
+              "absolute_maximum": 0.025906279683113098,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.07749779522418976,
+              "p95": 0.008736006915569305,
+              "maximum": 0.029034607112407684,
+              "absolute_maximum": 0.0002903460699599236,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.009016716852784157,
+              "p95": 0.016229871660470963,
+              "maximum": 0.031686969101428986,
+              "absolute_maximum": 0.06084770709276199,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.01179584115743637,
+              "p95": 0.009874851442873478,
+              "maximum": 0.023304512724280357,
+              "absolute_maximum": 0.00023304512433242053,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0047829425893723965,
+              "p95": 0.005064291879534721,
+              "maximum": 0.016690827906131744,
+              "absolute_maximum": 0.016690827906131744,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0037054468411952257,
+              "p95": 0.016536053270101547,
+              "maximum": 0.03602670505642891,
+              "absolute_maximum": 0.0004992472822777927,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.008666368201375008,
+              "p95": 0.015905622392892838,
+              "maximum": 0.031023835763335228,
+              "absolute_maximum": 0.06171083077788353,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.012644589878618717,
+              "p95": 0.015832627192139626,
+              "maximum": 0.041889488697052,
+              "absolute_maximum": 0.00041889489511959255,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.004770874977111816,
+              "p95": 0.005193150136619806,
+              "maximum": 0.016721446067094803,
+              "absolute_maximum": 0.016721446067094803,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0031888000667095184,
+              "p95": 0.015109269879758358,
+              "maximum": 0.03524776175618172,
+              "absolute_maximum": 0.0004603799607139081,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.008666385896503925,
+              "p95": 0.017691340297460556,
+              "maximum": 0.0368802584707737,
+              "absolute_maximum": 0.22905220091342926,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.012644588947296143,
+              "p95": 0.03936506062746048,
+              "maximum": 0.14122141897678375,
+              "absolute_maximum": 0.0015547869261354208,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.004770886152982712,
+              "p95": 0.01927514187991619,
+              "maximum": 0.03934687003493309,
+              "absolute_maximum": 0.06206418573856354,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.003188792848959565,
+              "p95": 0.0362263023853302,
+              "maximum": 0.1308271884918213,
+              "absolute_maximum": 0.001708746189251542,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.008332912810146809,
+              "p95": 0.017808694392442703,
+              "maximum": 0.038211945444345474,
+              "absolute_maximum": 0.2569466829299927,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.013449563644826412,
+              "p95": 0.038351356983184814,
+              "maximum": 0.12018416821956635,
+              "absolute_maximum": 0.0027620503678917885,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.004871235694736242,
+              "p95": 0.020124228671193123,
+              "maximum": 0.03932175785303116,
+              "absolute_maximum": 0.06239156052470207,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0028777362313121557,
+              "p95": 0.03548542782664299,
+              "maximum": 0.12958727777004242,
+              "absolute_maximum": 0.0014667974319308996,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.006380655337125063,
+              "p95": 0.01345723308622837,
+              "maximum": 0.029815517365932465,
+              "absolute_maximum": 0.12136802822351456,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.00851069763302803,
+              "p95": 0.019880281761288643,
+              "maximum": 0.04639916121959686,
+              "absolute_maximum": 0.00046399160055443645,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.009086287580430508,
+              "p95": 0.03203772008419037,
+              "maximum": 0.08237627893686295,
+              "absolute_maximum": 0.11382418125867844,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.007958338595926762,
+              "p95": 0.04723057895898819,
+              "maximum": 0.1707366555929184,
+              "absolute_maximum": 0.00402224063873291,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.006087554153054953,
+              "p95": 0.012664169073104858,
+              "maximum": 0.029237238690257072,
+              "absolute_maximum": 0.12308721989393234,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.009412894025444984,
+              "p95": 0.027610041201114655,
+              "maximum": 0.08350313454866409,
+              "absolute_maximum": 0.0008350313291884959,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.008810623548924923,
+              "p95": 0.02989831566810608,
+              "maximum": 0.07821429520845413,
+              "absolute_maximum": 0.11555075645446777,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0068215481005609035,
+              "p95": 0.035080686211586,
+              "maximum": 0.1346338391304016,
+              "absolute_maximum": 0.003470254596322775,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.006087549962103367,
+              "p95": 0.01266402006149292,
+              "maximum": 0.02923710085451603,
+              "absolute_maximum": 0.45685744285583496,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.009412888437509537,
+              "p95": 0.037133779376745224,
+              "maximum": 0.11097823828458786,
+              "absolute_maximum": 0.003099350491538644,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.008810609579086304,
+              "p95": 0.03031444549560547,
+              "maximum": 0.07821384072303772,
+              "absolute_maximum": 0.4288802742958069,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.006821557879447937,
+              "p95": 0.03511551767587662,
+              "maximum": 0.13463425636291504,
+              "absolute_maximum": 0.012880378402769566,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.005889479070901871,
+              "p95": 0.012317226268351078,
+              "maximum": 0.028454821556806564,
+              "absolute_maximum": 0.515413761138916,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.010301980189979076,
+              "p95": 0.03195472061634064,
+              "maximum": 0.0957716852426529,
+              "absolute_maximum": 0.005505890119820833,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.008792947046458721,
+              "p95": 0.029253287240862846,
+              "maximum": 0.07625757902860641,
+              "absolute_maximum": 0.44498780369758606,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.006128294393420219,
+              "p95": 0.025044430047273636,
+              "maximum": 0.10687510669231415,
+              "absolute_maximum": 0.012368614785373211,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.005189473740756512,
+              "p95": 0.01234340202063322,
+              "maximum": 0.02897028997540474,
+              "absolute_maximum": 0.2383733093738556,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.007568212226033211,
+              "p95": 0.03655136376619339,
+              "maximum": 0.09103865176439285,
+              "absolute_maximum": 0.0009103865013457835,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.009023423306643963,
+              "p95": 0.023726321756839752,
+              "maximum": 0.06018215790390968,
+              "absolute_maximum": 0.37665021419525146,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.007604561280459166,
+              "p95": 0.02528073638677597,
+              "maximum": 0.09331396222114563,
+              "absolute_maximum": 0.012711403891444206,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.004925508052110672,
+              "p95": 0.011706098914146423,
+              "maximum": 0.028429226949810982,
+              "absolute_maximum": 0.24175289273262024,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.008551230654120445,
+              "p95": 0.03306310996413231,
+              "maximum": 0.10161727666854858,
+              "absolute_maximum": 0.0016395794227719307,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.008335641585290432,
+              "p95": 0.021731792017817497,
+              "maximum": 0.05491260811686516,
+              "absolute_maximum": 0.3808963894844055,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.006469140760600567,
+              "p95": 0.019912932068109512,
+              "maximum": 0.06664866209030151,
+              "absolute_maximum": 0.010921168141067028,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.004925496876239777,
+              "p95": 0.011706084944307804,
+              "maximum": 0.02842934988439083,
+              "absolute_maximum": 0.8972955346107483,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.008551228791475296,
+              "p95": 0.03866671398282051,
+              "maximum": 0.144663468003273,
+              "absolute_maximum": 0.006085531320422888,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.008335634134709835,
+              "p95": 0.02173169143497944,
+              "maximum": 0.054912541061639786,
+              "absolute_maximum": 1.4137487411499023,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.006469192914664745,
+              "p95": 0.01991291157901287,
+              "maximum": 0.06664825975894928,
+              "absolute_maximum": 0.04053522273898125,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.004781188443303108,
+              "p95": 0.011121093295514584,
+              "maximum": 0.027681728824973106,
+              "absolute_maximum": 1.015120029449463,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.009391996078193188,
+              "p95": 0.03325938805937767,
+              "maximum": 0.15350790321826935,
+              "absolute_maximum": 0.010810679756104946,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.007938551716506481,
+              "p95": 0.0201713889837265,
+              "maximum": 0.05205945298075676,
+              "absolute_maximum": 1.4522794485092163,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.005804320331662893,
+              "p95": 0.016268033534288406,
+              "maximum": 0.044346366077661514,
+              "absolute_maximum": 0.03722447156906128,
+              "denominator_floor": 0.01
+            }
+          }
+        }
+      ]
+    },
+    {
+      "candidate": "curved",
+      "quadrature_order": 16,
+      "triangles_per_robot": 2032,
+      "analytic_points_per_robot": 360448,
+      "feet": {
+        "force": {
+          "pooled": 0.0014762310311198235,
+          "p95": 0.003675260813906789,
+          "maximum": 0.010199823416769505,
+          "absolute_maximum": 0.36471644043922424,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.0026249138172715902,
+          "p95": 0.007201902102679014,
+          "maximum": 0.07029485702514648,
+          "absolute_maximum": 0.0027045372407883406,
+          "denominator_floor": 0.01
+        }
+      },
+      "calves": {
+        "force": {
+          "pooled": 0.0008378494530916214,
+          "p95": 0.002030186355113983,
+          "maximum": 0.015124514698982239,
+          "absolute_maximum": 0.13941793143749237,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.0007887394749559462,
+          "p95": 0.0026788823306560516,
+          "maximum": 0.015117394737899303,
+          "absolute_maximum": 0.007275615818798542,
+          "denominator_floor": 0.01
+        }
+      },
+      "by_height": [
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.014246653765439987,
+              "p95": 0.000919098500162363,
+              "maximum": 0.0020026492420583963,
+              "absolute_maximum": 0.0020026492420583963,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.020755819976329803,
+              "p95": 0.00028567976551130414,
+              "maximum": 0.0009645929094403982,
+              "absolute_maximum": 9.645928912505042e-06,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.013790061697363853,
+              "p95": 0.0009765955619513988,
+              "maximum": 0.0021608180832117796,
+              "absolute_maximum": 0.0021608180832117796,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.020884759724140167,
+              "p95": 0.00047492238809354603,
+              "maximum": 0.0013980729272589087,
+              "absolute_maximum": 1.3980728908791207e-05,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.013790050521492958,
+              "p95": 0.0036247402895241976,
+              "maximum": 0.008020158857107162,
+              "absolute_maximum": 0.008020158857107162,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.020884746685624123,
+              "p95": 0.0017627341439947486,
+              "maximum": 0.00518914544954896,
+              "absolute_maximum": 5.1891453040298074e-05,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.013184567913413048,
+              "p95": 0.003733167890459299,
+              "maximum": 0.00903012789785862,
+              "absolute_maximum": 0.00903012789785862,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.02076399326324463,
+              "p95": 0.0024778805673122406,
+              "maximum": 0.006966534536331892,
+              "absolute_maximum": 6.96653441991657e-05,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.00260088499635458,
+              "p95": 0.004456110764294863,
+              "maximum": 0.007698610424995422,
+              "absolute_maximum": 0.020513148978352547,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0034195748157799244,
+              "p95": 0.003117719665169716,
+              "maximum": 0.009653327986598015,
+              "absolute_maximum": 9.653328015701845e-05,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.00050178705714643,
+              "p95": 0.00046266053686849773,
+              "maximum": 0.0017575043020769954,
+              "absolute_maximum": 0.0017575043020769954,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0003852334921248257,
+              "p95": 0.0016388578806072474,
+              "maximum": 0.003757516387850046,
+              "absolute_maximum": 5.676893124473281e-05,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.0024989626836031675,
+              "p95": 0.004244280979037285,
+              "maximum": 0.007345857098698616,
+              "absolute_maximum": 0.022142184898257256,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0035562783014029264,
+              "p95": 0.004620840307325125,
+              "maximum": 0.013958530500531197,
+              "absolute_maximum": 0.00013958530325908214,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.000500969763379544,
+              "p95": 0.00047063446254469454,
+              "maximum": 0.0017608740599825978,
+              "absolute_maximum": 0.0017608740599825978,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.00033974292455241084,
+              "p95": 0.0015105248894542456,
+              "maximum": 0.003772992640733719,
+              "absolute_maximum": 5.344808960217051e-05,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.002498944289982319,
+              "p95": 0.004284697584807873,
+              "maximum": 0.010199823416769505,
+              "absolute_maximum": 0.08218171447515488,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0035562855191528797,
+              "p95": 0.012313076294958591,
+              "maximum": 0.05180925503373146,
+              "absolute_maximum": 0.000518092536367476,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0005009631859138608,
+              "p95": 0.0017468531150370836,
+              "maximum": 0.004143272526562214,
+              "absolute_maximum": 0.006535432767122984,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.00033974478719756007,
+              "p95": 0.00427634920924902,
+              "maximum": 0.012184779159724712,
+              "absolute_maximum": 0.00019839583546854556,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.002392834983766079,
+              "p95": 0.004095893353223801,
+              "maximum": 0.010122764855623245,
+              "absolute_maximum": 0.09258892387151718,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.003746551927179098,
+              "p95": 0.013627070002257824,
+              "maximum": 0.06526438146829605,
+              "absolute_maximum": 0.0006921507883816957,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0005113481893204153,
+              "p95": 0.00182463473174721,
+              "maximum": 0.0042215087451040745,
+              "absolute_maximum": 0.00656931335106492,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0003216893528588116,
+              "p95": 0.003513815812766552,
+              "maximum": 0.013422982767224312,
+              "absolute_maximum": 0.0001789472735254094,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0018400780390948057,
+              "p95": 0.003798513440415263,
+              "maximum": 0.006892689969390631,
+              "absolute_maximum": 0.04104771465063095,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0024691889993846416,
+              "p95": 0.005926907062530518,
+              "maximum": 0.019291501492261887,
+              "absolute_maximum": 0.00019291500211693347,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0010347190545871854,
+              "p95": 0.0034818605054169893,
+              "maximum": 0.013471684418618679,
+              "absolute_maximum": 0.013471684418618679,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0009445832693018019,
+              "p95": 0.005163161084055901,
+              "maximum": 0.014091827906668186,
+              "absolute_maximum": 0.0006284934934228659,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0017563289729878306,
+              "p95": 0.0035511404275894165,
+              "maximum": 0.0058915987610816956,
+              "absolute_maximum": 0.04431889206171036,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0026531771291047335,
+              "p95": 0.008870229125022888,
+              "maximum": 0.02788246050477028,
+              "absolute_maximum": 0.00027882459107786417,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0010026769014075398,
+              "p95": 0.0033338479697704315,
+              "maximum": 0.013688843697309494,
+              "absolute_maximum": 0.013688843697309494,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0008372891461476684,
+              "p95": 0.0035037288907915354,
+              "maximum": 0.015117394737899303,
+              "absolute_maximum": 0.0006513285916298628,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0017563286237418652,
+              "p95": 0.0035510784946382046,
+              "maximum": 0.005891567096114159,
+              "absolute_maximum": 0.16450278460979462,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0026531927287578583,
+              "p95": 0.012674213387072086,
+              "maximum": 0.06253257393836975,
+              "absolute_maximum": 0.001034907647408545,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0010026834206655622,
+              "p95": 0.003360485192388296,
+              "maximum": 0.015124514698982239,
+              "absolute_maximum": 0.05080708861351013,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0008372817537747324,
+              "p95": 0.003550784196704626,
+              "maximum": 0.01511724665760994,
+              "absolute_maximum": 0.002417562995105982,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0016946387477219105,
+              "p95": 0.003352005034685135,
+              "maximum": 0.005828116554766893,
+              "absolute_maximum": 0.18535764515399933,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.00287411967292428,
+              "p95": 0.011264258995652199,
+              "maximum": 0.05240819230675697,
+              "absolute_maximum": 0.0013781851157546043,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0009982993360608816,
+              "p95": 0.003266613930463791,
+              "maximum": 0.014583312906324863,
+              "absolute_maximum": 0.052895184606313705,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0007911293650977314,
+              "p95": 0.003051412757486105,
+              "maximum": 0.013381621800363064,
+              "absolute_maximum": 0.0026541161350905895,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0014972079079598188,
+              "p95": 0.0036095890682190657,
+              "maximum": 0.006697671487927437,
+              "absolute_maximum": 0.08075956255197525,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.002201412571594119,
+              "p95": 0.009162538684904575,
+              "maximum": 0.03792551904916763,
+              "absolute_maximum": 0.0003792551869992167,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0008816978661343455,
+              "p95": 0.0022577173076570034,
+              "maximum": 0.0076783825643360615,
+              "absolute_maximum": 0.03552262857556343,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0008580497815273702,
+              "p95": 0.0028402323368936777,
+              "maximum": 0.011018145829439163,
+              "absolute_maximum": 0.001738875755108893,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0014221796300262213,
+              "p95": 0.0033744079992175102,
+              "maximum": 0.005657285917550325,
+              "absolute_maximum": 0.08719726651906967,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0024188051465898752,
+              "p95": 0.010332051664590836,
+              "maximum": 0.04468357935547829,
+              "absolute_maximum": 0.0005480400868691504,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0008391450392082334,
+              "p95": 0.0021271053701639175,
+              "maximum": 0.0071097747422754765,
+              "absolute_maximum": 0.036120787262916565,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0007993850158527493,
+              "p95": 0.002430080436170101,
+              "maximum": 0.007900466211140156,
+              "absolute_maximum": 0.0018053808016702533,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0014221855672076344,
+              "p95": 0.0033744536340236664,
+              "maximum": 0.005656827706843615,
+              "absolute_maximum": 0.3236427903175354,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0024187974631786346,
+              "p95": 0.0111093670129776,
+              "maximum": 0.06775722652673721,
+              "absolute_maximum": 0.0020341428462415934,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0008391480660066009,
+              "p95": 0.002126921433955431,
+              "maximum": 0.007109847851097584,
+              "absolute_maximum": 0.13406877219676971,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0007993878680281341,
+              "p95": 0.002430358435958624,
+              "maximum": 0.00790055189281702,
+              "absolute_maximum": 0.006700998172163963,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0013778776628896594,
+              "p95": 0.00312041281722486,
+              "maximum": 0.005112832877784967,
+              "absolute_maximum": 0.36471644043922424,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.002628627233207226,
+              "p95": 0.010262773372232914,
+              "maximum": 0.07029485702514648,
+              "absolute_maximum": 0.0027045372407883406,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0008141075377352536,
+              "p95": 0.00205832626670599,
+              "maximum": 0.006845289375633001,
+              "absolute_maximum": 0.13941793143749237,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0007713921368122101,
+              "p95": 0.0022139823995530605,
+              "maximum": 0.007629582658410072,
+              "absolute_maximum": 0.007275615818798542,
+              "denominator_floor": 0.01
+            }
+          }
+        }
+      ]
+    },
+    {
+      "candidate": "curved",
+      "quadrature_order": 24,
+      "triangles_per_robot": 2032,
+      "analytic_points_per_robot": 811008,
+      "feet": {
+        "force": {
+          "pooled": 0.0,
+          "p95": 0.0,
+          "maximum": 0.0,
+          "absolute_maximum": 0.0,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.0,
+          "p95": 0.0,
+          "maximum": 0.0,
+          "absolute_maximum": 0.0,
+          "denominator_floor": 0.01
+        }
+      },
+      "calves": {
+        "force": {
+          "pooled": 0.0,
+          "p95": 0.0,
+          "maximum": 0.0,
+          "absolute_maximum": 0.0,
+          "denominator_floor": 1.0
+        },
+        "torque": {
+          "pooled": 0.0,
+          "p95": 0.0,
+          "maximum": 0.0,
+          "absolute_maximum": 0.0,
+          "denominator_floor": 0.01
+        }
+      },
+      "by_height": [
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.003,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.03,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.06,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        },
+        {
+          "height": 0.118,
+          "feet": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          },
+          "calves": {
+            "force": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 1.0
+            },
+            "torque": {
+              "pooled": 0.0,
+              "p95": 0.0,
+              "maximum": 0.0,
+              "absolute_maximum": 0.0,
+              "denominator_floor": 0.01
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "path": "logs/go2_granular/go2/refinement/motion-rigid-0.5/rollout.npz",
+      "frames": [
+        45,
+        46,
+        49,
+        66,
+        93,
+        100,
+        117,
+        184,
+        202,
+        207,
+        209,
+        222,
+        223,
+        227,
+        247,
+        251,
+        254,
+        273,
+        310,
+        319,
+        333,
+        347,
+        355,
+        364,
+        368,
+        381,
+        386,
+        407,
+        408,
+        409,
+        456,
+        468
+      ],
+      "sha256": "e8554db42f932cdb0e18cfd22bba464d4aaee19f8a73850debfa0d24f79f91d6"
+    },
+    {
+      "path": "logs/go2_granular/go2/refinement/motion-rigid-1/rollout.npz",
+      "frames": [
+        40,
+        52,
+        66,
+        82,
+        94,
+        113,
+        156,
+        157,
+        162,
+        178,
+        196,
+        215,
+        218,
+        223,
+        225,
+        231,
+        275,
+        310,
+        326,
+        331,
+        345,
+        379,
+        380,
+        400,
+        408,
+        412,
+        419,
+        427,
+        449,
+        453,
+        457,
+        498
+      ],
+      "sha256": "a74985ae7a7fb96a77b8e33617a8344e5cbdb6dec27552c7b89ef5f7629d0a73"
+    }
+  ],
+  "material_cases": [
+    [
+      0.003,
+      0.3,
+      0.6
+    ],
+    [
+      0.003,
+      0.3,
+      1.0
+    ],
+    [
+      0.003,
+      0.5,
+      0.6
+    ],
+    [
+      0.003,
+      0.5,
+      1.0
+    ],
+    [
+      0.03,
+      0.3,
+      0.6
+    ],
+    [
+      0.03,
+      0.3,
+      1.0
+    ],
+    [
+      0.03,
+      0.5,
+      0.6
+    ],
+    [
+      0.03,
+      0.5,
+      1.0
+    ],
+    [
+      0.06,
+      0.3,
+      0.6
+    ],
+    [
+      0.06,
+      0.3,
+      1.0
+    ],
+    [
+      0.06,
+      0.5,
+      0.6
+    ],
+    [
+      0.06,
+      0.5,
+      1.0
+    ],
+    [
+      0.118,
+      0.3,
+      0.6
+    ],
+    [
+      0.118,
+      0.3,
+      1.0
+    ],
+    [
+      0.118,
+      0.5,
+      0.6
+    ],
+    [
+      0.118,
+      0.5,
+      1.0
+    ]
+  ],
+  "profile": {
+    "description": "Go2 contact-region mesh: 128 spherical-foot faces and axial panels on distal calf cylinders.",
+    "training_ready": false,
+    "validation_status": "Integration verified; prolonged static support fails; not cleared for training",
+    "solver": {
+      "surface_height": 0.118,
+      "surface_bottom": 0.0,
+      "segments": 12,
+      "max_edge_length": null,
+      "surface_resolution": [
+        {
+          "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+          "sphere_subdivisions": 2,
+          "primitive_quadrature_order": 6
+        },
+        {
+          "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+          "segments": 16,
+          "axial_segments": 3,
+          "primitive_quadrature_order": 3
+        },
+        {
+          "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+          "segments": 16,
+          "axial_segments": 2,
+          "primitive_quadrature_order": 3
+        }
+      ]
+    }
+  },
+  "wall_seconds": 4.460124633973464,
+  "body_labels": [
+    "/World/envs/env_0/Robot/base",
+    "/World/envs/env_0/Robot/FL_hip",
+    "/World/envs/env_0/Robot/FL_thigh",
+    "/World/envs/env_0/Robot/FL_calf",
+    "/World/envs/env_0/Robot/FL_foot",
+    "/World/envs/env_0/Robot/FR_hip",
+    "/World/envs/env_0/Robot/FR_thigh",
+    "/World/envs/env_0/Robot/FR_calf",
+    "/World/envs/env_0/Robot/FR_foot",
+    "/World/envs/env_0/Robot/Head_upper",
+    "/World/envs/env_0/Robot/Head_lower",
+    "/World/envs/env_0/Robot/RL_hip",
+    "/World/envs/env_0/Robot/RL_thigh",
+    "/World/envs/env_0/Robot/RL_calf",
+    "/World/envs/env_0/Robot/RL_foot",
+    "/World/envs/env_0/Robot/RR_hip",
+    "/World/envs/env_0/Robot/RR_thigh",
+    "/World/envs/env_0/Robot/RR_calf",
+    "/World/envs/env_0/Robot/RR_foot"
+  ],
+  "source_inventory": [
+    {
+      "shape": 2,
+      "body": 4,
+      "body_label": "/World/envs/env_0/Robot/FL_foot",
+      "label": "/World/envs/env_0/Robot/FL_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 3,
+      "body": 8,
+      "body_label": "/World/envs/env_0/Robot/FR_foot",
+      "label": "/World/envs/env_0/Robot/FR_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 4,
+      "body": 10,
+      "body_label": "/World/envs/env_0/Robot/Head_lower",
+      "label": "/World/envs/env_0/Robot/Head_lower/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.04699999839067459,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 5,
+      "body": 14,
+      "body_label": "/World/envs/env_0/Robot/RL_foot",
+      "label": "/World/envs/env_0/Robot/RL_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 6,
+      "body": 18,
+      "body_label": "/World/envs/env_0/Robot/RR_foot",
+      "label": "/World/envs/env_0/Robot/RR_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 7,
+      "body": 0,
+      "body_label": "/World/envs/env_0/Robot/base",
+      "label": "/World/envs/env_0/Robot/base/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.18809999525547028,
+        0.04675000160932541,
+        0.05700000002980232
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 8,
+      "body": 2,
+      "body_label": "/World/envs/env_0/Robot/FL_thigh",
+      "label": "/World/envs/env_0/Robot/FL_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 9,
+      "body": 6,
+      "body_label": "/World/envs/env_0/Robot/FR_thigh",
+      "label": "/World/envs/env_0/Robot/FR_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 10,
+      "body": 12,
+      "body_label": "/World/envs/env_0/Robot/RL_thigh",
+      "label": "/World/envs/env_0/Robot/RL_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 11,
+      "body": 16,
+      "body_label": "/World/envs/env_0/Robot/RR_thigh",
+      "label": "/World/envs/env_0/Robot/RR_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 12,
+      "body": 1,
+      "body_label": "/World/envs/env_0/Robot/FL_hip",
+      "label": "/World/envs/env_0/Robot/FL_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 13,
+      "body": 3,
+      "body_label": "/World/envs/env_0/Robot/FL_calf",
+      "label": "/World/envs/env_0/Robot/FL_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.012000000104308128,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.00800000037997961,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.10480690747499466,
+        0.0,
+        0.9944925904273987
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 14,
+      "body": 3,
+      "body_label": "/World/envs/env_0/Robot/FL_calf",
+      "label": "/World/envs/env_0/Robot/FL_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 15,
+      "body": 3,
+      "body_label": "/World/envs/env_0/Robot/FL_calf",
+      "label": "/World/envs/env_0/Robot/FL_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 16,
+      "body": 5,
+      "body_label": "/World/envs/env_0/Robot/FR_hip",
+      "label": "/World/envs/env_0/Robot/FR_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        -0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 17,
+      "body": 7,
+      "body_label": "/World/envs/env_0/Robot/FR_calf",
+      "label": "/World/envs/env_0/Robot/FR_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.013000000268220901,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.009999999776482582,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.09983330219984055,
+        0.0,
+        0.9950041770935059
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 18,
+      "body": 7,
+      "body_label": "/World/envs/env_0/Robot/FR_calf",
+      "label": "/World/envs/env_0/Robot/FR_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 19,
+      "body": 7,
+      "body_label": "/World/envs/env_0/Robot/FR_calf",
+      "label": "/World/envs/env_0/Robot/FR_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 20,
+      "body": 9,
+      "body_label": "/World/envs/env_0/Robot/Head_upper",
+      "label": "/World/envs/env_0/Robot/Head_upper/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.05000000074505806,
+        0.04500000178813934,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 21,
+      "body": 11,
+      "body_label": "/World/envs/env_0/Robot/RL_hip",
+      "label": "/World/envs/env_0/Robot/RL_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 22,
+      "body": 13,
+      "body_label": "/World/envs/env_0/Robot/RL_calf",
+      "label": "/World/envs/env_0/Robot/RL_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.013000000268220901,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.009999999776482582,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.09983330219984055,
+        0.0,
+        0.9950041770935059
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 23,
+      "body": 13,
+      "body_label": "/World/envs/env_0/Robot/RL_calf",
+      "label": "/World/envs/env_0/Robot/RL_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 24,
+      "body": 13,
+      "body_label": "/World/envs/env_0/Robot/RL_calf",
+      "label": "/World/envs/env_0/Robot/RL_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 25,
+      "body": 15,
+      "body_label": "/World/envs/env_0/Robot/RR_hip",
+      "label": "/World/envs/env_0/Robot/RR_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        -0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 26,
+      "body": 17,
+      "body_label": "/World/envs/env_0/Robot/RR_calf",
+      "label": "/World/envs/env_0/Robot/RR_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.013000000268220901,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.009999999776482582,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.09983330219984055,
+        0.0,
+        0.9950041770935059
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 27,
+      "body": 17,
+      "body_label": "/World/envs/env_0/Robot/RR_calf",
+      "label": "/World/envs/env_0/Robot/RR_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 28,
+      "body": 17,
+      "body_label": "/World/envs/env_0/Robot/RR_calf",
+      "label": "/World/envs/env_0/Robot/RR_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 48
+    }
+  ],
+  "config": {
+    "density": 1800.0,
+    "strength_multiplier": 1.2,
+    "bearing": 0.87574,
+    "velocity_regularization": 0.04
+  },
+  "interpretation": "Exact common rigid-policy motion; no policy or material validation. Reference refines curved quadrature on the same selected contact geometry. Unselected surfaces remain unchanged. Normalization floors: 1 N and 0.01 Nm.",
+  "source_sha256": "77d039dcff2ca54c78d66b0fbcdff06b84a33a52f1e15a47b6032639a3e2e560",
+  "newton_kernel_sha256": "940b390b8b1921c74cf1f120ef9976f22892d12c5e1148f60967ad6ac572b12b"
+}

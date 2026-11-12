@@ -1,0 +1,55 @@
+{
+  "stage": "Numerical commands complete; preloaded static-support acceptance fails",
+  "complete": true,
+  "completed": [
+    {
+      "stage": "Newton CPU and CUDA tests",
+      "returncode": 0,
+      "seconds": 12.81652234797366,
+      "log": "validation-0.log"
+    },
+    {
+      "stage": "Isaac Lab geometry and native coupling tests",
+      "returncode": 0,
+      "seconds": 19.918086542049423,
+      "log": "validation-1.log"
+    },
+    {
+      "stage": "4096-world legacy cost",
+      "returncode": 0,
+      "seconds": 20.996665587997995,
+      "log": "validation-2.log"
+    },
+    {
+      "stage": "4096-world refined cost",
+      "returncode": 0,
+      "seconds": 29.03538309200667,
+      "log": "validation-3.log"
+    },
+    {
+      "stage": "Recorded Go2 motion accuracy",
+      "returncode": 0,
+      "seconds": 12.651222440064885,
+      "log": "validation-4.log"
+    },
+    {
+      "stage": "Centered sphere verification",
+      "returncode": 0,
+      "seconds": 6.481276910053566,
+      "log": "validation-5.log"
+    },
+    {
+      "stage": "Ten-second support fixtures",
+      "returncode": 0,
+      "seconds": 21.812154110055417,
+      "log": "validation-6.log"
+    },
+    {
+      "stage": "Preloaded static-support control",
+      "returncode": 0,
+      "initialization": "At rest at an admissible preloaded depth; no landing impact",
+      "source_sha256": "5fd63684a27ff843cb89a3107dc3daa4984a2b3c34384cf0157ddb67cd8df56b"
+    }
+  ],
+  "training_ready": false
+}

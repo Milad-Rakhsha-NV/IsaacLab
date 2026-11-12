@@ -27,7 +27,8 @@ from newton.solvers import SolverRFT
 def plot_resolution(output, meshes, results):
     """Show the actual curved contact surfaces and their force/torque convergence."""
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), subplot_kw={"projection": "3d"})
-    for ax, key in zip(axes, (("uv", 12), ("icosphere", 3), ("icosphere", 4)), strict=True):
+    middle = ("octasphere", 2) if ("octasphere", 2) in meshes else ("icosphere", 3)
+    for ax, key in zip(axes, (("uv", 12), middle, ("icosphere", 4)), strict=True):
         triangles = meshes[key]
         lower = triangles[triangles.mean(axis=1)[:, 2] < 0] * 1000
         row = next(r for r in results if (r["kind"], r["resolution"]) == key)
@@ -49,8 +50,10 @@ def plot_resolution(output, meshes, results):
     plt.close(fig)
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
     for ax, component in zip(axes, ("force", "torque"), strict=True):
-        for kind in ("uv", "icosphere"):
+        for kind in ("uv", "octasphere", "icosphere"):
             rows = [r for r in results[:-1] if r["kind"] == kind]
+            if not rows:
+                continue
             x = [1000 * r["maximum_edge_m"] for r in rows]
             ax.plot(x, [100 * r[f"{component}_relative_error"] for r in rows], "o-", label=f"{kind}: pooled L2")
             ax.plot(x, [100 * r[f"{component}_error_p95"] for r in rows], "s--", label=f"{kind}: 95th percentile")
@@ -75,7 +78,9 @@ def main(args):
     builder = newton.ModelBuilder()
     poses, twists = [], []
     for i, (depth, velocity, spin, orientation) in enumerate(states):
-        builder.add_body(mass=1.0, inertia=wp.mat33(np.eye(3)), label=f"foot_probe_{i}")
+        body = builder.add_body(mass=1.0, inertia=wp.mat33(np.eye(3)), label=f"foot_probe_{i}")
+        if args.contact_budget:
+            builder.add_shape_sphere(body=body, radius=radius, label=f"foot_probe_{i}/sphere")
         poses.append([0, 0, radius - depth, *np.asarray(wp.quat_rpy(*map(float, orientation)))])
         twists.append([*velocity, *spin])
     model = builder.finalize(device=args.device)
@@ -87,6 +92,12 @@ def main(args):
     start = time.monotonic()
     candidates = [("uv", s) for s in (12, 24, 32, 48, 64, 96, 192)]
     candidates += [("icosphere", level) for level in (2, 3, 4, 5)] + [("uv", 384)]
+    if args.contact_budget:
+        candidates = [("uv", 12), ("octasphere", 2), ("icosphere", 3), ("icosphere", 4), ("uv", 384)]
+    if args.curved_quadrature:
+        if not args.contact_budget:
+            raise ValueError("--curved_quadrature requires --contact_budget")
+        candidates = [("octasphere", 2)] + [("curvedsphere", q) for q in args.curved_quadrature]
     for kind, resolution in candidates:
         # Match the task's unit-sphere generation followed by collider scaling.
         if kind == "uv":
@@ -94,6 +105,16 @@ def main(args):
                 1.0, num_latitudes=resolution // 2, num_longitudes=resolution, compute_inertia=False
             )
             mesh = newton.Mesh(unit.vertices * np.float32(radius), unit.indices, compute_inertia=False)
+        elif kind in ("octasphere", "curvedsphere"):
+            from isaaclab_newton.physics.rft_solver import collision_surfaces
+
+            surfaces, _ = collision_surfaces(
+                model,
+                ".*",
+                12,
+                resolutions=[dict(shape_pattern=".*", sphere_subdivisions=2 if kind == "curvedsphere" else resolution)],
+            )
+            mesh = surfaces[0][1]
         else:
             source = trimesh.creation.icosphere(subdivisions=resolution, radius=radius)
             mesh = newton.Mesh(source.vertices, source.faces.reshape(-1), compute_inertia=False)
@@ -102,10 +123,15 @@ def main(args):
             [(i, mesh) for i in range(len(states))],
             surface_height=0.0,
             config=SolverRFT.Config(bearing=0.87574, velocity_regularization=0.04),
+            **(
+                dict(surface_shape_ids=list(range(len(states))), surface_quadrature_orders=[resolution] * len(states))
+                if kind == "curvedsphere"
+                else {}
+            ),
         )
         count = probe.triangle_count // len(states)
         triangles = probe.triangle_vertices.numpy()[:count]
-        if (kind, resolution) in (("uv", 12), ("icosphere", 3), ("icosphere", 4)):
+        if (kind, resolution) in (("uv", 12), ("octasphere", 2), ("icosphere", 3), ("icosphere", 4)):
             meshes[kind, resolution] = triangles
         area = (
             np.linalg.norm(np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0]), axis=-1) / 2
@@ -124,6 +150,8 @@ def main(args):
                 label=f"{kind} {resolution}",
                 raw_triangles_per_foot=len(mesh.indices) // 3,
                 integrated_triangles_per_foot=count,
+                quadrature_order=resolution if kind == "curvedsphere" else 0,
+                analytic_points_per_foot=getattr(probe, "curved_point_count", 0) // len(states),
                 lower_hemisphere_triangles=int((triangles.mean(axis=1)[:, 2] < 0).sum()),
                 maximum_edge_m=float(np.linalg.norm(triangles - np.roll(triangles, 1, axis=1), axis=-1).max()),
                 sphere_area_relative_error=float(1 - area.sum() / (4 * np.pi * radius**2)),
@@ -172,7 +200,8 @@ def main(args):
         bearing=0.87574,
         velocity_regularization_m_s=0.04,
         prescribed_states_per_material=len(states),
-        reference_segments=384,
+        reference_segments=None if args.curved_quadrature else 384,
+        reference_quadrature_order=args.curved_quadrature[-1] if args.curved_quadrature else None,
         wall_seconds=time.monotonic() - start,
         rft_kernel_sha256=hashlib.sha256(kernel.read_bytes()).hexdigest(),
         source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -182,12 +211,17 @@ def main(args):
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(record, indent=2) + "\n")
-    plot_resolution(args.output, meshes, results)
+    if not args.curved_quadrature:
+        plot_resolution(args.output, meshes, results)
     print(json.dumps(results))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--contact_budget", action="store_true", help="Include the 128-face Go2 contact profile.")
+    parser.add_argument(
+        "--curved_quadrature", type=int, nargs="+", help="Gauss orders on the same 128 analytic patches."
+    )
     parser.add_argument("--output", type=Path, required=True)
     main(parser.parse_args())

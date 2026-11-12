@@ -1,0 +1,94 @@
+{
+  "README.md": {
+    "bytes": 2117,
+    "sha256": "b7cbe63069359b61633dc781579fa9b6ad87381642bbb1cab1eb2121396d7005"
+  },
+  "contact-accuracy.png": {
+    "bytes": 135726,
+    "sha256": "53b2d63273602d0fdc9d695916e6eab66ba0bca3a021323426897f0966657dfc"
+  },
+  "contact-cost.png": {
+    "bytes": 68454,
+    "sha256": "bc1b4caa4f258be1dd12f9a02c1b821c2758bce833444b2207b6858e2941eb0f"
+  },
+  "contact-geometry.npz": {
+    "bytes": 3892,
+    "sha256": "4771a285c575f90311a8c2dcd7d1040d16be8c9a4742dae9916cccf38d50954e"
+  },
+  "contact-geometry.png": {
+    "bytes": 289542,
+    "sha256": "0657beaaa90f890c20e73e4b581d257f3422e0b5bc982fd53654516ce38c5631"
+  },
+  "index.html": {
+    "bytes": 6614,
+    "sha256": "05f9ca2eb80ab72124ac3f854cca245042d93fad09c64e42383330264075c663"
+  },
+  "motion-rigid-0.5-summary.json": {
+    "bytes": 5143,
+    "sha256": "2ce36d6c905c3d71362e1958e21650f87d2b9c7f1d657b7de9d7e9585afa936b"
+  },
+  "motion-rigid-0.5.npz": {
+    "bytes": 542496,
+    "sha256": "e8554db42f932cdb0e18cfd22bba464d4aaee19f8a73850debfa0d24f79f91d6"
+  },
+  "motion-rigid-1-summary.json": {
+    "bytes": 5148,
+    "sha256": "48acb44095b81bd2709d36319f1a4c58b2a12932f7c8a0565ec3094acd4921cc"
+  },
+  "motion-rigid-1.npz": {
+    "bytes": 540557,
+    "sha256": "a74985ae7a7fb96a77b8e33617a8344e5cbdb6dec27552c7b89ef5f7629d0a73"
+  },
+  "performance-contact128.json": {
+    "bytes": 17782,
+    "sha256": "7c70d10a56ac66030860eb9e5ed66fb07de1e1cc66c9bb038e12b3707d6f72b1"
+  },
+  "performance-legacy.json": {
+    "bytes": 15115,
+    "sha256": "8bb4495ea987fec87bdc7164cccd83e7ad8ad55f8515c03916668fd9e6f2fa38"
+  },
+  "profile.json": {
+    "bytes": 899,
+    "sha256": "afeeac9ace8d518f7c07960c9e70c1b88361b0e6f1031635ffc229d321efa4fb"
+  },
+  "recorded-motion-reference.json": {
+    "bytes": 111439,
+    "sha256": "8d5ebbab9aa1488fc991e079016dad5807aaf1d4770b5f246a4c9e3e8805a560"
+  },
+  "recorded-motion-reference.npz": {
+    "bytes": 816399,
+    "sha256": "1a6a26f081af73be9baddc6e4c836b795d120a19b201ae569f1421c0a14d305c"
+  },
+  "recorded-motion.json": {
+    "bytes": 189770,
+    "sha256": "4f1d3801f67b81d3df487e78141919a0b7aefb28be7682a8cb276fd5143b5449"
+  },
+  "recorded-motion.npz": {
+    "bytes": 1424494,
+    "sha256": "986c7a86d9a240636d2353ae79a3403702869f1a3c8b4ada2b397fb16036a222"
+  },
+  "sphere-convergence.json": {
+    "bytes": 11034,
+    "sha256": "1e496f4eb3ea70d4552b1a39336d88ae6b6760ee98b44393dd116a9f7ea5070a"
+  },
+  "sphere-convergence.npz": {
+    "bytes": 83282,
+    "sha256": "93dd0ba58b2c5b23575f37759d3c32a9d168d3b3427054b30e4070312b1253f2"
+  },
+  "static-support.json": {
+    "bytes": 2374,
+    "sha256": "d384b26b002f888d96ff498271a49635482ef64dbbb01afc0749494e7ad3d3eb"
+  },
+  "static-support.npz": {
+    "bytes": 6871,
+    "sha256": "0c3aaa9e6259baa45888a08377376125fd9ccba57083151de69e3233a4a29e27"
+  },
+  "static-support.png": {
+    "bytes": 127142,
+    "sha256": "5f402221eed16d462e09db9c0eac42a297d5d95155f8790de2624bf98e73d5fc"
+  },
+  "validation-status.json": {
+    "bytes": 1482,
+    "sha256": "2385601396d00f8861c8dc2a359e34d921efc4b61af4294fd7a53734cfcd6047"
+  }
+}

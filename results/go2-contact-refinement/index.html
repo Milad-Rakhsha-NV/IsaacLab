@@ -1,0 +1,70 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Go2 contact-resolution follow-up</title>
+<style>body{font:16px/1.55 system-ui;max-width:1100px;margin:24px auto;padding:20px;background:#f1f5f9;color:#0f172a}
+section{background:white;padding:24px;margin:20px 0;border-radius:10px}img{width:100%}
+table{border-collapse:collapse;width:100%}
+td,th{padding:9px;border-bottom:1px solid #cbd5e1;text-align:left}
+.status{padding:18px;background:#fef3c7}a{color:#1d4ed8}
+code{overflow-wrap:anywhere}.table{overflow-x:auto}</style>
+<h1>Go2 contact-resolution follow-up</h1>
+<p><a href="../go2-rft-mpm/report/">Original policy comparison</a> ·
+<a href="README.md">Methods and reproduction</a></p>
+<p class="status"><strong>Geometry and numerical implementation complete. New training has not started.</strong>
+The long-hold fixture still creeps or reaches the rigid floor. Stable near-rest reaction selection and material
+matching remain required before another training run. G1 work is paused.</p>
+<section><h2>Contact geometry</h2><p>The entire spherical foot has <strong>128 triangles</strong>, including 64 on
+its lower hemisphere. The two lower calf cylinders have 128 and 96 triangles each. The upper calf, thighs,
+hips and torso keep their previous resolution. All selected leg and thigh surfaces remain coupled.</p>
+<p>Collision dimensions, poses, mass and inertia are preserved. The robot has 2,032
+retained integration triangles, compared with 1,536 previously. Flat surface
+subdivision remains separate from curved-surface accuracy.</p>
+<img src="contact-geometry.png" alt="Go2 spherical foot and lower calf integration patches">
+<p>The selected rule uses 36 Gauss points per foot triangle and nine per refined calf triangle. These points
+lie on the analytic curved collider and use its true normal and area Jacobian. Shared templates avoid
+duplicating point geometry across 4,096 environments. Triangle count and integration-point count are distinct.</p>
+</section>
+<section><h2>Accuracy on recorded walking motion</h2><p>Selected foot integration: 0.51% pooled force and 0.94% pooled torque difference from the reference. Individual outliers remain; these are numerical differences, not material-model accuracy.</p>
+<p>Both rigid-control recordings last ten seconds, with commands 0.5 and 1.0 m/s. The audit selects 32 frames
+from each and uses the exact recorded world-space COM twists. It crosses four heights (3, 30, 60, 118 mm),
+two bulk-friction values and two interface ratios. Density is 1,800 kg/m³ and strength multiplier 1.2.
+The same poses, collider unions and material cases are used for every candidate.</p>
+<div class="table"><table><tr><th>Foot integration</th><th>Pooled force</th><th>Pooled torque</th>
+<th>Maximum normalized force</th><th>Maximum normalized torque</th></tr><tr><td>Previous surface</td><td>6.09%</td><td>12.25%</td><td>37.1%</td><td>252.5%</td></tr><tr><td>128 flat facets</td><td>5.22%</td><td>9.86%</td><td>46.5%</td><td>256.2%</td></tr><tr><td>128 curved patches</td><td>0.51%</td><td>0.94%</td><td>3.8%</td><td>15.4%</td></tr></table></div>
+<p>Errors use denominator floors of 1 N and 0.01 N·m. Percentiles and maxima serve different purposes:
+large percentages on tiny torques remain visible in the raw records. Reference integration refines the
+same curved parameter patches; unselected upper surfaces remain coarse. This audit supplies no independent
+physical validation of sand or policy robustness. Union rejection covers only colliders of the same body;
+it does not resolve shielding between articulated links.</p>
+<p>Selected calf integration has 0.82% pooled force and
+0.62% pooled torque difference. Its maximum normalized differences are
+8.2% and 17.1%.</p>
+<p>The worst material-case calf force percentile is about 3.2%, above the proposed 2% target.
+The profile therefore remains a candidate. Foot percentile accuracy improves, while strict pointwise
+accuracy, calf resolution, cost and static support still require work.</p>
+<img src="contact-accuracy.png" alt="Foot force and torque integration errors by layer height"></section>
+<section><h2>Cost at 4,096 environments</h2><p>Both profiles run through the native Go2 environment on one
+RTX PRO 4500 GPU. The direct RFT timings use identical recorded poses and twists at two immersion offsets.
+The end-to-end measurements step zero actions and can follow different trajectories; they exclude PPO updates.</p>
+<p>Measured transitions per second: previous 60,929;
+refined 33,611. Reported total GPU use is
+3.86 GiB, including the CUDA context and other processes.</p>
+<img src="contact-cost.png" alt="RFT evaluation and native environment throughput at 4096 worlds"></section>
+<section><h2>Static support remains unresolved</h2><p>A vertical prismatic fixture applies 18.42, 36.83 and
+55.25 N to separate 1 kg intruders. The nominal load is one quarter of Go2's weight. Each foot uses the new
+128-triangle curved integration, in a 118 mm layer, for ten seconds at three timesteps. The two supported
+loads start at rest at a depth with 110% of the required bearing capacity, independently checked against
+the analytic sphere integral. This removes landing impact from the support test.</p>
+<p>The nominal-load foot reaches the rigid substrate. The half-load foot still creeps more than the proposed
+2 mm allowance from two to ten seconds. The overload is retained as a diagnostic. No matched Go2 MPM hold
+reference is claimed here. More quadrature does not resolve the explicit near-rest reaction selection.</p>
+<img src="static-support.png" alt="Load-controlled Go2 foot settling versus timestep">
+<p>The next solver stage is a bounded near-rest reaction treatment coupled to the articulated dynamics,
+followed by prolonged holds, load/unload work, timestep convergence and MPM force matching. Reset randomization
+and new Go2 training follow those gates. The existing videos retain their original physics and policy weights.</p>
+</section>
+<section><h2>Verification and records</h2><p>Newton: 21 CPU/GPU RFT cases. Isaac Lab: six geometry and native
+coupling cases, including masked reset, all-leg binding, granular impulse balance and the rigid zero-layer limit.
+Disabling curved integration makes the independent analytic-load regression fail. Both repositories pass their
+formatting and lint checks.</p><p><a href="recorded-motion.json">Motion audit</a> ·
+<a href="static-support.json">Support fixture</a> · <a href="profile.json">Candidate profile</a> ·
+<a href="manifest.json">Artifact checksums</a></p></section></html>
