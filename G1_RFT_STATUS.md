@@ -1,6 +1,6 @@
 # G1: rigid, RFT and MPM policy study
 
-Both G1 training stages and native-simulator acceptance checks are complete on `milad/rft-mpm`. The rigid baseline passes all seven gates. RFT reaches the full material curriculum and passes five of eight gates; foot placement, tracking and loaded-foot velocity remain failed. Final paired-speed recordings, MPM inference and the results archive are in progress.
+Both G1 training stages, native-simulator checks and all eight final 10 s videos are complete on `milad/rft-mpm`. The rigid baseline passes all seven gates. RFT reaches the full material curriculum and passes five of eight gates; foot placement, tracking and loaded-foot velocity remain failed. Both policies reach body failure thresholds in MPM at 0.5 and 1.0 m/s. The three-material MPM comparison and final results archive are in progress.
 
 [Live G1 report](http://localhost:18010/g1/report/) · [Generated live status](http://localhost:18010/g1/STATUS.md) · [Published Go2 results](results/go2-rft-mpm/README.md)
 
@@ -80,6 +80,36 @@ Sand starts 118 mm deep at density 1,600 kg/m³, internal friction 0.4 and surfa
 Fixed MPM constitutive inputs are Young's modulus 10¹⁵ Pa, Poisson ratio 0.3, pressure-yield limit 10¹⁵ Pa, tensile-yield ratio zero, and zero viscosity, dilatancy and hardening. These stiffness and history parameters have no direct one-to-one counterpart in RFT's material randomization. The saved summaries record the actual floating-point material ranges. Density, friction, interface ratio and nominal depth lie within the RFT training ranges; this matches inputs without establishing equivalent force response.
 
 Controlled 2 s G1 checks at both commands compare one-pass feedback factors 0.1 and 1.0 and four-pass refinement at 1.0, holding checkpoint, prepared 5 × 3.2 × 0.118 m bed and seed fixed. The feedback factor blends reaction wrenches as `w_next = (1 - alpha) * w_previous + alpha * w_MPM`; previous feedback persists across steps, so smaller factors smooth successive updates. Extra passes repeat the same physical interval with material history restored. These checks precede the long MPM videos. A three-material bank at 0.5 m/s compares tracking and support. Numerical traces, capacity checks, failure times and bed exits are retained; episodes continue after failure without resets.
+
+## Recorded policy comparisons
+
+Both commands use the same two frozen checkpoints and seed 123. Mean errors include initial acceleration and time after failure; the videos continue for 10 s without resets. Failure here means low body clearance or excessive tilt, separate from the foot-placement criterion.
+
+| Policy / evaluation | Forward command | Mean planar error | First body failure threshold |
+|---|---:|---:|---|
+| Rigid / rigid floor | 0.50 m/s | 0.029 m/s | None in 10 s |
+| RFT / RFT sand | 0.50 m/s | 0.097 m/s | None in 10 s |
+| RFT / MPM sand | 0.50 m/s | 0.493 m/s | 1.74 s |
+| Rigid / MPM sand | 0.50 m/s | 0.487 m/s | 1.18 s |
+| Rigid / rigid floor | 1.00 m/s | 0.058 m/s | None in 10 s |
+| RFT / RFT sand | 1.00 m/s | 0.154 m/s | None in 10 s |
+| RFT / MPM sand | 1.00 m/s | 0.940 m/s | 1.14 s |
+| Rigid / MPM sand | 1.00 m/s | 0.943 m/s | 0.90 s |
+
+Neither policy completes either MPM recording without reaching a body failure threshold. All four MPM recordings retain finite particles, have no capacity overflow and do not trigger the base-position bed-exit check. These results do not demonstrate stable G1 transfer under this MPM configuration.
+
+The controlled 2 s coupling checks give:
+
+| Command | Coupling passes | Update factor | Tracking error | First body failure threshold |
+|---|---:|---:|---:|---|
+| 0.50 m/s | 1 | 0.1 | 0.244 m/s | None in 2 s |
+| 0.50 m/s | 1 | 1 | 0.482 m/s | 1.74 s |
+| 0.50 m/s | 4 | 1 | 0.508 m/s | 1.68 s |
+| 1.00 m/s | 1 | 0.1 | 0.730 m/s | 1.18 s |
+| 1.00 m/s | 1 | 1 | 0.729 m/s | 1.14 s |
+| 1.00 m/s | 4 | 1 | 0.805 m/s | 1.08 s |
+
+At 0.5 m/s, the outcome depends on feedback smoothing; one and four passes both fail with full updates. At 1.0 m/s, all three settings fail. These short checks and the long recordings do not establish MPM force convergence or material equivalence.
 
 ## Shared mechanics and numerical checks
 

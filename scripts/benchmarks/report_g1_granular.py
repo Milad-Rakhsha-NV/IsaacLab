@@ -24,6 +24,26 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path("logs/go2_granular/g1")
 
 
+def recorded_outcome(status: dict, cases: list[dict]) -> str:
+    """Summarize completed comparisons without equating job completion with validation."""
+    mpm = [case for case in cases if case["field"] == "mpm"]
+    if len(mpm) != 4:
+        return ""
+    stable = {
+        policy: sum(case["first_failure_seconds"] is None for case in mpm if case["policy_training_terrain"] == policy)
+        for policy in ("rigid", "rft")
+    }
+    rigid, rft = (status["validation"][policy] for policy in ("rigid", "rft"))
+    return (
+        '<p class="status">'
+        f"<strong>Recorded outcomes:</strong> rigid passes {sum(rigid.values())}/{len(rigid)} acceptance checks; "
+        f"RFT passes {sum(rft.values())}/{len(rft)}, including full material coverage. "
+        f"In MPM, {stable['rft']}/2 RFT-policy recordings and {stable['rigid']}/2 rigid-policy recordings stay "
+        "above the body failure thresholds for all 10 s. These are one-seed trials at 0.5 and 1.0 m/s; "
+        "MPM force convergence and material equivalence remain unvalidated.</p>"
+    )
+
+
 def material_settings(folder: Path) -> str:
     """State the paired material-bank inputs alongside the response plots."""
     path = folder / "materials-status.json"
@@ -321,6 +341,7 @@ table{border-collapse:collapse}td,th{padding:10px;border:1px solid #cbd5e1}code{
         + "".join(rows)
         + "</table>"
     )
+    page += recorded_outcome(status, cases)
     if status.get("active_case"):
         progress_url = json.dumps(f"../evaluations/{status['active_case']}/progress.json")
         page += (

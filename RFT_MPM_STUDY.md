@@ -97,7 +97,20 @@ Both G1 training stages and native-simulator checks are complete. The rigid poli
 
 The rigid policy passes all seven acceptance gates. RFT passes five of eight; tracking, loaded-foot velocity and one foot-placement violation remain failed. There are no falls across 384 randomized-material validation environments. Separate zero-depth checks recover rigid dynamics and show that much of the increased foot motion appears with the granular field present.
 
-MPM inference and final recordings are in progress. G1 uses one-pass full feedback for both policies, with controlled short checks of feedback smoothing and four-pass refinement. The first 10 s RFT-policy MPM video at 1.0 m/s reaches a failure threshold at 1.14 s, with finite particles, no capacity overflow and no bed exit. This is an unsuccessful transfer in the current configuration. MPM force convergence and material equivalence remain unvalidated.
+All eight primary G1 recordings are complete. Both policies use the same prepared 12 × 3.2 × 0.118 m MPM bed, seed 123, one coupling pass and full feedback. This differs from the older Go2 main recordings, which use update factor 0.1. Both G1 policies reach failure thresholds in MPM at both commands; these videos do not demonstrate stable G1 transfer. Particles remain finite, with no capacity overflow or base-position bed exit. MPM force convergence and material equivalence remain unvalidated.
+
+| Policy / evaluation | Forward command | Mean planar error | First body failure threshold |
+|---|---:|---:|---|
+| Rigid / rigid floor | 0.50 m/s | 0.029 m/s | None in 10 s |
+| RFT / RFT sand | 0.50 m/s | 0.097 m/s | None in 10 s |
+| RFT / MPM sand | 0.50 m/s | 0.493 m/s | 1.74 s |
+| Rigid / MPM sand | 0.50 m/s | 0.487 m/s | 1.18 s |
+| Rigid / rigid floor | 1.00 m/s | 0.058 m/s | None in 10 s |
+| RFT / RFT sand | 1.00 m/s | 0.154 m/s | None in 10 s |
+| RFT / MPM sand | 1.00 m/s | 0.940 m/s | 1.14 s |
+| Rigid / MPM sand | 1.00 m/s | 0.943 m/s | 0.90 s |
+
+The three-material MPM comparison and committed results archive are in progress. The live report already contains all eight videos, shared learning curves, both command comparisons and six short MPM coupling checks.
 
 See [G1 methods, validation and status](G1_RFT_STATUS.md) and the [live G1 report](http://localhost:18010/g1/report/) for the remaining comparisons.
 
