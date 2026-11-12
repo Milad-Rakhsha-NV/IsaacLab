@@ -64,7 +64,7 @@ The final comparison contains four panels with **two 10 s videos each**, command
 
 Sand starts 118 mm deep at density 1,600 kg/m³, internal friction 0.4 and surface/internal ratio 1.0. The MPM videos share a prepared 12 × 3.2 m bed, PIC transfer, a 20 mm grid, four substeps per 5 ms physics frame, 50 stress iterations and one coupling pass with feedback factor 1.0. Preparation advances actual MPM material history for 0.5 s with the robot fixed. The earlier Go2 main videos used factor 0.1, so cross-robot outcomes are not a controlled numerical comparison.
 
-Controlled 2 s G1 checks at both commands compare one-pass feedback factors 0.1 and 1.0 and four-pass refinement at 1.0, holding checkpoint, prepared 5 × 3.2 × 0.118 m bed and seed fixed. These checks precede the long MPM videos. A three-material bank at 0.5 m/s compares tracking and support. Numerical traces, capacity checks, failure times and bed exits are retained; episodes continue after failure without resets.
+Controlled 2 s G1 checks at both commands compare one-pass feedback factors 0.1 and 1.0 and four-pass refinement at 1.0, holding checkpoint, prepared 5 × 3.2 × 0.118 m bed and seed fixed. The feedback factor blends reaction wrenches as `w_next = (1 - alpha) * w_previous + alpha * w_MPM`; previous feedback persists across steps, so smaller factors smooth successive updates. Extra passes repeat the same physical interval with material history restored. These checks precede the long MPM videos. A three-material bank at 0.5 m/s compares tracking and support. Numerical traces, capacity checks, failure times and bed exits are retained; episodes continue after failure without resets.
 
 ## Shared mechanics and numerical checks
 

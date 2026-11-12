@@ -261,6 +261,11 @@ def publish() -> None:
             "<h2 id='mpm-numerics'>MPM coupling sensitivity</h2>"
             "<p>Same frozen RFT checkpoint, prepared 5 × 3.2 × 0.118 m bed and seed 123. "
             "Only the coupling controls vary. Short tests do not establish 10 s stability or MPM convergence.</p>"
+            "<p>The feedback factor α blends the reaction wrench as "
+            "<code>w_next = (1 − α) w_previous + α w_MPM</code>. "
+            "The previous wrench persists across steps; smaller factors smooth changes over successive updates. "
+            "Density and friction stay fixed. Extra coupling passes repeat the same physical interval with updated "
+            "feedback, restoring material history before each trial.</p>"
             "<table><tr><th>Command [m/s]</th><th>Coupling passes</th><th>Feedback factor</th>"
             "<th>Tracking error [m/s]</th><th>First failure threshold</th></tr>"
             + "".join(numerical_rows)
