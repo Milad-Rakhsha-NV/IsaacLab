@@ -216,6 +216,39 @@ def material_plot(cases):
     plt.close(fig)
 
 
+def reference_plot(cases):
+    """Compare whole-robot trajectories while keeping the refined bed dimensions fixed."""
+    selected = [r for r in cases if "_reference_" in r["name"]]
+    if not selected:
+        return ""
+    fig, axes = plt.subplots(1, 3, figsize=(13, 3.5))
+    rows = []
+    for row in selected:
+        s = row["summary"]
+        label = f"{1000 * s['voxel_size']:g} mm grid"
+        with np.load(ROOT / "evaluations" / row["name"] / "rollout.npz") as d:
+            state, metrics = d["state"][:, 0], d["metrics"][:, 0]
+            for ax, values in zip(axes, (state[:, 4], state[:, 7], metrics[:, 3]), strict=True):
+                ax.plot(state[:, 0], values, label=label)
+        outcome = s["first_failure_seconds"]
+        failure = "None" if outcome is None else f"{outcome:.2f} s"
+        rows.append(
+            f"<tr><td>{label}</td><td>{s['simulated_seconds']:.2f}</td>"
+            f"<td>{failure}</td><td>{s['mean_velocity_error']:.3f}</td>"
+            f"<td>{s['first_bed_exit_seconds']}</td></tr>"
+        )
+    axes[0].axhline(0.5, color="black", ls="--")
+    axes[1].axhline(0.4, color="black", ls="--")
+    for ax, label in zip(axes, ("Forward body speed [m/s]", "Base clearance [m]", "Base tilt [rad]"), strict=True):
+        ax.set(xlabel="Time [s]", ylabel=label)
+        ax.grid(alpha=0.2)
+    axes[0].legend()
+    fig.tight_layout()
+    fig.savefig(ROOT / "whole-robot-refinement.png", dpi=150)
+    plt.close(fig)
+    return "".join(rows)
+
+
 def publish():
     """Show measured outcomes and failed gates without inferring physical validation."""
     foot = read(ROOT / "status.json")
@@ -255,6 +288,8 @@ Numerical self-convergence, force agreement and policy transfer are separate acc
         before, after = work["before"][0], work["after"][0]
         page += (
             "<section><h2>Bearing-model correction</h2>"
+            "<p>For a closed prescribed cycle, input work is −∮(F·dx + τ·dθ), where F and τ are "
+            "material reactions. A memoryless resistive law must dissipate, rather than create, cycle energy.</p>"
             "<p>The experimental near-rest bearing term acted on withdrawing surface patches. "
             "A closed 40 mm penetration cycle on the exact G1 foot returned more work than supplied: "
             f"net input <strong>{before['net_input_work_J']:.3f} J</strong>. "
@@ -300,6 +335,16 @@ The unloaded hold alone cannot determine the admissible static support under bod
 <th>Final mean support [N]</th><th>Backing-floor proximity</th></tr>"""
     page += loaded_rows + "</table></details></section>"
     page += "<section><h2>RFT force approximation</h2>"
+    verification = read(ROOT / "diagnostics/loaded-refinement.json")
+    if verification.get("mpm_coupling_relative_depth_change") is not None:
+        page += (
+            "<p>Loaded-foot depth changes by "
+            f"{verification['mpm_grid_relative_depth_change']:.1%} for the 5 → 3.33 mm MPM grid refinement, "
+            f"{verification['mpm_time_relative_depth_change']:.1%} when doubling MPM substeps at 5 mm, and "
+            f"{verification['mpm_coupling_relative_depth_change']:.1%} for one → four coupling passes at 10 mm. "
+            "Each passes the 10% depth-change gate for this fixture. Corrected RFT changes by "
+            f"{verification['rft_time_relative_depth_change']:.1%} for four → eight substeps.</p>"
+        )
     if calibration:
         c = calibration["selected"]
         outcome = "passed" if calibration["holdout_accepted"] else "failed"
@@ -323,6 +368,16 @@ held out. The local model has no evolving surface or plastic loading history.</p
                 "The fitted interface ratio is an effective RFT parameter; MPM retains ratio 1.0.</p>"
             )
         page += f'<img src="{fit_path}/force-fit.png" alt="Original and fitted RFT versus MPM wrenches">'
+        low_mpm = read(ROOT / "loaded/mpm-5mm-load-80/summary.json")
+        low_rft = read(ROOT / "loaded/rft-calibrated-load-80/summary.json")
+        if low_mpm and low_rft:
+            error = abs(low_rft["final_sole_depth_m"] / low_mpm["final_sole_depth_m"] - 1)
+            page += (
+                f"<p>At the held-out 80 N load, RFT settles to {1000 * low_rft['final_sole_depth_m']:.1f} mm "
+                f"versus {1000 * low_mpm['final_sole_depth_m']:.1f} mm in 5 mm MPM, a {error:.1%} difference. "
+                "At 316.26 N, RFT reaches the backing floor; MPM settles about 2.7 mm above it. "
+                "The high-load case is strongly affected by the finite substrate.</p>"
+            )
         phase_rows = []
         for row in calibration["phases"]:
             phase_rows.append(
@@ -345,6 +400,12 @@ checkpoint, with reset optimizer state, seed 42 and 4,096 environments. Each con
 1,000 additional PPO iterations with full material distributions from its first episode.
 Forward commands remain 0.1–1.0 m/s; there is no command curriculum.
 The force-informed model and wider randomization form an exploratory combined change.</p>"""
+    page += (
+        "<p>The accepted rigid baseline received 1,500 iterations from scratch. Both continued RFT policies "
+        "already include that rigid pretraining and 1,500 earlier RFT adaptation iterations, "
+        "then receive the 1,000-iteration continuation above. Their total training exposure differs "
+        "from the rigid baseline.</p>"
+    )
     train_rows = []
     for name, record in training.get("runs", {}).items():
         train_rows.append(
@@ -371,6 +432,7 @@ The force-informed model and wider randomization form an exploratory combined ch
     if evaluations:
         policy_plots(evaluations.get("cases", []))
         material_plot(evaluations.get("cases", []))
+        reference_rows = reference_plot(evaluations.get("cases", []))
         page += "<section><h2>Frozen-policy acceptance</h2>"
         gates = evaluations.get("validation", {})
         for policy, results in gates.items():
@@ -407,6 +469,21 @@ The tracking bars average only measurements before the first threshold, includin
 The detailed table also retains full-rollout errors. Each material/command/policy combination is
 one deterministic trial. These are distinct conditions, rather than repeated trials supporting statistical claims.</p>
 </section>"""
+        if reference_rows:
+            page += (
+                """<section><h2>Whole-robot grid sensitivity</h2>
+<p>The revised policy is also tested at 0.50 m/s on a fixed 2.4 × 0.8 m bed with 20, 10 and 8 mm grids,
+eight particles per voxel and eight substeps. These trials last up to 2 s, ending 0.5 s after a failure.
+The narrower bed bounds memory use and differs from the main material bank.</p>
+<p>This measures closed-loop policy sensitivity. Force convergence requires identical prescribed motions;
+the foot tests provide that separate check. These whole-robot trajectories do not establish a converged
+full-biped reference, especially when a boundary exit is recorded.</p>
+<img src="whole-robot-refinement.png" alt="Whole-robot MPM trajectories at three grid resolutions">
+<table><tr><th>Grid</th><th>Duration [s]</th><th>First body failure</th><th>Planar error [m/s]</th>
+<th>First base-position boundary exit [s]</th></tr>"""
+                + reference_rows
+                + "</table></section>"
+            )
         for speed in (0.5, 1.0):
             page += (
                 f'<section><h2>Comparison at {speed:.2f} m/s</h2><img src="comparison-{speed:g}.png" '

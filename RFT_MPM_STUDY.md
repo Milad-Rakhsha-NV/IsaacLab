@@ -9,7 +9,7 @@ Both repositories use branch **`milad/rft-mpm`**:
 | [Milad-Rakhsha-NV/IsaacLab](https://github.com/Milad-Rakhsha-NV/IsaacLab/tree/milad/rft-mpm) | `milad-rakhsha-nv` | `/home/horde/Documents/Repos/IsaacLab` |
 | [Milad-Rakhsha/newton](https://github.com/Milad-Rakhsha/newton/tree/milad/rft-mpm) | `milad-rakhsha` | `/home/horde/Documents/Repos/newton-go2-rft` |
 
-The computational Newton revision is pinned to `32f455bc4430f0954ae564fb40681fbaca95e7f3`. The original experiments installed this revision from the NV fork; the dependency now resolves the same immutable revision from the personal fork. Existing numerical results have not been rerun or relabeled as coming from different solver code.
+The archived Go2 and initial G1 experiments used Newton `32f455bc4430f0954ae564fb40681fbaca95e7f3`. The current dependency pins corrected revision `277c30238619349d343104191d8e40582fa7ac70` from the personal fork. Existing snapshots retain their original solver provenance. The [G1 force-verification follow-up](G1_RFT_REFINEMENT.md) identifies and corrects energy generation in the added bearing extension, establishes a refined isolated-foot MPM reference and evaluates additional training with force-informed reset ranges.
 
 ## Implementation
 

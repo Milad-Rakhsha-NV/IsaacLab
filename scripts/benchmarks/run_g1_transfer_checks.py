@@ -176,6 +176,27 @@ def main(args):
             )
         status["validation"][policy] = validation_gates(checks, material_difficulty=1.0)
         write(state_path, status)
+    elif args.phase == "timestep":
+        for policy in args.policies:
+            field = "rigid" if policy == "rigid" else "rft"
+            depth = ["--substrate_depth", "0.118"] if field == "rft" else []
+            for speed in (0.5, 1.0):
+                evaluate(
+                    f"{policy}_timestep8_{speed:g}",
+                    policy,
+                    field,
+                    [*depth, "--steps", "1000", "--num_envs", "16", "--speed", str(speed), "--substeps", "8"],
+                    f"{field.upper()} at the MPM rigid timestep: 8 substeps; {speed:.2f} m/s",
+                )
+    elif args.phase == "reference":
+        for voxel in (0.02, 0.01, 0.008):
+            evaluate(
+                f"matched_reference_{1000 * voxel:g}mm",
+                "matched",
+                "mpm",
+                [*mpm_options("nominal", 2.4, 100, 0.5), "--bed_width", "0.8", "--voxel_size", str(voxel)],
+                f"Whole-robot MPM grid sensitivity: {1000 * voxel:g} mm; 2.4 × 0.8 m bed; 0.50 m/s",
+            )
     elif args.phase == "mpm":
         for material in MATERIALS:
             for speed in (0.5, 1.0):
@@ -212,7 +233,9 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("control", "matched", "mpm", "videos"), required=True)
+    parser.add_argument(
+        "--phase", choices=("control", "matched", "timestep", "reference", "mpm", "videos"), required=True
+    )
     parser.add_argument("--policies", nargs="+", choices=tuple(PYTHONS), default=list(PYTHONS))
     parser.add_argument("--control_python", type=Path, default=PYTHONS["control"])
     parser.add_argument("--corrected_python", type=Path, default=PYTHONS["matched"])

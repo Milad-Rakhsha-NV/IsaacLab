@@ -1,4 +1,6 @@
-# G1: rigid, RFT and MPM policy study
+# Initial G1: rigid, RFT and MPM policy study
+
+This is the historical study using Newton `32f455bc4430f0954ae564fb40681fbaca95e7f3`, before correction of the experimental bearing extension. The [G1 follow-up](G1_RFT_REFINEMENT.md) documents force verification, the corrected model, additional training and renewed transfer checks. The initial numerical results below retain their original configuration and interpretation limits.
 
 Both G1 training stages, native-simulator checks and all eight final 10 s videos are complete on `milad/rft-mpm`. The rigid baseline passes all seven gates. RFT reaches the full material curriculum and passes five of eight gates; foot placement, tracking and loaded-foot velocity remain failed. Both policies reach body failure thresholds in MPM at 0.5 and 1.0 m/s. The three-material comparison, eight videos, plots and reproducible results archive are complete.
 
