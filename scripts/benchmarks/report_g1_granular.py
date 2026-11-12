@@ -32,12 +32,18 @@ def material_curriculum(events: EventAccumulator, out: Path, iteration: int, off
     fig, axes = plt.subplots(1, 2, figsize=(11, 3))
     for axis, tag, label, scale in (
         (0, "Curriculum/difficulty", "Material difficulty", 1),
-        (1, "Material/depth_mean", "Mean reset depth", 1000),
-        (1, "Material/depth_max", "Maximum reset depth", 1000),
+        (1, "Material/depth_mean", "Logged reset-subset mean", 1000),
+        (1, "Material/depth_max", "Logged reset-subset maximum", 1000),
     ):
         if tag in tags:
             values = events.Scalars(tag)
             axes[axis].plot([v.step - offset for v in values], [scale * v.value for v in values], label=label)
+    values = events.Scalars("Curriculum/difficulty")
+    axes[1].plot(
+        [v.step - offset for v in values],
+        [10 + 108 * v.value for v in values],
+        label="Allowed maximum depth",
+    )
     axes[0].set(ylabel="Material difficulty", ylim=(-0.02, 1.02))
     axes[1].set(ylabel="Sampled layer depth [mm]")
     axes[1].axhline(118, color="grey", linestyle="--", label="Target maximum: 118 mm")
@@ -50,8 +56,9 @@ def material_curriculum(events: EventAccumulator, out: Path, iteration: int, off
     plt.close(fig)
     return (
         "<h3>RFT material curriculum</h3>"
-        "<p>Difficulty controls both material-property spread and layer depth. The depth traces summarize resetting "
-        "environments; the dashed line is the target maximum. Commands keep their full range throughout training.</p>"
+        "<p>Difficulty controls both material-property spread and layer depth. Logged depths summarize resetting "
+        "subsets and are averaged within each training iteration; they are distinct from the allowed maximum. "
+        "The dashed line is the target maximum. Commands keep their full range throughout training.</p>"
         f"<img src='material-curriculum.png?v={iteration}' alt='Achieved material difficulty and reset layer depths'>"
     )
 
