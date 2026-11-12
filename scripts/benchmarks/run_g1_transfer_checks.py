@@ -70,7 +70,9 @@ def extended_recordings(evaluate, mpm_options, status, state_path):
                 policy,
                 "mpm",
                 [
-                    *mpm_options("nominal", 12, 500, speed, failure_tail=False),
+                    *mpm_options("nominal", 4, 500, speed, failure_tail=False),
+                    "--bed_width",
+                    "8.0",
                     "--video",
                     "--max_leaf_node_count",
                     str(1 << 16),

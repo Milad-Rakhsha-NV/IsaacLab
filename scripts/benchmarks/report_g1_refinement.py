@@ -17,6 +17,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import PolyCollection
+from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 ROOT = Path("logs/go2_granular/g1/refinement")
@@ -25,6 +26,13 @@ LABELS = {
     "matched": "Revised RFT-trained policy",
     "rigid": "Rigid-trained policy",
     "initial": "Original RFT-trained checkpoint",
+}
+COLORS = {
+    ("rigid", "rigid"): "#64748b",
+    ("matched", "rft"): "#15803d",
+    ("matched", "mpm"): "#2563eb",
+    ("rigid", "mpm"): "#d97706",
+    ("control", "mpm"): "#9333ea",
 }
 GATES = {
     "grid": "Grid: 10 → 5 mm",
@@ -288,13 +296,6 @@ def support_section(support):
 
 def policy_plots(cases):
     """Compare measured speed, clearance and tilt at each fixed command."""
-    colors = {
-        ("rigid", "rigid"): "#64748b",
-        ("matched", "rft"): "#15803d",
-        ("matched", "mpm"): "#2563eb",
-        ("rigid", "mpm"): "#d97706",
-        ("control", "mpm"): "#9333ea",
-    }
     for speed in (0.5, 1.0):
         fig, axes = plt.subplots(1, 3, figsize=(13, 3.5))
         count = 0
@@ -309,10 +310,10 @@ def policy_plots(cases):
                 key = row["policy"], row["field"]
                 label = LABELS[row["policy"]] + " / " + row["field"].upper()
                 for ax, values in zip(axes, (state[:, 4], state[:, 7], metrics[:, 3]), strict=True):
-                    ax.plot(state[:, 0], values, label=label, color=colors[key])
+                    ax.plot(state[:, 0], values, label=label, color=COLORS[key])
                 failure = s["first_failure_seconds"]
                 if failure is not None:
-                    axes[1].axvline(failure, color=colors[key], ls=":", alpha=0.5)
+                    axes[1].axvline(failure, color=COLORS[key], ls=":", alpha=0.5)
                 count += 1
         axes[0].axhline(speed, color="black", ls="--", label="Forward command")
         axes[1].axhline(0.4, color="black", ls="--", label="Low-clearance threshold")
@@ -324,6 +325,47 @@ def policy_plots(cases):
         fig.tight_layout()
         fig.savefig(ROOT / f"comparison-{speed:g}.png", dpi=150)
         plt.close(fig)
+
+
+def path_plot(cases):
+    """Expose heading drift and finite-bed coverage separately from body-frame tracking."""
+    selected = [row for row in cases if row.get("video")]
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    for ax, speed in zip(axes, (0.5, 1.0), strict=True):
+        beds = set()
+        for row in selected:
+            s = row["summary"]
+            if s["commands"][0][0] != speed:
+                continue
+            with np.load(ROOT / "evaluations" / row["name"] / "rollout.npz") as data:
+                state = data["state"][:, 0]
+            ax.plot(
+                state[:, 1],
+                state[:, 2],
+                label=LABELS[row["policy"]] + " / " + row["field"].upper(),
+                color=COLORS[(row["policy"], row["field"])],
+            )
+            dimensions = s["bed_length"], s["bed_width"]
+            if row["field"] == "mpm" and dimensions not in beds:
+                ax.add_patch(
+                    Rectangle(
+                        (-0.7, -s["bed_width"] / 2),
+                        s["bed_length"],
+                        s["bed_width"],
+                        fill=False,
+                        edgecolor="black",
+                        linestyle="--",
+                        label=f"MPM bed: {dimensions[0]:g} × {dimensions[1]:g} m",
+                    )
+                )
+                beds.add(dimensions)
+        ax.set(title=f"Forward command {speed:.2f} m/s", xlabel="World x [m]", ylabel="World y [m]")
+        ax.axis("equal")
+        ax.grid(alpha=0.2)
+    axes[0].legend(fontsize=7)
+    fig.tight_layout()
+    fig.savefig(ROOT / "world-paths.png", dpi=150)
+    plt.close(fig)
 
 
 def material_plot(cases):
@@ -391,7 +433,55 @@ def reference_plot(cases):
     return "".join(rows)
 
 
-def render_policy_videos(cases):
+def foot_domain_coverage(cases):
+    """Check actual foot vertices against each recorded MPM bed at control frames."""
+    surfaces = read(ROOT / "foot-quadrature-convergence.json").get("foot_surfaces", [])
+    records = {}
+    for row in cases:
+        if row["field"] != "mpm" or not row.get("video") or not surfaces:
+            continue
+        summary, feet = row["summary"], []
+        with np.load(ROOT / "evaluations" / row["name"] / "rollout.npz") as data:
+            for surface in surfaces:
+                body = summary["body_labels"].index(surface["body"])
+                pose = data["body_pose"][:, body]
+                vertices = np.array(surface["vertices"])[None]
+                xyz, scalar = pose[:, None, 3:6], pose[:, None, 6:7]
+                points = pose[:, None, :3] + vertices + 2 * np.cross(xyz, np.cross(xyz, vertices) + scalar * vertices)
+                margin = np.minimum.reduce(
+                    (
+                        points[:, :, 0] + 0.7,
+                        summary["bed_length"] - 0.7 - points[:, :, 0],
+                        summary["bed_width"] / 2 - abs(points[:, :, 1]),
+                    )
+                )
+                outside = np.flatnonzero((margin < 0).any(axis=1))
+                submerged = np.flatnonzero(((margin < 0) & (points[:, :, 2] <= 0)).any(axis=1))
+                feet.append(
+                    dict(
+                        body=surface["body"],
+                        minimum_planar_margin_m=float(margin.min()),
+                        first_vertex_exit_seconds=None if not len(outside) else float(data["state"][outside[0], 0, 0]),
+                        first_submerged_vertex_exit_seconds=None
+                        if not len(submerged)
+                        else float(data["state"][submerged[0], 0, 0]),
+                    )
+                )
+        records[row["name"]] = feet
+    (ROOT / "foot-domain-coverage.json").write_text(
+        json.dumps(
+            dict(
+                sampling=("Exact foot collider vertices at recorded 20 ms control frames; not a substep certificate."),
+                cases=records,
+            ),
+            indent=2,
+        )
+        + "\n"
+    )
+    return records
+
+
+def render_policy_videos(cases, coverage):
     """Keep terrain roles, commands and pending recordings clear in a fixed order."""
     roles = (
         (
@@ -445,13 +535,16 @@ def render_policy_videos(cases):
                 f'<video controls preload="metadata" src="evaluations/{name}/rollout.mp4" '
                 f'poster="evaluations/{name}/preview.jpg"></video>'
                 f"<p>{s['simulated_seconds']:g} s; mean planar error {s['mean_velocity_error']:.3f} m/s. "
-                f"{outcome}.</p>"
+                f"{outcome}. Mean yaw-rate error {s['mean_yaw_error']:.3f} rad/s.</p>"
             )
             if field == "mpm":
                 page += (
                     f"<p>Bed: {s['bed_length']:g} × {s['bed_width']:g} m; "
                     "118 mm depth. The recording continues after a fall without resetting the robot.</p>"
                 )
+                if name in coverage:
+                    margin = min(foot["minimum_planar_margin_m"] for foot in coverage[name])
+                    page += f"<p>Minimum recorded foot-vertex margin to a bed edge: {1000 * margin:.0f} mm.</p>"
             page += "</div>"
         page += "</div></article>"
     return page + "</section>"
@@ -460,7 +553,7 @@ def render_policy_videos(cases):
 def foot_quadrature_section():
     """Separate sole integration resolution from the closed foot collider."""
     audit = read(ROOT / "foot-quadrature-convergence.json")
-    page = """<section><h2>Foot surface integration</h2>
+    page = """<section id="foot-resolution"><h2>Foot surface integration</h2>
 <p>Counts below refer to one foot. The current training mesh has <strong>2 triangles on the sole</strong>
 and 12 over the complete foot collision box. Torso and leg triangles do not measure sole resolution.
 The flat box geometry is exact, but force integration can still need refinement when rotation changes
@@ -538,6 +631,58 @@ def foot_mesh_plot(audit):
     plt.close(fig)
 
 
+def go2_resolution_section():
+    """Keep the small curved Go2 contact shape separate from the G1 sole study."""
+    audit = read(ROOT / "go2-foot-resolution.json")
+    if audit.get("reference_segments") != 384:
+        return ""
+    page = """<section id="go2-foot-resolution"><h2>Go2: curved foot resolution</h2>
+<p>The Go2 collider is a sphere of radius 22 mm. Its current UV tessellation has edges up to 15.6 mm.
+Curved feet require accurate surface normals as well as enough integration points. Subdividing existing
+flat facets retains their coarse curvature. Regenerating the sphere, or using a uniform icosphere mesh,
+improves both its shape and force integration. These RFT surfaces can be refined independently of
+the rigid/MPM collision geometry and robot inertial properties.</p>
+<p>This preliminary test prescribes 150 centered-sphere states at four friction/interface combinations:
+1–44 mm penetration, insertion, translation, withdrawal and 8 rad/s rotation at three orientations.
+The corrected force law is used, with moments about the sphere center. The numerical reference has
+384 UV segments (about 0.51 mm edges).
+It is a surface self-convergence study, rather than robot-policy or physical-material validation.</p>
+<img src="go2-foot-meshes.png" alt="Current and uniformly refined lower surfaces of a Go2 spherical foot">
+<table><tr><th>Mesh</th><th>Triangles per foot</th><th>Maximum edge [mm]</th>
+<th>Pooled force / torque difference</th><th>95th-percentile force / torque difference</th></tr>"""
+    for row in audit["results"]:
+        if (row["kind"], row["resolution"]) not in (
+            ("uv", 12),
+            ("uv", 64),
+            ("icosphere", 3),
+            ("icosphere", 4),
+            ("icosphere", 5),
+            ("uv", 384),
+        ):
+            continue
+        page += (
+            f"<tr><td>{row['label']}</td><td>{row['integrated_triangles_per_foot']:,}</td>"
+            f"<td>{1000 * row['maximum_edge_m']:.2f}</td>"
+            f"<td>{row['force_relative_error']:.1%} / {row['torque_relative_error']:.1%}</td>"
+            f"<td>{row['force_error_p95']:.1%} / {row['torque_error_p95']:.1%}</td></tr>"
+        )
+    return (
+        page
+        + """</table>
+<p>Percentiles normalize by reference magnitude with 1 N / 0.01 Nm floors. Pooled errors weight larger
+wrenches more strongly; difficult deeply immersed spinning cases retain larger errors. Per-depth
+results and raw wrenches are saved separately. Solver counts include negligible pole faces on UV meshes.
+The diagrams classify lower-half faces by their centroids at the nominal orientation; the submerged
+leading patch changes during motion.</p>
+<img src="go2-foot-convergence.png" alt="Go2 force and torque convergence for UV and uniform sphere meshes">
+<p>A 1,280-triangle uniform sphere is an economical candidate, with 5,120 triangles as a stricter comparison.
+Actual recorded foot motion, per-depth errors and throughput at 4,096 environments must determine the
+training resolution. Refinement should target foot colliders and be cached at model construction.
+Existing task defaults and checkpoints still use the coarse surfaces. New policies require retraining
+after the resolution is selected. The separate near-rest support failure remains unresolved.</p></section>"""
+    )
+
+
 def publish():
     """Show measured outcomes and failed gates without inferring physical validation."""
     foot = read(ROOT / "status.json")
@@ -583,6 +728,8 @@ Numerical self-convergence, force agreement and policy transfer are separate acc
         if progress:
             detail = f" {progress['completed_steps']} / {progress['total_steps']} simulation frames completed."
         page += f'<p class="status">{html.escape(inference["stage"])}.{detail}</p>'
+    elif "Foot-resolution" in inference.get("stage", ""):
+        page += f'<p class="status">{html.escape(inference["stage"])}.</p>'
     if drift_rows:
         page += (
             '<p class="status"><strong>Static-support and held-out force-matching gates fail.</strong> '
@@ -620,7 +767,8 @@ Normalization floors of 20 N and 1 Nm give allowances of 2 N and 0.1 Nm near zer
 An isolated-foot convergence check does not establish whole-robot coupling convergence.</p>
 <table><tr><th>Refinement</th><th>Largest force change</th><th>Largest torque change</th><th>Gate</th></tr>"""
     page += "".join(gate_rows) + '</table><img src="foot-convergence.png" alt="G1 foot force and torque refinement">'
-    page += "</section>" + foot_quadrature_section() + "<section><h2>Support under an applied load</h2>"
+    page += "</section>" + foot_quadrature_section() + go2_resolution_section()
+    page += "<section><h2>Support under an applied load</h2>"
     page += """<p>A vertical prismatic joint fixes lateral translation and foot orientation. Inertial mass and downward
 load are specified independently. The bed is prepared with the foot fixed, then the foot is released.
 Total support is inferred from vertical momentum balance and includes backing-floor contact if reached.
@@ -644,6 +792,8 @@ refinement. This implicates explicit near-rest coupling; the force-law correctio
 <p>The earlier 4.1% agreement is a comparison at two seconds. The revised training profile remains
 exploratory, and prolonged static support is a failed acceptance gate. Finite-layer locomotion can draw
 support from the rigid backing floor. An implicit sticking/reaction treatment requires separate solver work.</p>
+<p>This load-controlled fixture already uses a 20 mm maximum triangle edge (512 sole triangles).
+The observed creep is present with refined foot quadrature.</p>
 <p>The prolonged-hold criterion allows at most 2 mm additional penetration between 2 and 10 s,
 with no backing-floor proximity.</p>
 <p>The 10 mm MPM control changes by approximately 0.03 mm between 2 and 10 s. Its depth is biased
@@ -777,6 +927,7 @@ The force-informed model and wider randomization form an exploratory combined ch
             evaluations["validation"] = evaluations.get("validation", {}) | extra.get("validation", {})
     if evaluations:
         policy_plots(evaluations.get("cases", []))
+        path_plot(evaluations.get("cases", []))
         material_plot(evaluations.get("cases", []))
         reference_rows = reference_plot(evaluations.get("cases", []))
         page += "<section><h2>Frozen-policy acceptance</h2>"
@@ -805,9 +956,12 @@ ratio is 1.0. The force-informed RFT interface ratio is an effective fitted para
 convergence cannot be substituted for a converged whole-biped reference. Results diagnose numerical
 transfer under the disclosed configuration, rather than validate real sand. The material-bank diagnostics
 run for up to 3 s, ending 0.5 s after a first body failure. Avoiding a threshold for 3 s does not establish
-long-duration stability. The showcase recordings below run for a full 10 s in a 12 × 2 m bed and continue
+long-duration stability. The showcase recordings below run for a full 10 s in a 4 × 8 m bed and continue
 after a fall without resets or an early stop. All other nominal material and solver settings remain the same.
-Videos show actual simulated frames; each duration is stated beside its recording.</p>
+Videos show actual simulated frames; each duration is stated beside its recording. An initial 12 × 2 m
+attempt drifted sideways out of the bed at 4.0 s before a body threshold at 5.4 s; it is excluded from
+the main comparison. The wider domain checks this boundary confound. Every selected recording must
+remain within the conservative base-position interior for its full duration.</p>
 <p>The material bank contains nominal (118 mm, 1,600 kg/m³, μ = 0.4), shallow/loose
 (60 mm, 1,400 kg/m³, μ = 0.3) and dense (118 mm, 1,800 kg/m³, μ = 0.5) beds. Physical inputs are
 within the RFT reset ranges, but equal density/friction/depth does not imply equivalent force response.</p>
@@ -816,6 +970,12 @@ within the RFT reset ranges, but equal density/friction/depth does not imply equ
 The tracking bars average only measurements before the first threshold, including acceleration.
 The detailed table also retains full-rollout errors. Each material/command/policy combination is
 one deterministic trial. These are distinct conditions, rather than repeated trials supporting statistical claims.</p>
+<p>Both continued RFT policies avoid the body thresholds in all three 0.50 m/s material trials.
+At 1.00 m/s, the revised policy reaches a threshold in all three beds; the extra-training control
+does so in two. The rigid policy also avoids the threshold in the shallow/loose 0.50 m/s bed.
+The corrected profile therefore does not demonstrate better overall MPM robustness than the
+extra-training control in this bank. Correction, fit and wider randomization change together in
+the revised variant; this comparison cannot assign their individual effects.</p>
 </section>"""
         page += support_section(support)
         if reference_rows:
@@ -880,7 +1040,16 @@ force-informed parameters and wider reset ranges. Each comparison remains a sing
             "</table><p>Metrics include acceleration and time after failure. "
             "Rollouts continue without resets.</p></section></details>"
         )
-        page += render_policy_videos(evaluations.get("cases", []))
+        page += (
+            '<section><h2>World paths of the recorded policies</h2><img src="world-paths.png" '
+            'alt="World x/y trajectories and finite MPM bed boundaries at both commands">'
+            "<p>Commanded forward speed is measured in the robot frame. Heading drift can therefore "
+            "produce a curved world path even with modest forward-speed error. Dashed rectangles "
+            "show the MPM domains; native rigid/RFT fields extend beyond those rectangles. "
+            "These paths use the same recordings shown below.</p></section>"
+        )
+        coverage = foot_domain_coverage(evaluations.get("cases", []))
+        page += render_policy_videos(evaluations.get("cases", []), coverage)
     else:
         page += "<section><h2>Held-out inference</h2><p>Native and MPM comparisons follow training.</p></section>"
     page += (

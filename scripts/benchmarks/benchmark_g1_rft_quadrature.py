@@ -229,6 +229,14 @@ def main(args):
                 independent_foot_states=2 * count,
                 original_model_parity=parity,
                 foot_inventory=[row for row in inventory if row["body"] in foot_ids],
+                foot_surfaces=[
+                    dict(
+                        body=original.body_label[body],
+                        vertices=mesh.vertices.tolist(),
+                        indices=mesh.indices.tolist(),
+                    )
+                    for body, mesh in feet
+                ],
                 wall_seconds=time.monotonic() - start,
                 rft_kernel_sha256=hashlib.sha256(kernel.read_bytes()).hexdigest(),
                 torque_reference="world-space moment about the actual foot body COM",
