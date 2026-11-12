@@ -106,6 +106,7 @@ def main() -> None:
     status.setdefault("cases", [])
     status.setdefault("validation", {})
     status.pop("error", None)
+    status.pop("active_case", None)
     status["mpm_profile"] = dict(
         proxy_iterations=1, proxy_relaxation=1.0, substeps=4, bed_width=3.2, max_active_cell_count=1 << 20
     )
@@ -160,6 +161,7 @@ def main() -> None:
         if cached:
             cached = json.loads(summary_file.read_text())["execution_error"] is None
         if not cached:
+            status["active_case"] = name
             update("Evaluating " + (label or describe_progress(name.replace("_", " "), (1.0, 0.5))))
             write_json(manifest, signature)
             command = [
@@ -188,6 +190,7 @@ def main() -> None:
             raise RuntimeError(f"Invalid G1 evaluation {name}")
         status["cases"] = [case for case in status["cases"] if case["case"] != name]
         status["cases"].append(dict(case=name, **summary))
+        status.pop("active_case", None)
         update("Completed " + (label or describe_progress(name.replace("_", " "), (1.0, 0.5))))
         return summary
 
@@ -337,6 +340,7 @@ def main() -> None:
         status["complete"] = True
         update("G1 training, acceptance checks, eight paired-speed videos and material plots completed")
     except Exception as error:
+        status.pop("active_case", None)
         status["error"] = repr(error)
         update("G1 study stopped; completed outputs remain available. Inspect the recorded error.")
         raise

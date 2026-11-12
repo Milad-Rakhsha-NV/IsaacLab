@@ -97,7 +97,7 @@ class G1GranularGaitCfg(Go2GaitCfg):
     joint_acceleration_weight = 1.0e-7
     vertical_velocity_weight = 0.2
     angular_velocity_weight = 0.05
-    foot_sliding_weight = 0.1
+    foot_sliding_weight = 1.0
     air_time_weight = 0.75
     air_time_target = 0.4
     biped_air_time = True

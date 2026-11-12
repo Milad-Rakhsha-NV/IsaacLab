@@ -571,6 +571,17 @@ with launch_simulation(cfg):
                     )
                 )
             )
+            if args.robot == "g1" and ((step + 1) % 25 == 0 or step + 1 == args.steps):
+                progress = dict(
+                    completed_steps=step + 1,
+                    total_steps=args.steps,
+                    simulated_seconds=(step + 1) * env.step_dt,
+                    total_simulated_seconds=args.steps * env.step_dt,
+                    updated_unix=time.time(),
+                )
+                temporary = args.output / "progress.tmp"
+                temporary.write_text(json.dumps(progress))
+                temporary.replace(args.output / "progress.json")
             if args.video and np.isfinite(p).all():
                 from PIL import Image, ImageDraw
 

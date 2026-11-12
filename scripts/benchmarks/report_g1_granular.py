@@ -209,6 +209,16 @@ table{border-collapse:collapse}td,th{padding:10px;border:1px solid #cbd5e1}code{
         + "".join(rows)
         + "</table>"
     )
+    if status.get("active_case"):
+        progress_url = json.dumps(f"../evaluations/{status['active_case']}/progress.json")
+        page += (
+            "<p id='evaluation-progress'>Initializing evaluation…</p><script>"
+            f"const progressUrl={progress_url};"
+            "setInterval(()=>fetch(progressUrl+'?t='+Date.now()).then(r=>r.ok?r.json():null).then(p=>{"
+            "if(p)document.getElementById('evaluation-progress').textContent='Evaluation progress: '"
+            "+Math.round(100*p.completed_steps/p.total_steps)+'% · '+p.simulated_seconds.toFixed(1)"
+            "+' / '+p.total_simulated_seconds.toFixed(1)+' s simulated';}).catch(()=>{}),10000);</script>"
+        )
     page += """<p>Two fresh policies use 4,096 environments, seed 42 and the same 1,500-iteration PPO budget.
 Forward commands span 0.1–1.0 m/s from the first reset, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing.
 Only the RFT policy receives reset-randomized sand and a material curriculum. MPM is used only for inference.</p>
