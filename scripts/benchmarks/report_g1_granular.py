@@ -24,7 +24,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path("logs/go2_granular/g1")
 
 
-def material_curriculum(events: EventAccumulator, out: Path, iteration: int) -> str:
+def material_curriculum(events: EventAccumulator, out: Path, iteration: int, offset: int) -> str:
     """Show the achieved curriculum and sampled depths separately from the target range."""
     tags = events.Tags()["scalars"]
     if "Curriculum/difficulty" not in tags:
@@ -37,7 +37,7 @@ def material_curriculum(events: EventAccumulator, out: Path, iteration: int) -> 
     ):
         if tag in tags:
             values = events.Scalars(tag)
-            axes[axis].plot([v.step for v in values], [scale * v.value for v in values], label=label)
+            axes[axis].plot([v.step - offset for v in values], [scale * v.value for v in values], label=label)
     axes[0].set(ylabel="Material difficulty", ylim=(-0.02, 1.02))
     axes[1].set(ylabel="Sampled layer depth [mm]")
     axes[1].axhline(118, color="grey", linestyle="--", label="Target maximum: 118 mm")
@@ -82,10 +82,11 @@ def publish() -> None:
             continue
         events = EventAccumulator(str(runs[-1]), size_guidance={"scalars": 0}).Reload()
         tags = events.Tags()["scalars"]
-        count = events.Scalars("Perf/total_fps")[-1].step + 1 if "Perf/total_fps" in tags else 0
+        offset = status.get("rft_initialization", {}).get("iteration", 0) if policy == "rft" else 0
+        count = events.Scalars("Perf/total_fps")[-1].step + 1 - offset if "Perf/total_fps" in tags else 0
         counts.append(count)
         if policy == "rft":
-            curriculum = material_curriculum(events, out, count)
+            curriculum = material_curriculum(events, out, count, offset)
         difficulty = (
             f"{events.Scalars('Curriculum/difficulty')[-1].value:.0%}" if "Curriculum/difficulty" in tags else "—"
         )
@@ -99,7 +100,7 @@ def publish() -> None:
             if tag in tags:
                 has_training = True
                 values = events.Scalars(tag)
-                x = np.array([v.step for v in values])
+                x = np.array([v.step - offset for v in values])
                 y = np.array([v.value for v in values])
                 ax.plot(x, y, color=color, alpha=0.15)
                 window = min(20, len(y))
@@ -107,7 +108,7 @@ def publish() -> None:
                     x[window - 1 :], np.convolve(y, np.ones(window) / window, mode="valid"), color=color, label=label
                 )
     for ax, (_, title) in zip(axes.flat, metrics, strict=True):
-        ax.set(title=title, xlabel="PPO iteration")
+        ax.set(title=title, xlabel="PPO iteration within training stage")
         ax.grid(alpha=0.2)
     figures = ""
     if has_training:
@@ -117,7 +118,8 @@ def publish() -> None:
         fig.savefig(out / "training-comparison.png", dpi=150)
         figures = (
             "<h2>Training curves</h2><p>Rigid and RFT share each axis. Solid curves show 20-iteration "
-            "moving averages; faint curves show raw measurements.</p>"
+            "moving averages; faint curves show raw measurements. Rigid starts from scratch; RFT starts from the "
+            "accepted final rigid weights. RFT iteration zero therefore includes the earlier rigid training.</p>"
             f"<img src='training-comparison.png?v={sum(counts)}' alt='G1 rigid and RFT shared learning curves'>"
         )
     plt.close(fig)
@@ -254,7 +256,9 @@ table{border-collapse:collapse}td,th{padding:10px;border:1px solid #cbd5e1}code{
             "+Math.round(100*p.completed_steps/p.total_steps)+'% · '+p.simulated_seconds.toFixed(1)"
             "+' / '+p.total_simulated_seconds.toFixed(1)+' s simulated';}).catch(()=>{}),10000);</script>"
         )
-    page += """<p>Two fresh policies use 4,096 environments, seed 42 and the same 1,500-iteration PPO budget.
+    page += """<p>The rigid policy trains from scratch with 4,096 environments, seed 42 and 1,500 PPO iterations.
+RFT fine-tunes that accepted walking policy for 1,500 additional iterations with the same environment count and seed;
+its optimizer is reset. This is a two-stage adaptation study, not a comparison at equal total training cost.
 Forward commands span 0.1–1.0 m/s from the first reset, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing.
 Only the RFT policy receives reset-randomized sand and a material curriculum.
 Layer depth starts at 0–10 mm and widens to 0–118 mm with material properties as performance improves.

@@ -111,6 +111,21 @@ def validate_rigid_reuse(status: dict) -> None:
         raise RuntimeError("The rigid baseline must pass validation and recording checks before reuse")
 
 
+def initialization_options(policy: str, checkpoints: dict, status: dict) -> list[str]:
+    """Initialize sand adaptation from the accepted rigid policy and record its provenance."""
+    if policy != "rft":
+        return []
+    initialization = checkpoints["rigid"]
+    status["rft_initialization"] = dict(
+        checkpoint=str(initialization),
+        sha256=hashlib.sha256(initialization.read_bytes()).hexdigest(),
+        iteration=1499,
+        optimizer_restored=False,
+        additional_iterations=1500,
+    )
+    return ["--checkpoint", str(initialization)]
+
+
 def main() -> None:
     """Keep the full study durable and reject an invalid rigid baseline before RFT training."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -145,7 +160,8 @@ def main() -> None:
             "",
             stage,
             "",
-            "Both policies: 4,096 environments, seed 42, 1,500 PPO iterations. Forward commands: 0.1–1.0 m/s.",
+            "Both stages: 4,096 environments, seed 42, 1,500 PPO iterations. Forward commands: 0.1–1.0 m/s.",
+            "Rigid trains from scratch; RFT fine-tunes the accepted rigid policy for 1,500 additional iterations.",
             "No command curriculum. RFT materials change at reset; layers start at 0–10 mm and widen to 0–118 mm.",
             "MPM is inference only; numerical convergence and material equivalence remain unvalidated.",
             "",
@@ -223,6 +239,8 @@ def main() -> None:
         for policy in ("rigid", "rft"):
             family = f"g1_granular_{policy}_max1"
             unit = f"g1-granular-{policy}-training.service"
+            initial_iteration = 1499 if policy == "rft" else 0
+            final_checkpoint = f"model_{initial_iteration + 1499}.pt"
             if policy not in status["runs"]:
                 update(f"Training G1 on {policy.upper()} with 4,096 environments")
                 log = (ROOT / f"{policy}-training.log").resolve()
@@ -255,6 +273,8 @@ def main() -> None:
                     "--experiment_name",
                     family,
                 ]
+                command += initialization_options(policy, checkpoints, status)
+                write_json(path, status)
                 if job_state(unit).get("ActiveState") not in ("active", "activating"):
                     subprocess.run(command, check=True)
                 while job_state(unit).get("ActiveState") in ("active", "activating"):
@@ -264,12 +284,13 @@ def main() -> None:
                 if state.get("Result") != "success" or state.get("ExecMainStatus") != "0":
                     raise RuntimeError(f"G1 training failed: {state}")
                 run = sorted(Path("logs/rsl_rl", family).glob("20*"))[-1]
-                if not (run / "model_1499.pt").exists():
+                if not (run / final_checkpoint).exists():
                     raise RuntimeError(f"Incomplete G1 training: {run}")
                 status["runs"][policy] = str(run)
                 update(f"G1 {policy.upper()} training budget completed")
             run = Path(status["runs"][policy])
-            checkpoints[policy] = run / "model_1499.pt"
+            checkpoints[policy] = run / final_checkpoint
+            status.setdefault("checkpoints", {})[policy] = str(checkpoints[policy])
             if policy == "rigid" and args.reuse_validated_rigid:
                 continue
             checks = []
