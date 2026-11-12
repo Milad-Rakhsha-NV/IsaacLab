@@ -221,7 +221,9 @@ table{border-collapse:collapse}td,th{padding:10px;border:1px solid #cbd5e1}code{
         )
     page += """<p>Two fresh policies use 4,096 environments, seed 42 and the same 1,500-iteration PPO budget.
 Forward commands span 0.1–1.0 m/s from the first reset, with lateral ±0.1 m/s, yaw ±0.3 rad/s and 10% standing.
-Only the RFT policy receives reset-randomized sand and a material curriculum. MPM is used only for inference.</p>
+Only the RFT policy receives reset-randomized sand and a material curriculum.
+Layer depth starts at 0–10 mm and widens to 0–118 mm with material properties as performance improves.
+MPM is used only for inference.</p>
 <p>The 37-joint G1 uses its minimal asset with shared thigh/calf capsule colliders,
 plus its authored foot and torso colliders. Both policies use identical mechanics,
 actuators, observations, rewards and self-collision. RFT integrates loads over those collision surfaces.</p>

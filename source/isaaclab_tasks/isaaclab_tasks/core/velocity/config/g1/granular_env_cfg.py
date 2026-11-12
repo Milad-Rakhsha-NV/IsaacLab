@@ -151,11 +151,12 @@ class G1GranularRigidEnvCfg(Go2RigidEnvCfg):
 
 @configclass
 class G1GranularRFTEnvCfg(G1GranularRigidEnvCfg):
-    """Identical G1 mechanics with a reset-based material curriculum and 0–118 mm layers."""
+    """Identical G1 mechanics with a material curriculum from thin to 118 mm layers."""
 
     randomize_material = True
     curriculum_enabled = True
     bed_depth = 0.118
+    initial_bed_depth_range = (0.0, 0.01)
     bed_depth_range = (0.0, 0.118)
     sim = replace(
         G1GranularRigidEnvCfg().sim,

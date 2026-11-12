@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import argparse
 import ast
 import hashlib
 import json
@@ -97,8 +98,28 @@ def record_video(
         raise RuntimeError(f"G1 recording reaches the bed boundary: {name}")
 
 
+def validate_rigid_reuse(status: dict) -> None:
+    """Require accepted held-out checks and both native movies before reusing a baseline."""
+    gates = status.get("validation", {}).get("rigid", {})
+    required = {name for name, base, _ in video_cases((1.0, 0.5)) if base == "rigid_max_forward"}
+    if (
+        "rigid" not in status["runs"]
+        or not gates
+        or not all(gates.values())
+        or not required.issubset(status.get("published_videos", []))
+    ):
+        raise RuntimeError("The rigid baseline must pass validation and recording checks before reuse")
+
+
 def main() -> None:
     """Keep the full study durable and reject an invalid rigid baseline before RFT training."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--reuse_validated_rigid",
+        action="store_true",
+        help="Retain the accepted rigid baseline when only the RFT curriculum changes.",
+    )
+    args = parser.parse_args()
     ROOT.mkdir(exist_ok=True)
     path = ROOT / "status.json"
     status = json.loads(path.read_text()) if path.exists() else {"validation": {}, "runs": {}, "cases": []}
@@ -112,6 +133,8 @@ def main() -> None:
     )
     titles = {base: title for base, title, *_ in PRIMARY_VIDEOS}
     video_labels = {name: f"{titles[base]} ({speed:.2f} m/s)" for name, base, speed in video_cases((1.0, 0.5))}
+    if args.reuse_validated_rigid:
+        validate_rigid_reuse(status)
 
     def update(stage):
         status.update(stage=stage, updated_unix=time.time())
@@ -123,7 +146,7 @@ def main() -> None:
             stage,
             "",
             "Both policies: 4,096 environments, seed 42, 1,500 PPO iterations. Forward commands: 0.1–1.0 m/s.",
-            "No command curriculum. RFT material randomization changes only at reset; layers span 0–118 mm.",
+            "No command curriculum. RFT materials change at reset; layers start at 0–10 mm and widen to 0–118 mm.",
             "MPM is inference only; numerical convergence and material equivalence remain unvalidated.",
             "",
             "[Report](http://localhost:18010/g1/report/)",
@@ -247,6 +270,8 @@ def main() -> None:
                 update(f"G1 {policy.upper()} training budget completed")
             run = Path(status["runs"][policy])
             checkpoints[policy] = run / "model_1499.pt"
+            if policy == "rigid" and args.reuse_validated_rigid:
+                continue
             checks = []
             depth = ["--substrate_depth", "0.118"] if policy == "rft" else []
             for label, speed in (("stand", 0.0), ("walk", 0.5), ("maximum", 1.0)):
