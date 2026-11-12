@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
 from isaaclab_newton.physics.rft_solver_cfg import RFTSolverCfg
+from isaaclab_newton.sim.schemas import NewtonArticulationCfg
 
 from pxr import Usd
 
@@ -134,7 +135,12 @@ class G1GranularRigidEnvCfg(Go2RigidEnvCfg):
             G1_MINIMAL_CFG,
             prim_path="{ENV_REGEX_NS}/Robot",
             spawn=G1GranularSpawnCfg(
-                **{name: value for name, value in vars(G1_MINIMAL_CFG.spawn).items() if name != "func"}
+                **{
+                    name: value
+                    for name, value in vars(G1_MINIMAL_CFG.spawn).items()
+                    if name not in ("func", "articulation_props")
+                },
+                articulation_props=[NewtonArticulationCfg(self_collision_enabled=True)],
             ),
         ),
         contact_forces=ContactSensorCfg(

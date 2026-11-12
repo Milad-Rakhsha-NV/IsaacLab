@@ -14,16 +14,87 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
-from go2_granular_videos import video_cases
+from go2_granular_videos import PRIMARY_VIDEOS, describe_progress, video_cases
 from imageio_ffmpeg import count_frames_and_secs
 from report_g1_granular import ROOT, publish
 from report_go2_materials import policy_report
 from run_go2_speed_comparison import write_json
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from validate_go2_training import job_state, validation_gates
+
+
+def mpm_startup_checks(evaluate: Callable[..., dict], checkpoint: Path) -> list[dict]:
+    """Compare feedback and pass refinement before the long MPM recordings."""
+    results = []
+    for speed in (0.5, 1.0):
+        for passes, feedback in ((1, 0.1), (1, 1.0), (4, 1.0)):
+            name = f"mpm_startup_{speed:g}_passes_{passes}_feedback_{feedback:g}"
+            summary = evaluate(
+                name,
+                "mpm",
+                "rft",
+                checkpoint,
+                [
+                    "--steps",
+                    "100",
+                    "--speed",
+                    str(speed),
+                    "--bed_depth",
+                    "0.118",
+                    "--bed_length",
+                    "5",
+                    "--bed_width",
+                    "3.2",
+                    "--max_active_cell_count",
+                    str(1 << 20),
+                    "--settle_seconds",
+                    "0.5",
+                    "--proxy_iterations",
+                    str(passes),
+                    "--proxy_relaxation",
+                    str(feedback),
+                    "--audit_forces",
+                ],
+                label=f"MPM startup at {speed:.2f} m/s: {passes} coupling passes, feedback {feedback:g}",
+            )
+            results.append(dict(case=name, **summary))
+    return results
+
+
+def record_video(
+    evaluate: Callable[..., dict], name: str, field: str, policy: str, checkpoint: Path, speed: float
+) -> None:
+    """Verify a final movie before exposing it in the report."""
+    options = ["--steps", "500", "--speed", str(speed), "--video"]
+    if field == "rft":
+        options += ["--substrate_depth", "0.118"]
+    if field == "mpm":
+        options += [
+            "--bed_depth",
+            "0.118",
+            "--bed_length",
+            "12",
+            "--bed_width",
+            "3.2",
+            "--max_active_cell_count",
+            str(1 << 20),
+            "--settle_seconds",
+            "0.5",
+            "--proxy_relaxation",
+            "1.0",
+        ]
+    summary = evaluate(name, field, policy, checkpoint, options)
+    folder = ROOT / "evaluations" / name
+    frames, seconds = count_frames_and_secs(folder / "rollout.mp4")
+    assert frames == 500 and abs(seconds - 10) < 0.1
+    with np.load(folder / "rollout.npz") as data:
+        np.testing.assert_array_equal(data["commands"], np.broadcast_to([speed, 0, 0], data["commands"].shape))
+    if field == "mpm" and summary["first_bed_exit_seconds"] is not None:
+        raise RuntimeError(f"G1 recording reaches the bed boundary: {name}")
 
 
 def main() -> None:
@@ -35,6 +106,11 @@ def main() -> None:
     status.setdefault("cases", [])
     status.setdefault("validation", {})
     status.pop("error", None)
+    status["mpm_profile"] = dict(
+        proxy_iterations=1, proxy_relaxation=1.0, substeps=4, bed_width=3.2, max_active_cell_count=1 << 20
+    )
+    titles = {base: title for base, title, *_ in PRIMARY_VIDEOS}
+    video_labels = {name: f"{titles[base]} ({speed:.2f} m/s)" for name, base, speed in video_cases((1.0, 0.5))}
 
     def update(stage):
         status.update(stage=stage, updated_unix=time.time())
@@ -55,12 +131,14 @@ def main() -> None:
             "|---|---:|---|",
         ]
         for case in status["cases"]:
+            if case["case"] not in status.get("published_videos", []):
+                continue
             first = case["first_failure_seconds"]
             outcome = "None" if first is None else f"{first:.2f} s"
-            lines.append(f"| {case['case']} | {case['mean_velocity_error']:.3f} m/s | {outcome} |")
+            lines.append(f"| {video_labels[case['case']]} | {case['mean_velocity_error']:.3f} m/s | {outcome} |")
         (ROOT / "STATUS.md").write_text("\n".join(lines) + "\n")
 
-    def evaluate(name, field, policy, checkpoint, options, seed=123):
+    def evaluate(name, field, policy, checkpoint, options, seed=123, label=None):
         folder = ROOT / "evaluations" / name
         folder.mkdir(parents=True, exist_ok=True)
         worker = Path("scripts/benchmarks/evaluate_go2_granular.py")
@@ -71,6 +149,10 @@ def main() -> None:
             options=options,
             seed=seed,
             worker_ast=hashlib.sha256(ast.dump(ast.parse(worker.read_text())).encode()).hexdigest(),
+            environment_sha256=hashlib.sha256(
+                Path("source/isaaclab_tasks/isaaclab_tasks/core/velocity/config/g1/granular_env_cfg.py").read_bytes()
+                + Path("source/isaaclab_tasks/isaaclab_tasks/core/velocity/granular_env.py").read_bytes()
+            ).hexdigest(),
         )
         manifest = folder / "case.json"
         summary_file = folder / "summary.json"
@@ -78,7 +160,7 @@ def main() -> None:
         if cached:
             cached = json.loads(summary_file.read_text())["execution_error"] is None
         if not cached:
-            update(f"Evaluating {name.replace('_', ' ')}")
+            update("Evaluating " + (label or describe_progress(name.replace("_", " "), (1.0, 0.5))))
             write_json(manifest, signature)
             command = [
                 sys.executable,
@@ -106,38 +188,11 @@ def main() -> None:
             raise RuntimeError(f"Invalid G1 evaluation {name}")
         status["cases"] = [case for case in status["cases"] if case["case"] != name]
         status["cases"].append(dict(case=name, **summary))
-        update(f"Completed {name.replace('_', ' ')}")
+        update("Completed " + (label or describe_progress(name.replace("_", " "), (1.0, 0.5))))
         return summary
 
     try:
-        update("G1 native checks passed; awaiting the completed Go2 paired-speed study")
-        while not Path("logs/go2_granular/max1/followup-complete.json").exists():
-            for unit in ("go2-paired-speed-evaluation.service", "go2-mpm-startup-recheck.service"):
-                if job_state(unit).get("ActiveState") == "failed":
-                    raise RuntimeError(f"Go2 follow-up failed: {unit}")
-            time.sleep(30)
-        smoke_checkpoint = sorted(Path("logs/rsl_rl/g1_granular_final_smoke").glob("20*/model_2.pt"))[-1]
-        update("Checking G1 MPM inference with the final actor layout before full training")
-        evaluate(
-            "mpm_initialization_smoke",
-            "mpm",
-            "rft",
-            smoke_checkpoint,
-            [
-                "--steps",
-                "4",
-                "--speed",
-                "0.5",
-                "--bed_depth",
-                "0.118",
-                "--bed_length",
-                "1.8",
-                "--bed_width",
-                "1.6",
-                "--settle_seconds",
-                "0.5",
-            ],
-        )
+        update("G1 native drive/reset checks passed; running the rigid baseline before RFT training")
         checkpoints = {}
         for policy in ("rigid", "rft"):
             family = f"g1_granular_{policy}_max1"
@@ -222,6 +277,12 @@ def main() -> None:
             update(f"G1 {policy.upper()} held-out checks completed")
             if policy == "rigid" and not all(gates.values()):
                 raise RuntimeError(f"Rigid G1 baseline requires correction before sand training: {gates}")
+            if policy == "rigid":
+                for name, base, speed in video_cases((1.0, 0.5)):
+                    if base == "rigid_max_forward":
+                        record_video(evaluate, name, "rigid", "rigid", checkpoints["rigid"], speed)
+                        status["published_videos"] = list(dict.fromkeys([*status.get("published_videos", []), name]))
+                        update(f"Verified G1 recording: {video_labels[name]}")
         roles = {
             "rigid_max_forward": ("rigid", "rigid"),
             "rft_max_forward": ("rft", "rft"),
@@ -229,35 +290,21 @@ def main() -> None:
             "rigid_mpm_max_forward": ("mpm", "rigid"),
         }
         for name, base, speed in video_cases((1.0, 0.5)):
+            if name in status.get("published_videos", []):
+                continue
             field, policy = roles[base]
-            options = ["--steps", "500", "--speed", str(speed), "--video"]
-            if field == "rft":
-                options += ["--substrate_depth", "0.118"]
             if field == "mpm":
-                options += [
-                    "--bed_depth",
-                    "0.118",
-                    "--bed_length",
-                    "12",
-                    "--bed_width",
-                    "3.2",
-                    "--max_active_cell_count",
-                    str(1 << 20),
-                    "--settle_seconds",
-                    "0.5",
-                ]
-            summary = evaluate(name, field, policy, checkpoints[policy], options)
-            folder = ROOT / "evaluations" / name
-            frames, seconds = count_frames_and_secs(folder / "rollout.mp4")
-            assert frames == 500 and abs(seconds - 10) < 0.1
-            with np.load(folder / "rollout.npz") as data:
-                np.testing.assert_array_equal(data["commands"], np.broadcast_to([speed, 0, 0], data["commands"].shape))
-            if field == "mpm" and summary["first_bed_exit_seconds"] is not None:
-                raise RuntimeError(f"G1 recording reaches the bed boundary: {name}")
+                if not status.get("mpm_startup_complete"):
+                    status["mpm_startup"] = mpm_startup_checks(evaluate, checkpoints["rft"])
+                    status["mpm_startup_complete"] = True
+                    update("G1 MPM coupling checks completed; recording both policies with full feedback")
+            record_video(evaluate, name, field, policy, checkpoints[policy], speed)
             status["published_videos"] = list(dict.fromkeys([*status.get("published_videos", []), name]))
-            update(f"Verified G1 recording: {name.replace('_', ' ')}")
-        for speed in (1.0, 0.5):
+            update(f"Verified G1 recording: {video_labels[name]}")
+        for speed in (0.5,):
             material_root = ROOT / f"materials_{speed:g}"
+            profile = ROOT / "material-profile.json"
+            write_json(profile, status["mpm_profile"])
             for phase in ("materials", "reference"):
                 update(f"G1 three-material comparisons at {speed:g} m/s: {phase}")
                 command = [
@@ -277,6 +324,8 @@ def main() -> None:
                     "5",
                     "--bed_width",
                     "3.2",
+                    "--profile",
+                    str(profile),
                     "--checkpoint_rigid",
                     str(checkpoints["rigid"]),
                     "--checkpoint_rft",
@@ -285,6 +334,7 @@ def main() -> None:
                 with (ROOT / f"materials-{speed:g}-{phase}.log").open("w") as log:
                     subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
             policy_report(material_root, material_root, speed=speed)
+        status["complete"] = True
         update("G1 training, acceptance checks, eight paired-speed videos and material plots completed")
     except Exception as error:
         status["error"] = repr(error)
