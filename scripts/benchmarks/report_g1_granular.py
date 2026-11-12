@@ -119,7 +119,9 @@ def publish() -> None:
         figures = (
             "<h2>Training curves</h2><p>Rigid and RFT share each axis. Solid curves show 20-iteration "
             "moving averages; faint curves show raw measurements. Rigid starts from scratch; RFT starts from the "
-            "accepted final rigid weights. RFT iteration zero therefore includes the earlier rigid training.</p>"
+            "accepted final rigid weights. RFT iteration zero therefore includes the earlier rigid training. "
+            "Throughput measures the complete training process; short diagnostics shared the GPU during portions "
+            "of training.</p>"
             f"<img src='training-comparison.png?v={sum(counts)}' alt='G1 rigid and RFT shared learning curves'>"
         )
     plt.close(fig)
@@ -263,6 +265,21 @@ Forward commands span 0.1–1.0 m/s from the first reset, with lateral ±0.1 m/s
 Only the RFT policy receives reset-randomized sand and a material curriculum.
 Layer depth starts at 0–10 mm and widens to 0–118 mm with material properties as performance improves.
 MPM is used only for inference.</p>
+<details><summary>RFT randomization and curriculum settings</summary>
+<p>Each resetting environment receives an independent sample. Other environments retain their material.
+The curriculum starts with nominal material properties and 0–10 mm layers. The table shows target distributions
+at full difficulty.</p>
+<table><tr><th>Parameter</th><th>Target distribution</th></tr>
+<tr><td>Layer depth over a fixed substrate</td><td>Uniform 0–118 mm</td></tr>
+<tr><td>Bulk density</td><td>Uniform 1,400–1,800 kg/m³</td></tr>
+<tr><td>Internal friction</td><td>Uniform 0.3–0.5</td></tr>
+<tr><td>Surface/internal friction ratio</td><td>Uniform 0.6–1.0</td></tr>
+<tr><td>Strength multiplier</td><td>Log-uniform 0.8–1.2</td></tr></table>
+<p>Nominal values are 1,600 kg/m³, friction 0.4, interface ratio 1.0 and strength multiplier 1.0.
+Fixed RFT controls are bearing coefficient 0.87574, velocity regularization 0.04 m/s and zero inertial correction.
+Difficulty advances by 0.1 after two windows of at least 4,096 eligible episodes each, with at least 95% completion
+and at most 0.1 m/s mean tracking error. Before reaching full difficulty, a completion rate below 70% retreats
+one level and 10% of reset samples remain at the initial material range. Commands have no curriculum.</p></details>
 <p>The 37-joint G1 uses its minimal asset with shared thigh/calf capsule colliders,
 plus its authored foot and torso colliders. Both policies use identical mechanics,
 actuators, observations, rewards and self-collision. RFT integrates loads over those collision surfaces.</p>
