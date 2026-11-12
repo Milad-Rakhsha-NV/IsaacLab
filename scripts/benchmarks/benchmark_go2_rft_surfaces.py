@@ -20,19 +20,29 @@ from isaaclab_tasks.core.velocity.config.go2.rft_env import Go2RFTEnv
 from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTEnvCfg
 
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--robot", choices=("go2", "g1"), default="go2")
 parser.add_argument("--trajectory", type=Path, default=Path("logs/go2_granular/dr_rft_nominal/rollout.npz"))
 parser.add_argument("--output", type=Path, default=Path("logs/go2_granular/report/surface_convergence.json"))
 parser.add_argument("--refine_quadrature", action="store_true")
 args = parser.parse_args()
-cfg = Go2RFTEnvCfg()
+if args.robot == "g1":
+    from isaaclab_tasks.core.velocity.config.g1.granular_env_cfg import G1GranularRFTEnvCfg
+    from isaaclab_tasks.core.velocity.granular_env import GranularVelocityEnv
+
+    cfg = G1GranularRFTEnvCfg()
+    env_class = GranularVelocityEnv
+else:
+    cfg = Go2RFTEnvCfg()
+    env_class = Go2RFTEnv
 cfg.scene.num_envs = 1
 cfg.randomize_material = False
+cfg.curriculum_enabled = False
 cfg.sim.visualizer_cfgs = []
 trajectory = np.load(args.trajectory)
 poses = trajectory["body_pose"]
 indices = [10, 25, 50, 75]
 with launch_simulation(cfg):
-    env = Go2RFTEnv(cfg)
+    env = env_class(cfg)
     try:
         env.reset()
         model = env.rft.model
@@ -49,6 +59,8 @@ with launch_simulation(cfg):
                 rigid_solver=env.rft.rigid_solver,
                 max_edge_length=edge,
                 config=env.rft.config,
+                surface_height=env.rft.surface_height.numpy().tolist(),
+                surface_bottom=env.rft.surface_bottom.numpy().tolist(),
             )
             wrenches = []
             for frame in indices:
@@ -74,6 +86,8 @@ with launch_simulation(cfg):
                 )
             )
         reference = results[-1]["wrench"]
+        if np.linalg.norm(reference[:, :, :3]) < 1e-8:
+            raise RuntimeError("Selected snapshots have no granular load; check trajectory and field planes")
         for result in results:
             w = result.pop("wrench")
             result["force_relative_error"] = float(
@@ -87,6 +101,7 @@ with launch_simulation(cfg):
             json.dumps(
                 dict(
                     results=results,
+                    robot=args.robot,
                     reference_segments=48,
                     frames=indices,
                     kinematics="Common poses; COM twists from 20 ms finite differences. No robot integration.",

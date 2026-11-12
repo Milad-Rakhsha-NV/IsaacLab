@@ -38,14 +38,16 @@ parser.add_argument(
 )
 parser.add_argument("--video", action="store_true")
 parser.add_argument("--no-bearing", action="store_true")
+parser.add_argument("--rft_profile", type=Path, help="Recorded RFT solver and reset-randomization settings.")
 parser.add_argument("--randomize", action="store_true")
 parser.add_argument("--segments", type=int, default=12)
 parser.add_argument("--voxel_size", type=float, default=0.02)
 parser.add_argument("--speed", type=float, default=0.3)
 parser.add_argument("--max_forward_command", type=float, default=0.5)
-parser.add_argument("--density", type=float, default=1600.0)
-parser.add_argument("--friction", type=float, default=0.4)
-parser.add_argument("--roughness", type=float, default=1.0)
+parser.add_argument("--density", type=float)
+parser.add_argument("--friction", type=float)
+parser.add_argument("--roughness", type=float)
+parser.add_argument("--particles_per_cell", type=int, default=2)
 parser.add_argument("--proxy_relaxation", type=float, default=0.1)
 parser.add_argument("--proxy_iterations", type=int, default=1)
 parser.add_argument("--mpm_iterations", type=int, default=50)
@@ -68,6 +70,11 @@ parser.add_argument(
 )
 parser.add_argument("--difficulty", type=float, default=1.0, help="Frozen curriculum level for randomized validation.")
 args = parser.parse_args()
+profile = json.loads(args.rft_profile.read_text()) if args.rft_profile and args.field == "rft" else {}
+nominal = profile.get("nominal_material", {})
+for name, default in (("density", 1600.0), ("friction", 0.4), ("roughness", 1.0)):
+    if getattr(args, name) is None:
+        setattr(args, name, nominal.get(name, default))
 configure_console_logging()
 
 from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTCurriculumEnvCfg, Go2RFTEnvCfg, Go2RigidEnvCfg
@@ -90,6 +97,11 @@ else:
         else Go2RFTEnvCfg()
     )
 cfg.curriculum_enabled = False
+if args.field == "rft":
+    for name, value in profile.get("environment", {}).items():
+        if not hasattr(cfg, name):
+            raise ValueError(f"Unknown RFT environment property: {name}")
+        setattr(cfg, name, tuple(value) if isinstance(value, list) else value)
 cfg.sim.visualizer_cfgs = [cfg.sim.visualizer_cfgs]
 cfg.seed = args.seed
 cfg.scene.num_envs = args.num_envs
@@ -126,7 +138,11 @@ if args.field == "rft":
     else:
         cfg.scene.bed.spawn.size = (100.0, 100.0, depth)
         cfg.scene.bed.init_state.pos = (0.0, 0.0, depth / 2)
-    cfg.sim.physics.solver_cfg.bearing = 0.0 if args.no_bearing else 0.87574
+    for name, value in profile.get("solver", {}).items():
+        if not hasattr(cfg.sim.physics.solver_cfg, name):
+            raise ValueError(f"Unknown RFT solver property: {name}")
+        setattr(cfg.sim.physics.solver_cfg, name, value)
+    cfg.sim.physics.solver_cfg.bearing = 0.0 if args.no_bearing else profile.get("solver", {}).get("bearing", 0.87574)
     cfg.sim.physics.solver_cfg.segments = args.segments
     cfg.sim.physics.solver_cfg.bulk_density = args.density
     cfg.sim.physics.solver_cfg.internal_friction = args.friction
@@ -176,7 +192,7 @@ if args.field == "mpm":
             lower=(-0.7, -args.bed_width / 2, -args.bed_depth),
             upper=(args.bed_length - 0.7, args.bed_width / 2, 0),
             voxel_size=args.voxel_size,
-            particles_per_cell=2,
+            particles_per_cell=args.particles_per_cell,
             particle_placement="cell_center",
             jitter=0,
             material=MPMParticleMaterialCfg(
@@ -703,6 +719,8 @@ with launch_simulation(cfg):
             rigid_support_plane=args.field in ("rigid", "mpm") or args.field == "rft" and cfg.bed_depth is not None,
             material_randomization=cfg.randomize_material,
             voxel_size=args.voxel_size if mpm is not None else None,
+            particles_per_cell=args.particles_per_cell if mpm is not None else None,
+            rft_profile=profile,
             mpm_floor_center_xy=[args.bed_length / 2 - 0.7, 0.0] if mpm is not None else None,
             max_active_cell_count=cfg.sim.physics.solver_cfg.entries[1].solver_cfg.max_active_cell_count
             if mpm is not None

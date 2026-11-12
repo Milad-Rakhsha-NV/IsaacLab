@@ -346,7 +346,8 @@ table{border-collapse:collapse}td,th{padding:10px;border:1px solid #cbd5e1}code{
 .status{background:#dbeafe;padding:16px}a,summary{color:#1d4ed8}</style>"""
     page += (
         '<h1>G1: rigid, RFT and MPM comparisons</h1><p><a href="/report/">Go2 comparison</a> · '
-        '<a href="../STATUS.md">G1 status and settings</a></p>'
+        '<a href="../STATUS.md">G1 status and settings</a> · '
+        '<a href="../refinement/">Force-model investigation and retraining</a></p>'
     )
     page += (
         f'<p class="status">{html.escape(status["stage"])}</p>'

@@ -114,7 +114,7 @@ def particle_statistics(
     wp.atomic_add(out, 6, m * p[2])
 
 
-def make_model(args):
+def make_model(args, probe_mesh=None):
     """Build an exact-volume particle grid, a prescribed intruder, and a backing floor."""
     builder = newton.ModelBuilder()
     SolverImplicitMPM.register_custom_attributes(builder)
@@ -122,7 +122,9 @@ def make_model(args):
         xform=wp.transform(wp.vec3(0.0, 0.0, 0.08), wp.quat_identity()), is_kinematic=True, label="probe"
     )
     material = newton.ModelBuilder.ShapeConfig(mu=args.friction * args.roughness, density=0.0)
-    if args.geometry == "sphere":
+    if probe_mesh is not None:
+        builder.add_shape_mesh(probe, mesh=probe_mesh, cfg=material)
+    elif args.geometry == "sphere":
         builder.add_shape_sphere(probe, radius=0.022, cfg=material)
     else:
         builder.add_shape_box(probe, hx=0.025, hy=0.025, hz=0.0025, cfg=material)
