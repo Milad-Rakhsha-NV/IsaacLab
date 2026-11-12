@@ -23,6 +23,7 @@ LABELS = {
     "control": "Original RFT model · more training",
     "matched": "Revised RFT-trained policy",
     "rigid": "Rigid-trained policy",
+    "initial": "Original RFT-trained checkpoint",
 }
 GATES = {
     "grid": "Grid: 10 → 5 mm",
@@ -350,6 +351,11 @@ The unloaded hold alone cannot determine the admissible static support under bod
         outcome = "passed" if calibration["holdout_accepted"] else "failed"
         page += f"<p><strong>Held-out force matching: {outcome}.</strong> "
         page += "The candidate remains an approximation; fitting a subset does not establish material equivalence.</p>"
+        page += (
+            f"<p>Weighted moving-wrench fit error is {c['fit_normalized_error']:.1%}. "
+            "The held-out gate allows at most 20% error in each phase's mean force and torque vectors, "
+            "using 20 N and 1 Nm normalization floors near zero.</p>"
+        )
         page += """<p>Moving insertion and drag measurements determine traction response. A settled loaded-foot
 measurement constrains near-rest support when available. Unloaded holds, rotations and withdrawal remain
 held out. The local model has no evolving surface or plastic loading history.</p>"""
@@ -383,12 +389,13 @@ held out. The local model has no evolving surface or plastic loading history.</p
             phase_rows.append(
                 f"<tr><td>{row['phase'].replace('_', ' ')}</td><td>{row['split']}</td>"
                 f"<td>{row['measured_wrench'][2]:.1f}</td><td>{row['original_wrench'][2]:.1f}</td>"
-                f"<td>{row['fitted_wrench'][2]:.1f}</td><td>{row['force_error']:.1%}</td></tr>"
+                f"<td>{row['fitted_wrench'][2]:.1f}</td><td>{row['force_error']:.1%}</td>"
+                f"<td>{row['torque_error']:.1%}</td></tr>"
             )
         page += (
             """<details><summary>Force measurements by phase</summary><table><tr><th>Phase</th><th>Split</th>
 <th>MPM Fz [N]</th><th>Original RFT Fz [N]</th><th>Candidate RFT Fz [N]</th>
-<th>Mean force-vector error</th></tr>"""
+<th>Mean force-vector error</th><th>Mean torque-vector error</th></tr>"""
             + "".join(phase_rows)
             + "</table></details>"
         )
@@ -429,6 +436,13 @@ The force-informed model and wider randomization form an exploratory combined ch
         )
     page += "</section>"
     evaluations = read(ROOT / "evaluation-status.json")
+    for filename in ("native-evaluation-status.json", "matched-mpm-evaluation-status.json"):
+        extra = read(ROOT / filename)
+        if extra:
+            combined = {r["name"]: r for r in evaluations.get("cases", [])}
+            combined.update({r["name"]: r for r in extra.get("cases", [])})
+            evaluations["cases"] = list(combined.values())
+            evaluations["validation"] = evaluations.get("validation", {}) | extra.get("validation", {})
     if evaluations:
         policy_plots(evaluations.get("cases", []))
         material_plot(evaluations.get("cases", []))
@@ -484,6 +498,30 @@ full-biped reference, especially when a boundary exit is recorded.</p>
                 + reference_rows
                 + "</table></section>"
             )
+        nominal = {r["name"]: r for r in evaluations.get("cases", []) if "_mpm_nominal_" in r["name"]}
+        if nominal:
+            page += """<section><h2>Nominal MPM: checkpoints under identical settings</h2>
+<p>The original RFT checkpoint is evaluated again with the same new MPM settings as the continuations.
+This separates additional training from changes to the inference simulator. The two continued policies
+share their initial weights and exposure; the corrected variant combines the bearing correction,
+force-informed parameters and wider reset ranges. Each comparison remains a single short trial.</p>
+<table><tr><th>Policy</th><th>Total PPO iterations</th><th>Command [m/s]</th><th>Duration [s]</th>
+<th>First body failure</th><th>Pre-failure planar error [m/s]</th></tr>"""
+            for policy, exposure in (("rigid", 1500), ("initial", 3000), ("control", 4000), ("matched", 4000)):
+                for speed in (0.5, 1.0):
+                    row = nominal.get(f"{policy}_mpm_nominal_{speed:g}")
+                    if row is None:
+                        continue
+                    s = row["summary"]
+                    first = s["first_failure_seconds"]
+                    failure = "None" if first is None else f"{first:.2f} s"
+                    error = s.get("mean_pre_failure_velocity_error")
+                    error_text = "—" if error is None else f"{error:.3f}"
+                    page += (
+                        f"<tr><td>{LABELS[policy]}</td><td>{exposure:,}</td><td>{speed:.2f}</td>"
+                        f"<td>{s['simulated_seconds']:.2f}</td><td>{failure}</td><td>{error_text}</td></tr>"
+                    )
+            page += "</table></section>"
         for speed in (0.5, 1.0):
             page += (
                 f'<section><h2>Comparison at {speed:.2f} m/s</h2><img src="comparison-{speed:g}.png" '

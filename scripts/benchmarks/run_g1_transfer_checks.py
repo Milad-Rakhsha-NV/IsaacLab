@@ -20,6 +20,7 @@ PYTHONS = {
     "control": Path(".venv/bin/python").absolute(),
     "matched": Path("/home/horde/.cache/rft-study/g1-fixed-venv/bin/python"),
     "rigid": Path("/home/horde/.cache/rft-study/g1-fixed-venv/bin/python"),
+    "initial": Path(".venv/bin/python").absolute(),
 }
 MATERIALS = {
     "nominal": (0.118, 1600.0, 0.4),
@@ -35,15 +36,29 @@ def write(path, record):
     temporary.replace(path)
 
 
+def verify_summary(summary, name):
+    """Distinguish a finite policy fall from numerical failure or exhausted capacity."""
+    if (
+        summary["execution_error"]
+        or not summary["particles_finite"]
+        or summary["max_rigid_overflow"]
+        or not np.isfinite([summary["mean_velocity_error"], summary["max_tilt_radians"]]).all()
+        or not np.isfinite(summary["final_height"]).all()
+    ):
+        raise RuntimeError(f"Invalid numerical evaluation: {name}")
+
+
 def main(args):
     """Reuse only identical completed cases, keeping videos off the live page until verified."""
     PYTHONS["control"] = args.control_python.absolute()
+    PYTHONS["initial"] = PYTHONS["control"]
     PYTHONS["matched"] = PYTHONS["rigid"] = args.corrected_python.absolute()
-    state_path = ROOT / "evaluation-status.json"
+    state_path = args.status_file or ROOT / "evaluation-status.json"
     status = json.loads(state_path.read_text()) if state_path.exists() else dict(cases=[], validation={})
     training = json.loads((ROOT / "training-status.json").read_text())
     baseline = json.loads(Path("logs/go2_granular/g1/status.json").read_text())
     checkpoints = {"rigid": Path(baseline["checkpoints"]["rigid"])}
+    checkpoints["initial"] = Path(training["runs"]["control"]["initial_checkpoint"])
     for policy in ("control", "matched"):
         record = training["runs"].get(policy, {})
         if "checkpoint" in record:
@@ -89,8 +104,7 @@ def main(args):
             with (folder / "stdout.log").open("w") as log:
                 subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
         summary = json.loads((folder / "summary.json").read_text())
-        if summary["execution_error"] or not summary["particles_finite"] or summary["max_rigid_overflow"]:
-            raise RuntimeError(f"Invalid numerical evaluation: {name}")
+        verify_summary(summary, name)
         if video:
             frames, seconds = count_frames_and_secs(folder / "rollout.mp4")
             assert frames == summary["steps"] and abs(seconds - summary["simulated_seconds"]) < 0.1
@@ -176,6 +190,16 @@ def main(args):
             )
         status["validation"][policy] = validation_gates(checks, material_difficulty=1.0)
         write(state_path, status)
+    elif args.phase == "limit":
+        for policy in args.policies:
+            for speed in (0.5, 1.0):
+                evaluate(
+                    f"{policy}_rigid_limit_{speed:g}",
+                    policy,
+                    "rft",
+                    ["--substrate_depth", "0", "--steps", "1000", "--num_envs", "16", "--speed", str(speed)],
+                    f"Rigid limit: zero RFT layer; {speed:.2f} m/s",
+                )
     elif args.phase == "timestep":
         for policy in args.policies:
             field = "rigid" if policy == "rigid" else "rft"
@@ -188,6 +212,15 @@ def main(args):
                     [*depth, "--steps", "1000", "--num_envs", "16", "--speed", str(speed), "--substeps", "8"],
                     f"{field.upper()} at the MPM rigid timestep: 8 substeps; {speed:.2f} m/s",
                 )
+    elif args.phase == "initial":
+        for speed in (0.5, 1.0):
+            evaluate(
+                f"initial_mpm_nominal_{speed:g}",
+                "initial",
+                "mpm",
+                mpm_options("nominal", 5, 150, speed),
+                f"Original RFT checkpoint in the same new MPM settings; {speed:.2f} m/s",
+            )
     elif args.phase == "reference":
         for voxel in (0.02, 0.01, 0.008):
             evaluate(
@@ -234,9 +267,12 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--phase", choices=("control", "matched", "timestep", "reference", "mpm", "videos"), required=True
+        "--phase",
+        choices=("control", "matched", "limit", "timestep", "initial", "reference", "mpm", "videos"),
+        required=True,
     )
-    parser.add_argument("--policies", nargs="+", choices=tuple(PYTHONS), default=list(PYTHONS))
+    parser.add_argument("--policies", nargs="+", choices=tuple(PYTHONS), default=["control", "matched", "rigid"])
     parser.add_argument("--control_python", type=Path, default=PYTHONS["control"])
     parser.add_argument("--corrected_python", type=Path, default=PYTHONS["matched"])
+    parser.add_argument("--status_file", type=Path, help="Separate status record for concurrent native checks.")
     main(parser.parse_args())
