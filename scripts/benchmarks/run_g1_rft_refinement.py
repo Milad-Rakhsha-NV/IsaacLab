@@ -23,6 +23,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path("logs/go2_granular/g1/refinement")
 INITIAL = Path("logs/rsl_rl/g1_granular_rft_max1/2026-11-12_01-41-04/model_2998.pt")
 OFFSET = 2998
+LABELS = {"control": "Original model: extra training", "matched": "Corrected and force-informed model"}
 
 
 def unit_state(unit):
@@ -56,14 +57,14 @@ def publish(status):
             ):
                 if tag in tags:
                     values = events.Scalars(tag)
-                    ax.plot([v.step - OFFSET for v in values], [v.value for v in values], label=name)
+                    ax.plot([v.step - OFFSET for v in values], [v.value for v in values], label=LABELS.get(name, name))
                 ax.set(xlabel="Additional PPO iteration", ylabel=label)
                 ax.grid(alpha=0.2)
             if "Perf/total_fps" in tags:
                 progress = events.Scalars("Perf/total_fps")[-1].step + 1 - OFFSET
         record["completed_iterations"] = progress
         rows.append(
-            f"<tr><td>{name}</td><td>{progress} / {record['iterations']}</td>"
+            f"<tr><td>{LABELS.get(name, name)}</td><td>{progress} / {record['iterations']}</td>"
             f"<td>{html.escape(record.get('stage', 'pending'))}</td></tr>"
         )
     if axes[0].get_legend_handles_labels()[0]:

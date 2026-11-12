@@ -37,6 +37,8 @@ def write(path, record):
 
 def main(args):
     """Reuse only identical completed cases, keeping videos off the live page until verified."""
+    PYTHONS["control"] = args.control_python.absolute()
+    PYTHONS["matched"] = PYTHONS["rigid"] = args.corrected_python.absolute()
     state_path = ROOT / "evaluation-status.json"
     status = json.loads(state_path.read_text()) if state_path.exists() else dict(cases=[], validation={})
     training = json.loads((ROOT / "training-status.json").read_text())
@@ -91,7 +93,7 @@ def main(args):
             raise RuntimeError(f"Invalid numerical evaluation: {name}")
         if video:
             frames, seconds = count_frames_and_secs(folder / "rollout.mp4")
-            assert frames == 500 and abs(seconds - 10) < 0.1
+            assert frames == summary["steps"] and abs(seconds - summary["simulated_seconds"]) < 0.1
             with np.load(folder / "rollout.npz") as data:
                 speed = summary["commands"][0][0]
                 np.testing.assert_array_equal(data["commands"], np.broadcast_to([speed, 0, 0], data["commands"].shape))
@@ -176,21 +178,24 @@ def main(args):
         for material in MATERIALS:
             for speed in (0.5, 1.0):
                 for policy in args.policies:
+                    video = material == "nominal" and policy in ("matched", "rigid")
+                    options = mpm_options(material, 5, 150, speed)
+                    if video:
+                        options.append("--video")
                     evaluate(
                         f"{policy}_mpm_{material}_{speed:g}",
                         policy,
                         "mpm",
-                        mpm_options(material, 5, 150, speed),
+                        options,
                         f"MPM {material.replace('_', ' ')} material at {speed:.2f} m/s (3 s)",
+                        video=video,
                     )
     else:
-        for policy, field in (("rigid", "rigid"), ("matched", "rft"), ("matched", "mpm"), ("rigid", "mpm")):
+        for policy, field in (("rigid", "rigid"), ("matched", "rft")):
             for speed in (0.5, 1.0):
                 options = ["--steps", "500", "--speed", str(speed), "--video"]
                 if field == "rft":
                     options += ["--substrate_depth", "0.118"]
-                if field == "mpm":
-                    options += mpm_options("nominal", 12, 500, speed)
                 evaluate(
                     f"{policy}_{field}_video_{speed:g}",
                     policy,
@@ -207,4 +212,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=("control", "matched", "mpm", "videos"), required=True)
     parser.add_argument("--policies", nargs="+", choices=tuple(PYTHONS), default=list(PYTHONS))
+    parser.add_argument("--control_python", type=Path, default=PYTHONS["control"])
+    parser.add_argument("--corrected_python", type=Path, default=PYTHONS["matched"])
     main(parser.parse_args())
