@@ -42,6 +42,9 @@ parser.add_argument(
     "--command_schedule", action="store_true", help="Rigid-floor stand/walk/max-speed/steering/stop test."
 )
 parser.add_argument("--video", action="store_true")
+parser.add_argument(
+    "--save_body_twists", action="store_true", help="Record exact COM twists for force-quadrature audits."
+)
 parser.add_argument("--no-bearing", action="store_true")
 parser.add_argument("--rft_profile", type=Path, help="Recorded RFT solver and reset-randomization settings.")
 parser.add_argument("--randomize", action="store_true")
@@ -70,6 +73,7 @@ parser.add_argument("--bed_depth", type=float, default=0.4)
 parser.add_argument("--bed_length", type=float, default=2.0, help="MPM bed length along the forward axis [m].")
 parser.add_argument("--bed_width", type=float, default=1.2)
 parser.add_argument("--max_active_cell_count", type=int, help="Optional MPM sparse-grid capacity; overflow is checked.")
+parser.add_argument("--max_leaf_node_count", type=int, default=1 << 15)
 parser.add_argument(
     "--substrate_depth", type=float, default=None, help="Optional RFT layer thickness; zero tests rigid limit."
 )
@@ -240,7 +244,7 @@ if args.field == "mpm":
                                 )
                             ),
                         ),
-                        max_leaf_node_count=1 << 15,
+                        max_leaf_node_count=args.max_leaf_node_count,
                         max_lower_node_count=1 << 11,
                         max_upper_node_count=1 << 9,
                         max_iterations=args.mpm_iterations,
@@ -471,6 +475,7 @@ with launch_simulation(cfg):
         )
         writer.send(None)
     rows, force_rows, joint_rows, pose_rows, metric_rows, gait_rows, command_rows = [], [], [], [], [], [], []
+    twist_rows = []
     joint_velocity_rows, joint_effort_rows, action_rows = [], [], []
     support_rows = []
     foot_count = len(cfg.foot_body_names)
@@ -581,6 +586,8 @@ with launch_simulation(cfg):
             )
             force_rows.append(force)
             pose_rows.append(env.sim.backend_manager.backend.state_0.body_q.numpy().copy())
+            if args.save_body_twists:
+                twist_rows.append(env.sim.backend_manager.backend.state_0.body_qd.numpy().copy())
             joint_rows.append(env.robot.data.joint_pos.torch.cpu().numpy())
             joint_velocity_rows.append(joint_velocity.copy())
             joint_effort_rows.append(effort.copy())
@@ -682,6 +689,7 @@ with launch_simulation(cfg):
             joint_effort=np.array(joint_effort_rows),
             actions=np.array(action_rows),
             body_pose=np.array(pose_rows),
+            body_twist=np.array(twist_rows),
             metrics=np.array(metric_rows),
             gait=np.array(gait_rows),
             commands=np.array(command_rows),
@@ -737,6 +745,7 @@ with launch_simulation(cfg):
             material_randomization=cfg.randomize_material,
             voxel_size=args.voxel_size if mpm is not None else None,
             particles_per_cell=args.particles_per_cell if mpm is not None else None,
+            max_leaf_node_count=args.max_leaf_node_count if mpm is not None else None,
             rft_profile=profile,
             mpm_floor_center_xy=[args.bed_length / 2 - 0.7, 0.0] if mpm is not None else None,
             max_active_cell_count=cfg.sim.physics.solver_cfg.entries[1].solver_cfg.max_active_cell_count

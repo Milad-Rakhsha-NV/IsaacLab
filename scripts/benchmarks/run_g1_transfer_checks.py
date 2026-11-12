@@ -48,6 +48,67 @@ def verify_summary(summary, name):
         raise RuntimeError(f"Invalid numerical evaluation: {name}")
 
 
+def verify_recording(folder, summary, field, full_length):
+    """Check actual frames, commands and material-domain coverage before publication."""
+    frames, seconds = count_frames_and_secs(folder / "rollout.mp4")
+    assert frames == summary["steps"] and abs(seconds - summary["simulated_seconds"]) < 0.1
+    if full_length:
+        assert frames == 500 and abs(seconds - 10) < 0.1
+    with np.load(folder / "rollout.npz") as data:
+        speed = summary["commands"][0][0]
+        np.testing.assert_array_equal(data["commands"], np.broadcast_to([speed, 0, 0], data["commands"].shape))
+    if field == "mpm" and summary["first_bed_exit_seconds"] is not None:
+        raise RuntimeError(f"Recording reaches material boundary: {folder.name}")
+
+
+def extended_recordings(evaluate, mpm_options, status, state_path):
+    """Replace short diagnostic clips with complete ten-second nominal comparisons."""
+    for policy in ("matched", "rigid"):
+        for speed in (0.5, 1.0):
+            evaluate(
+                f"{policy}_extended_{speed:g}",
+                policy,
+                "mpm",
+                [
+                    *mpm_options("nominal", 12, 500, speed, failure_tail=False),
+                    "--video",
+                    "--max_leaf_node_count",
+                    str(1 << 16),
+                ],
+                f"Ten-second MPM recording at {speed:.2f} m/s; {policy} policy",
+                video=True,
+            )
+            old = f"{policy}_mpm_nominal_{speed:g}"
+            for record in status["cases"]:
+                if record["name"] == old:
+                    record["video"] = False
+            write(state_path, status)
+            path = ROOT / "matched-mpm-evaluation-status.json"
+            if path.exists():
+                extra = json.loads(path.read_text())
+                for record in extra["cases"]:
+                    if record["name"] == old:
+                        record["video"] = False
+                write(path, extra)
+
+
+def native_recordings(evaluate):
+    """Record the unchanged rigid reference and the revised policy in its RFT field."""
+    for policy, field in (("rigid", "rigid"), ("matched", "rft")):
+        for speed in (0.5, 1.0):
+            options = ["--steps", "500", "--speed", str(speed), "--video"]
+            if field == "rft":
+                options += ["--substrate_depth", "0.118"]
+            evaluate(
+                f"{policy}_{field}_video_{speed:g}",
+                policy,
+                field,
+                options,
+                f"{field.upper()} recording at {speed:.2f} m/s",
+                video=True,
+            )
+
+
 def main(args):
     """Reuse only identical completed cases, keeping videos off the live page until verified."""
     PYTHONS["control"] = args.control_python.absolute()
@@ -106,13 +167,7 @@ def main(args):
         summary = json.loads((folder / "summary.json").read_text())
         verify_summary(summary, name)
         if video:
-            frames, seconds = count_frames_and_secs(folder / "rollout.mp4")
-            assert frames == summary["steps"] and abs(seconds - summary["simulated_seconds"]) < 0.1
-            with np.load(folder / "rollout.npz") as data:
-                speed = summary["commands"][0][0]
-                np.testing.assert_array_equal(data["commands"], np.broadcast_to([speed, 0, 0], data["commands"].shape))
-            if field == "mpm" and summary["first_bed_exit_seconds"] is not None:
-                raise RuntimeError(f"Recording reaches material boundary: {name}")
+            verify_recording(folder, summary, field, args.phase == "long_videos")
         row = dict(name=name, policy=policy, field=field, summary=summary, label=label, video=video)
         status["cases"] = [r for r in status["cases"] if r["name"] != name] + [row]
         status.pop("active_case", None)
@@ -120,9 +175,9 @@ def main(args):
         write(state_path, status)
         return summary
 
-    def mpm_options(material, length, steps, speed):
+    def mpm_options(material, length, steps, speed, failure_tail=True):
         depth, density, friction = MATERIALS[material]
-        return [
+        options = [
             "--steps",
             str(steps),
             "--speed",
@@ -151,9 +206,10 @@ def main(args):
             "1.0",
             "--settle_seconds",
             "0.5",
-            "--failure_tail_seconds",
-            "0.5",
         ]
+        if failure_tail:
+            options += ["--failure_tail_seconds", "0.5"]
+        return options
 
     if args.phase in ("control", "matched"):
         policy = args.phase
@@ -222,12 +278,15 @@ def main(args):
                 f"Original RFT checkpoint in the same new MPM settings; {speed:.2f} m/s",
             )
     elif args.phase == "reference":
-        for voxel in (0.02, 0.01, 0.008):
+        for voxel in args.reference_voxels:
+            options = [*mpm_options("nominal", 2.4, 100, 0.5), "--bed_width", "0.8", "--voxel_size", str(voxel)]
+            if voxel <= 0.008:
+                options += ["--max_leaf_node_count", str(1 << 16)]
             evaluate(
                 f"matched_reference_{1000 * voxel:g}mm",
                 "matched",
                 "mpm",
-                [*mpm_options("nominal", 2.4, 100, 0.5), "--bed_width", "0.8", "--voxel_size", str(voxel)],
+                options,
                 f"Whole-robot MPM grid sensitivity: {1000 * voxel:g} mm; 2.4 × 0.8 m bed; 0.50 m/s",
             )
     elif args.phase == "mpm":
@@ -246,20 +305,10 @@ def main(args):
                         f"MPM {material.replace('_', ' ')} material at {speed:.2f} m/s (3 s)",
                         video=video,
                     )
+    elif args.phase == "long_videos":
+        extended_recordings(evaluate, mpm_options, status, state_path)
     else:
-        for policy, field in (("rigid", "rigid"), ("matched", "rft")):
-            for speed in (0.5, 1.0):
-                options = ["--steps", "500", "--speed", str(speed), "--video"]
-                if field == "rft":
-                    options += ["--substrate_depth", "0.118"]
-                evaluate(
-                    f"{policy}_{field}_video_{speed:g}",
-                    policy,
-                    field,
-                    options,
-                    f"{field.upper()} recording at {speed:.2f} m/s",
-                    video=True,
-                )
+        native_recordings(evaluate)
     status.update(stage=f"{args.phase.capitalize()} evaluation phase completed", complete=True)
     write(state_path, status)
 
@@ -268,11 +317,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--phase",
-        choices=("control", "matched", "limit", "timestep", "initial", "reference", "mpm", "videos"),
+        choices=("control", "matched", "limit", "timestep", "initial", "reference", "mpm", "videos", "long_videos"),
         required=True,
     )
     parser.add_argument("--policies", nargs="+", choices=tuple(PYTHONS), default=["control", "matched", "rigid"])
     parser.add_argument("--control_python", type=Path, default=PYTHONS["control"])
     parser.add_argument("--corrected_python", type=Path, default=PYTHONS["matched"])
     parser.add_argument("--status_file", type=Path, help="Separate status record for concurrent native checks.")
+    parser.add_argument("--reference_voxels", type=float, nargs="+", default=[0.02, 0.01, 0.008])
     main(parser.parse_args())

@@ -16,6 +16,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import PolyCollection
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 ROOT = Path("logs/go2_granular/g1/refinement")
@@ -434,16 +435,107 @@ def render_policy_videos(cases):
                 page += "<p>Recording pending.</p></div>"
                 continue
             s, name = row["summary"], row["name"]
+            if field == "mpm" and s["simulated_seconds"] < 9.9:
+                page += (
+                    "<p><strong>Short diagnostic preview; full 10-second replacement is being generated.</strong></p>"
+                )
             failure = s["first_failure_seconds"]
             outcome = "No body threshold reached" if failure is None else f"First body threshold: {failure:.2f} s"
             page += (
                 f'<video controls preload="metadata" src="evaluations/{name}/rollout.mp4" '
                 f'poster="evaluations/{name}/preview.jpg"></video>'
                 f"<p>{s['simulated_seconds']:g} s; mean planar error {s['mean_velocity_error']:.3f} m/s. "
-                f"{outcome}.</p></div>"
+                f"{outcome}.</p>"
             )
+            if field == "mpm":
+                page += (
+                    f"<p>Bed: {s['bed_length']:g} × {s['bed_width']:g} m; "
+                    "118 mm depth. The recording continues after a fall without resetting the robot.</p>"
+                )
+            page += "</div>"
         page += "</div></article>"
     return page + "</section>"
+
+
+def foot_quadrature_section():
+    """Separate sole integration resolution from the closed foot collider."""
+    audit = read(ROOT / "foot-quadrature-convergence.json")
+    page = """<section><h2>Foot surface integration</h2>
+<p>Counts below refer to one foot. The current training mesh has <strong>2 triangles on the sole</strong>
+and 12 over the complete foot collision box. Torso and leg triangles do not measure sole resolution.
+The flat box geometry is exact, but force integration can still need refinement when rotation changes
+depth, velocity direction or activation across a face. RFT integrates each triangle at three quadrature
+points after clipping it against the material layer.</p>"""
+    if not audit:
+        return page + "<p>The foot-only convergence audit is running.</p></section>"
+    foot_mesh_plot(audit)
+    page += (
+        f"<p>The audit prescribes {audit['motion_samples']} recorded poses with exact COM twists from the "
+        "final policy at both commands, swept over 41 material/height combinations. Each foot is evaluated "
+        "independently; a parity check reproduces the original full-model foot wrenches. "
+        "Errors below are pooled L2 differences against a 10 mm maximum-edge reference. "
+        "Sole-only reactions exclude side and upper faces; whole-foot reactions include them. "
+        "Moments are about the actual foot body COM. This checks numerical quadrature, not material validity.</p>"
+        "<table><tr><th>Maximum edge</th><th>Sole triangles per foot</th><th>All triangles per foot</th>"
+        "<th>Largest sole force / torque error</th><th>Largest whole-foot force / torque error</th></tr>"
+    )
+    for row in audit["results"]:
+        edge = row["max_edge_length"]
+        label = "Current (no subdivision)" if edge is None else f"{1000 * edge:g} mm"
+        sole_f = max(f["sole_only"]["force_relative_error"] for f in row["feet"])
+        sole_t = max(f["sole_only"]["torque_relative_error"] for f in row["feet"])
+        whole_f = max(f["whole_foot"]["force_relative_error"] for f in row["feet"])
+        whole_t = max(f["whole_foot"]["torque_relative_error"] for f in row["feet"])
+        page += (
+            f"<tr><td>{label}</td><td>{row['sole_triangles_per_foot'][0]}</td>"
+            f"<td>{row['triangles_per_foot']}</td><td>{sole_f:.1%} / {sole_t:.1%}</td>"
+            f"<td>{whole_f:.1%} / {whole_t:.1%}</td></tr>"
+        )
+    return page + (
+        '</table><img src="foot-quadrature-mesh.png" alt="Sole triangulations with 2, 128 and 512 triangles per foot">'
+        "<p>The 40 mm edge mesh reduces the largest pooled sole-torque difference from 18.0% to 0.6%. "
+        "It is a practical refinement candidate for a future training configuration. "
+        "It does not resolve the separate static-coupling failure.</p>"
+        "<p>Each error column reports the larger of the left and right foot errors. "
+        "The raw audit also includes loaded-sample 95th percentiles and maximum errors with explicit "
+        "20 N / 1 Nm denominator floors. Existing checkpoints retain the current coarse mesh; "
+        "refinement results are diagnostics and do not silently change the trained simulator.</p></section>"
+    )
+
+
+def foot_mesh_plot(audit):
+    """Draw the actual bottom-face subdivision, with one-foot counts."""
+    output = ROOT / "foot-quadrature-mesh.png"
+    if output.exists():
+        return
+    geometry = read(ROOT / "geometry.json")
+    foot = next(r for r in geometry["surfaces"] if r["body_label"].endswith("/left_ankle_roll_link"))
+    vertices = np.array(foot["vertices"])
+    triangles = vertices[np.array(foot["indices"]).reshape(-1, 3)]
+    bottom = triangles[np.all(np.isclose(triangles[:, :, 2], vertices[:, 2].min()), axis=1)]
+    fig, axes = plt.subplots(3, 1, figsize=(9, 8))
+    for ax, row in zip(axes, audit["results"][:3], strict=True):
+        pending, prepared = list(bottom), []
+        edge = row["max_edge_length"]
+        while pending:
+            triangle = pending.pop()
+            if edge is not None and np.max(np.linalg.norm(triangle - np.roll(triangle, 1, axis=0), axis=1)) > edge:
+                a, b, c = triangle
+                ab, bc, ca = (a + b) / 2, (b + c) / 2, (c + a) / 2
+                pending.extend(([a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]))
+            else:
+                prepared.append(triangle)
+        assert len(prepared) == row["sole_triangles_per_foot"][0]
+        ax.add_collection(
+            PolyCollection(np.array(prepared)[:, :, :2] * 1000, facecolor="#dbeafe", edgecolor="#1d4ed8", linewidth=0.5)
+        )
+        label = "Current" if edge is None else f"Maximum edge {1000 * edge:g} mm"
+        ax.set(title=f"{label}: {len(prepared)} sole triangles on one foot", xlabel="Body x [mm]", ylabel="Body y [mm]")
+        ax.autoscale_view()
+        ax.set_aspect("equal")
+    fig.tight_layout()
+    fig.savefig(output, dpi=150)
+    plt.close(fig)
 
 
 def publish():
@@ -451,7 +543,6 @@ def publish():
     foot = read(ROOT / "status.json")
     training = read(ROOT / "training-status.json")
     calibration = read(ROOT / "calibration-final/calibration.json")
-    surface = read(ROOT / "surface-convergence.json")
     geometry_plot()
     loaded_rows = loaded_plot()
     drift_rows = long_hold_plot()
@@ -485,6 +576,13 @@ Numerical self-convergence, force agreement and policy transfer are separate acc
             f'<p class="status">Revised training: {revised.get("completed_iterations", 0):,} / '
             f"{revised['iterations']:,} additional iterations. {html.escape(revised['stage'])}.</p>"
         )
+    inference = read(ROOT / "evaluation-status.json")
+    if inference.get("active_case"):
+        progress = read(ROOT / "evaluations" / inference["active_case"] / "progress.json")
+        detail = ""
+        if progress:
+            detail = f" {progress['completed_steps']} / {progress['total_steps']} simulation frames completed."
+        page += f'<p class="status">{html.escape(inference["stage"])}.{detail}</p>'
     if drift_rows:
         page += (
             '<p class="status"><strong>Static-support and held-out force-matching gates fail.</strong> '
@@ -522,14 +620,7 @@ Normalization floors of 20 N and 1 Nm give allowances of 2 N and 0.1 Nm near zer
 An isolated-foot convergence check does not establish whole-robot coupling convergence.</p>
 <table><tr><th>Refinement</th><th>Largest force change</th><th>Largest torque change</th><th>Gate</th></tr>"""
     page += "".join(gate_rows) + '</table><img src="foot-convergence.png" alt="G1 foot force and torque refinement">'
-    if surface:
-        first = surface["results"][0]
-        page += (
-            "<p>The original RFT surface integration differs from the finest mesh by "
-            f"{first['force_relative_error']:.1%} "
-        )
-        page += f"in force and {first['torque_relative_error']:.1%} in torque on four saved walking snapshots.</p>"
-    page += "</section><section><h2>Support under an applied load</h2>"
+    page += "</section>" + foot_quadrature_section() + "<section><h2>Support under an applied load</h2>"
     page += """<p>A vertical prismatic joint fixes lateral translation and foot orientation. Inertial mass and downward
 load are specified independently. The bed is prepared with the foot fixed, then the foot is released.
 Total support is inferred from vertical momentum balance and includes backing-floor contact if reached.
@@ -712,8 +803,10 @@ prepared for 0.5 s. Bulk/interface friction use the same invariant convention; M
 ratio is 1.0. The force-informed RFT interface ratio is an effective fitted parameter.</p>
 <p><strong>This feasible whole-robot grid has not established force convergence.</strong> Fine isolated-foot
 convergence cannot be substituted for a converged whole-biped reference. Results diagnose numerical
-transfer under the disclosed configuration, rather than validate real sand. MPM trials run for up to 3 s,
-ending 0.5 s after a first body failure. Avoiding a threshold for 3 s does not establish long-duration stability.
+transfer under the disclosed configuration, rather than validate real sand. The material-bank diagnostics
+run for up to 3 s, ending 0.5 s after a first body failure. Avoiding a threshold for 3 s does not establish
+long-duration stability. The showcase recordings below run for a full 10 s in a 12 × 2 m bed and continue
+after a fall without resets or an early stop. All other nominal material and solver settings remain the same.
 Videos show actual simulated frames; each duration is stated beside its recording.</p>
 <p>The material bank contains nominal (118 mm, 1,600 kg/m³, μ = 0.4), shallow/loose
 (60 mm, 1,400 kg/m³, μ = 0.3) and dense (118 mm, 1,800 kg/m³, μ = 0.5) beds. Physical inputs are

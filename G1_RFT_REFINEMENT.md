@@ -2,7 +2,7 @@
 
 The original study is preserved in `results/g1-rft-mpm/`. This follow-up separates numerical reference quality, RFT force approximation and learned robustness. MPM supplies no training transitions.
 
-[Live report](http://localhost:18010/g1/refinement/analysis.html) · [Learning curves](http://localhost:18010/g1/refinement/training.html) · [Original comparison](http://localhost:18010/g1/report/)
+[Live report](http://localhost:18010/g1/refinement/) · [Learning curves](http://localhost:18010/g1/refinement/training.html) · [Original comparison](http://localhost:18010/g1/baseline-report/)
 
 ## Force-model correction
 
@@ -16,7 +16,16 @@ Both solvers use the finalized G1 collision mesh, approximately **203 × 65 × 1
 
 The 10 → 5 mm grid change fails the fixed 10% phase-mean force/torque gate; **5 → 3.33 mm passes**. Timestep (8 → 16 substeps), stress-iteration (200 → 400) and domain-size checks pass. Normalization floors of 20 N and 1 Nm allow 2 N and 0.1 Nm near zero. Reducing sampling from eight particles per voxel to one fails strongly and is unsuitable as a cheap replacement. These are isolated-foot self-convergence results, not validation of whole-robot MPM or physical sand.
 
-On four saved walking snapshots, the original RFT triangulation differs from the finest integration by approximately 2.0% in force and 5.8% in torque. The benchmark preserves the field's free-surface and bottom planes.
+The foot-only quadrature audit uses 240 poses with exact recorded COM twists from both final-policy command trials, swept over 41 material/height combinations. A batched evaluation agrees with the original full-model foot wrenches within 0.000004 N or Nm. The field's free-surface and bottom planes are retained. Counts below are **per foot**, without torso or leg surfaces. Pooled L2 errors report the larger of the left/right foot errors relative to a 10 mm maximum-edge reference.
+
+| Maximum triangle edge | Sole triangles | Whole-foot triangles | Sole force / torque error | Whole-foot force / torque error |
+|---|---:|---:|---:|---:|
+| Current, no subdivision | 2 | 12 | 5.09% / 18.01% | 5.08% / 16.20% |
+| 40 mm | 128 | 528 | 0.27% / 0.58% | 0.26% / 0.51% |
+| 20 mm | 512 | 2,112 | 0.10% / 0.26% | 0.09% / 0.23% |
+| 10 mm reference | 2,048 | 8,448 | — | — |
+
+Two sole triangles represent the flat collision geometry exactly; spatially varying velocity, clipping and activation still require adequate integration. The 40 mm edge is a practical refinement candidate. Existing checkpoints retain the coarse mesh. Refining quadrature does not fix the separate static-coupling failure. Raw records also retain loaded-sample percentiles and maxima, so the pooled errors do not conceal individual difficult poses.
 
 A vertical prismatic fixture separates inertial mass from applied load. At 158.13 N, fine MPM settles to 95.4 mm at a 5 mm grid and 101.5 mm at 3.33 mm, a 6.1% change, without backing-floor contact. At a 10 mm grid, inertial masses of 16 kg and 1 kg settle stably under the same load. This does not prove whole-biped coupling stability.
 
@@ -43,7 +52,7 @@ Both continuations start from the same original `model_2998.pt` actor and critic
 
 The observation/action contract, actuators and rewards are unchanged. Native checks cover standing, 0.5/1.0 m/s tracking and three banks of 128 randomized environments. MPM inference compares nominal, shallow/loose and dense materials at both commands. Fixed-policy videos are published only after their complete frames and commands are verified. Whole-robot MPM remains a feasible coarse reference; isolated-foot convergence does not establish whole-robot convergence.
 
-MPM trials use a maximum 3 s observation window and end 0.5 s after a first body-failure threshold. Videos contain their actual simulated frames and state their durations. Failure time is the primary transfer outcome; the material plot reports tracking before failure, while raw summaries retain full-rollout tracking. Native videos run for 10 s. No rollout resets hide falls.
+The material-bank diagnostics use a maximum 3 s observation window and end 0.5 s after a first body-failure threshold. Failure time is the primary transfer outcome; the material plot reports tracking before failure, while raw summaries retain full-rollout tracking. The selected native and nominal-MPM showcase videos run for 10 s. The MPM showcases use a 12 × 2 m bed and continue after falls, with no early stop or reset. Videos contain actual simulated frames; their durations and settings are stated beside each recording.
 
 The source audit confirms the same bulk yield invariant, `sqrt(0.5*s:s) <= mu*P`, in both solvers and exact-volume cell-centered MPM particle initialization. MPM and coupled-proxy source are unchanged between the original and corrected Newton revisions. MPM includes material inertia and evolving loading history. RFT's optional inertial correction remains disabled, and the calibration at 0.1 m/s does not establish accuracy at every walking-foot velocity.
 
@@ -64,6 +73,6 @@ The final rigid-floor and RFT recordings at both commands are available in the l
 
 ## Reproduction and outputs
 
-Source fixtures and analysis are under `scripts/benchmarks/`: `export_g1_granular_probe.py`, `investigate_g1_granular.py`, `investigate_g1_loaded_foot.py`, `benchmark_g1_bearing.py`, `run_g1_foot_study.py`, `calibrate_g1_loaded_rft.py`, `run_g1_rft_refinement.py`, `run_g1_transfer_checks.py` and `report_g1_refinement.py`.
+Source fixtures and analysis are under `scripts/benchmarks/`: `export_g1_granular_probe.py`, `investigate_g1_granular.py`, `investigate_g1_loaded_foot.py`, `benchmark_g1_bearing.py`, `benchmark_g1_rft_quadrature.py`, `run_g1_foot_study.py`, `calibrate_g1_loaded_rft.py`, `run_g1_rft_refinement.py`, `run_g1_transfer_checks.py` and `report_g1_refinement.py`.
 
 Live data is under ignored `logs/go2_granular/g1/refinement/`. Training uses separate locked environments to retain the original-model control. The corrected runtime is `/home/horde/.cache/rft-study/g1-fixed-venv`; launch with `UV_PROJECT_ENVIRONMENT` pointing there and `uv run --no-sync`. `fixed-runtime.json` records the immutable Newton revision and kernel hash. Training and inference status records contain exact commands and checkpoints. Final measurements and the reproducible archive will be added after inference completes.
