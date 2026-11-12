@@ -1,6 +1,6 @@
 # RFT training and MPM transfer study
 
-This study implements inexpensive granular interaction through resistive force theory (RFT), trains Go2 with that model, and tests the frozen policy in particle-based MPM. A rigid-ground policy provides the reference. **MPM is excluded from training.**
+This study implements inexpensive granular interaction through resistive force theory (RFT), trains Go2 and G1 with that model, and tests the frozen policies in particle-based MPM. Rigid-ground policies provide the reference. **MPM supplies no training transitions.**
 
 Both repositories use branch **`milad/rft-mpm`**:
 
@@ -83,18 +83,27 @@ MPM uses nominal depth 118 mm, density 1,600 kg/m³, internal friction 0.4 and a
 
 The published report also includes short three-material comparisons at 0.5 m/s and the controlled MPM startup investigation at 1.0 m/s. The 1.0 m/s material-comparison section was removed from the report during cleanup. Rigid and RFT learning curves now share each metric axis; the analysis has 0.50 and 1.00 m/s subsections.
 
-## Validation and outstanding limits
+## Go2 validation and outstanding limits
 
 - The rigid policy passed the specified held-out acceptance checks. RFT standing drift and loaded-foot slip still fail; finishing the training budget does not establish convergence.
 - Newton analytic and convergence investigations verify force integration, moments, rate/scaling behavior and composition contracts. They do not independently validate physical sand accuracy.
 - MPM has not passed the force-convergence gate. Matching density, friction and depth does not establish an equivalent RFT/MPM response.
 - The 1.0 m/s MPM collapse is coupling-sensitive. Smaller time steps alone did not remove it; four coupling passes or full feedback avoided the failure threshold in controlled **2 s** tests. Those checks do not establish accurate tracking or 10 s stability. The main videos retain the original numerical configuration.
 - RFT omits evolving free surfaces, compaction and plastic history. Its near-rest bearing term is experimental, and exact tangential sticking is absent.
-- The G1 extension has completed rigid training and passed all seven held-out acceptance gates. RFT training is in progress with a thin-to-deep material curriculum; the full G1 transfer study is not yet complete. See [G1 status and configuration](G1_RFT_STATUS.md) and the [live G1 report](http://localhost:18010/g1/report/).
+
+## G1 extension
+
+Both G1 training stages and native-simulator checks are complete. The rigid policy trains from scratch for 1,500 PPO iterations; RFT fine-tunes that accepted policy for 1,500 additional iterations with a reset optimizer. Both stages use 4,096 environments, seed 42 and commands up to 1.0 m/s without a command curriculum. The material curriculum expands from 0–10 mm to 0–118 mm layers and reaches the complete material-property ranges before training ends. This is a two-stage adaptation study, with greater total training exposure for RFT.
+
+The rigid policy passes all seven acceptance gates. RFT passes five of eight; tracking, loaded-foot velocity and one foot-placement violation remain failed. There are no falls across 384 randomized-material validation environments. Separate zero-depth checks recover rigid dynamics and show that much of the increased foot motion appears with the granular field present.
+
+MPM inference and final recordings are in progress. G1 uses one-pass full feedback for both policies, with controlled short checks of feedback smoothing and four-pass refinement. The first 10 s RFT-policy MPM video at 1.0 m/s reaches a failure threshold at 1.14 s, with finite particles, no capacity overflow and no bed exit. This is an unsuccessful transfer in the current configuration. MPM force convergence and material equivalence remain unvalidated.
+
+See [G1 methods, validation and status](G1_RFT_STATUS.md) and the [live G1 report](http://localhost:18010/g1/report/) for the remaining comparisons.
 
 The G1 drive regression failed before the integrator fix and passed afterward; the final focused file passed two tests. The regression protects bounded implicit-drive motion and unchanged free-space control through each coupling path, distinct from the existing leg-surface/reset test. No test-only production API was introduced.
 
-## Published report and data
+## Published Go2 report and data
 
 The [results README](results/go2-rft-mpm/README.md) explains the archive, Git LFS retrieval, serving the report, checking file hashes, and restoring inputs for plot regeneration. The [report HTML](results/go2-rft-mpm/report/index.html), eight videos, graphs, raw trajectories, material probes, final checkpoints and training configurations are committed with this branch. Large binary artifacts are stored through Git LFS.
 
