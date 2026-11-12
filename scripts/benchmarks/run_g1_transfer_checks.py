@@ -137,6 +137,8 @@ def main(args):
             "1.0",
             "--settle_seconds",
             "0.5",
+            "--failure_tail_seconds",
+            "0.5",
         ]
 
     if args.phase in ("control", "matched"):

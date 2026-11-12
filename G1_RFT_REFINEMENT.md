@@ -35,6 +35,10 @@ Both continuations start from the same original `model_2998.pt` actor and critic
 
 The observation/action contract, actuators and rewards are unchanged. Native checks cover standing, 0.5/1.0 m/s tracking and three banks of 128 randomized environments. MPM inference compares nominal, shallow/loose and dense materials at both commands. Fixed-policy videos are published only after their complete frames and commands are verified. Whole-robot MPM remains a feasible coarse reference; isolated-foot convergence does not establish whole-robot convergence.
 
+MPM trials use a maximum 3 s observation window and end 0.5 s after a first body-failure threshold. Videos contain their actual simulated frames and state their durations. Failure time is the primary transfer outcome; the material plot reports tracking before failure, while raw summaries retain full-rollout tracking. Native videos run for 10 s. No rollout resets hide falls.
+
+The source audit confirms the same bulk yield invariant, `sqrt(0.5*s:s) <= mu*P`, in both solvers and exact-volume cell-centered MPM particle initialization. MPM and coupled-proxy source are unchanged between the original and corrected Newton revisions. MPM includes material inertia and evolving loading history. RFT's optional inertial correction remains disabled, and the calibration at 0.1 m/s does not establish accuracy at every walking-foot velocity.
+
 ## Reproduction and outputs
 
 Source fixtures and analysis are under `scripts/benchmarks/`: `export_g1_granular_probe.py`, `investigate_g1_granular.py`, `investigate_g1_loaded_foot.py`, `benchmark_g1_bearing.py`, `run_g1_foot_study.py`, `calibrate_g1_loaded_rft.py`, `run_g1_rft_refinement.py`, `run_g1_transfer_checks.py` and `report_g1_refinement.py`.

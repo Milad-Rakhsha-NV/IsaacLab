@@ -42,7 +42,10 @@ GATES = {
 
 def read(path):
     """Read completed or atomically published records."""
-    return json.loads(path.read_text()) if path.exists() else {}
+    try:
+        return json.loads(path.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
 def geometry_plot():
@@ -102,6 +105,8 @@ def loaded_plot():
     }
     for path in paths:
         s = read(path)
+        if not s:
+            continue
         c = s["settings"]
         if c["field"] == "mpm":
             label = (
@@ -193,14 +198,15 @@ def material_plot(cases):
                 if row:
                     first = row["first_failure_seconds"]
                     times.append(first if first is not None else row["simulated_seconds"])
-                    errors.append(row["mean_velocity_error"])
+                    error = row.get("mean_pre_failure_velocity_error")
+                    errors.append(row["mean_velocity_error"] if error is None else error)
                 else:
                     times.append(np.nan)
                     errors.append(np.nan)
             axes[0, column].bar(x, times, width=0.23, label=LABELS[policy])
             axes[1, column].bar(x, errors, width=0.23, label=LABELS[policy])
         axes[0, column].set(title=f"Forward command {speed:.2f} m/s", ylabel="Failure time, capped at 3 s")
-        axes[1, column].set(ylabel="Mean planar tracking error [m/s]")
+        axes[1, column].set(ylabel="Pre-failure planar tracking error [m/s]")
         for ax in axes[:, column]:
             ax.set_xticks(np.arange(3), ("Nominal", "Shallow / loose", "Dense"))
             ax.grid(axis="y", alpha=0.2)
@@ -234,10 +240,16 @@ section,article{background:white;padding:20px;border-radius:10px;margin:24px 0}v
 table{border-collapse:collapse}td,th{padding:8px;border:1px solid #cbd5e1}code{overflow-wrap:anywhere}
 a,summary{color:#1d4ed8}.status{background:#dbeafe;padding:16px}</style>
 <h1>G1: force matching and policy transfer</h1>
-<p><a href="../report/">Original G1 study</a> · <a href="training.html">Live training status</a></p>
+<p><a href="../baseline-report/">Original G1 study</a> · <a href="training.html">Training status</a></p>
 <p>Prescribed-foot tests isolate force response, loaded-foot tests examine support and settling,
 and matched training continuations examine learned robustness. MPM supplies no training transitions.
 Numerical self-convergence, force agreement and policy transfer are separate acceptance questions.</p>"""
+    revised = training.get("runs", {}).get("matched", {})
+    if revised:
+        page += (
+            f'<p class="status">Revised training: {revised.get("completed_iterations", 0):,} / '
+            f"{revised['iterations']:,} additional iterations. {html.escape(revised['stage'])}.</p>"
+        )
     work = read(ROOT / "bearing-work.json")
     if work:
         before, after = work["before"][0], work["after"][0]
@@ -383,14 +395,16 @@ prepared for 0.5 s. Bulk/interface friction use the same invariant convention; M
 ratio is 1.0. The force-informed RFT interface ratio is an effective fitted parameter.</p>
 <p><strong>This feasible whole-robot grid has not established force convergence.</strong> Fine isolated-foot
 convergence cannot be substituted for a converged whole-biped reference. Results diagnose numerical
-transfer under the disclosed configuration, rather than validate real sand. Nominal 3 s MPM recordings
-resolve early failures; avoiding a threshold for 3 s does not establish long-duration stability.</p>
+transfer under the disclosed configuration, rather than validate real sand. MPM trials run for up to 3 s,
+ending 0.5 s after a first body failure. Avoiding a threshold for 3 s does not establish long-duration stability.
+Videos show actual simulated frames; each duration is stated beside its recording.</p>
 <p>The material bank contains nominal (118 mm, 1,600 kg/m³, μ = 0.4), shallow/loose
 (60 mm, 1,400 kg/m³, μ = 0.3) and dense (118 mm, 1,800 kg/m³, μ = 0.5) beds. Physical inputs are
 within the RFT reset ranges, but equal density/friction/depth does not imply equivalent force response.</p>
 <img src="material-transfer.png" alt="Failure time and tracking error across three MPM materials and two commands">
 <p>A bar reaching 3 s means the short observation window ended; it does not indicate a failure at 3 s.
-Tracking errors include acceleration and time after failure. Each material/command/policy combination is
+The tracking bars average only measurements before the first threshold, including acceleration.
+The detailed table also retains full-rollout errors. Each material/command/policy combination is
 one deterministic trial. These are distinct conditions, rather than repeated trials supporting statistical claims.</p>
 </section>"""
         for speed in (0.5, 1.0):

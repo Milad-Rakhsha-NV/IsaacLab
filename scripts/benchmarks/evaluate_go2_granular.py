@@ -30,6 +30,11 @@ parser.add_argument(
 )
 parser.add_argument("--output", type=Path, default=Path("logs/go2_granular/stance"))
 parser.add_argument("--steps", type=int, default=1000)
+parser.add_argument(
+    "--failure_tail_seconds",
+    type=float,
+    help="For one-environment inference, end this many seconds after the first body failure threshold.",
+)
 parser.add_argument("--num_envs", type=int, default=1)
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--stand", action="store_true")
@@ -70,6 +75,10 @@ parser.add_argument(
 )
 parser.add_argument("--difficulty", type=float, default=1.0, help="Frozen curriculum level for randomized validation.")
 args = parser.parse_args()
+if args.failure_tail_seconds is not None and (
+    args.num_envs != 1 or not np.isfinite(args.failure_tail_seconds) or args.failure_tail_seconds < 0
+):
+    parser.error("--failure_tail_seconds requires one environment and a finite nonnegative duration")
 profile = json.loads(args.rft_profile.read_text()) if args.rft_profile and args.field == "rft" else {}
 nominal = profile.get("nominal_material", {})
 for name, default in (("density", 1600.0), ("friction", 0.4), ("roughness", 1.0)):
@@ -648,9 +657,15 @@ with launch_simulation(cfg):
                     font=overlay_font,
                 )
                 writer.send(np.ascontiguousarray(np.asarray(im)))
-                if step == min(500 if schedule else 100, args.steps - 1):
+                if step in (0, min(500 if schedule else 100, args.steps - 1)):
                     im.save(args.output / "preview.jpg")
             if not np.isfinite(p).all() or not particles_finite:
+                break
+            if (
+                args.failure_tail_seconds is not None
+                and first_failure is not None
+                and (step + 1) * env.step_dt >= first_failure + args.failure_tail_seconds - 1e-9
+            ):
                 break
     except Exception as error:
         execution_error = str(error)
@@ -688,6 +703,8 @@ with launch_simulation(cfg):
             checkpoint=checkpoint,
             policy_training_terrain=args.policy_training_terrain,
             steps=len(rows),
+            requested_steps=args.steps,
+            failure_tail_seconds=args.failure_tail_seconds,
             seed=args.seed,
             simulated_seconds=len(rows) * env.step_dt,
             wall_seconds=time.monotonic() - start,
@@ -747,6 +764,9 @@ with launch_simulation(cfg):
             state_history = np.array(rows)
             summary["failure_fraction"] = float(np.any(state_history[:, :, 9], axis=0).mean())
             summary["per_env_velocity_error"] = state_history[:, :, 8].mean(0).tolist()
+            alive = np.cumsum(state_history[:, :, 9], axis=0) == 0
+            before_failure = state_history[:, :, 8][alive]
+            summary["mean_pre_failure_velocity_error"] = float(before_failure.mean()) if before_failure.size else None
             summary.update(
                 mean_velocity_error=float(np.array(rows)[:, :, 8].mean()),
                 final_position=p.tolist(),
