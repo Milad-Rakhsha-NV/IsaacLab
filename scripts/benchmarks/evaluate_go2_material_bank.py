@@ -57,9 +57,12 @@ def material_cases(profile, reference=False):
     return cases
 
 
-def publish(progress, phase):
+def publish(progress, phase, robot="go2"):
     """Publish progress independently of the native-probe worker."""
     (ROOT / f"{phase}-status.json").write_text(json.dumps(progress, indent=2))
+    robot_name = "G1" if robot == "g1" else "Go2"
+    report_url = "/g1/report/" if robot == "g1" else "/report/"
+    numerics_url = f"{report_url}#mpm-numerics" if robot == "g1" else "/investigation/analysis.html"
     rows = []
     for case in progress["results"]:
         s, c = case["summary"], case["settings"]
@@ -76,9 +79,9 @@ def publish(progress, phase):
         '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="30">'
         "<style>body{font:16px/1.5 system-ui;max-width:1200px;margin:30px auto;padding:20px}"
         "table{border-collapse:collapse}th,td{border:1px solid #aaa;padding:8px}img{width:100%}</style>"
-        f"<h1>Go2: {html.escape(phase)} investigation</h1>"
-        '<p><a href="/investigation/analysis.html">Material-model numerics</a> · '
-        '<a href="/report/">Policy videos</a></p>'
+        f"<h1>{robot_name}: {html.escape(phase)} investigation</h1>"
+        f'<p><a href="{numerics_url}">Material-model numerics</a> · '
+        f'<a href="{report_url}">Policy videos</a></p>'
         f"<p>{html.escape(progress['stage'])}: {len(progress['results'])} / {progress['total']} cases.</p>"
         f"<p>Existing frozen policies; {progress.get('command_speed', 0.5):.2f} m/s forward command. "
         "The bed is prepared with the robot held fixed. "
@@ -103,7 +106,7 @@ def main(args):
     source_hash = hashlib.sha256(ast.dump(ast.parse(worker.read_text())).encode()).hexdigest()
     dependencies = tomllib.loads(Path("pyproject.toml").read_text())["project"]["dependencies"]
     newton_requirement = next(value for value in dependencies if value.startswith("newton[sim]"))
-    publish(progress, args.phase)
+    publish(progress, args.phase, args.robot)
     for name, policy, options in cases:
         folder = ROOT / args.phase / name
         folder.mkdir(parents=True, exist_ok=True)
@@ -159,7 +162,7 @@ def main(args):
                 result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
             if result.returncode or not (folder / "summary.json").exists():
                 progress.update(stage=f"Evaluation stopped: {name}; inspect its stdout.log")
-                publish(progress, args.phase)
+                publish(progress, args.phase, args.robot)
                 raise RuntimeError(f"{name}: execution failure")
         summary = json.loads((folder / "summary.json").read_text())
         with np.load(folder / "rollout.npz") as data:
@@ -170,7 +173,7 @@ def main(args):
                 summary["mean_rigid_contact_vertical_N"] = float(after_transient[:, 5].mean())
         progress["results"].append(dict(name=name, policy=policy, settings=settings, summary=summary))
         progress["updated_unix"] = time.time()
-        publish(progress, args.phase)
+        publish(progress, args.phase, args.robot)
         print(
             json.dumps(
                 dict(
@@ -184,7 +187,7 @@ def main(args):
             flush=True,
         )
     progress["stage"] = "Cases completed; inspect numerical sensitivity and failure checks before accepting transfer"
-    publish(progress, args.phase)
+    publish(progress, args.phase, args.robot)
 
 
 if __name__ == "__main__":
