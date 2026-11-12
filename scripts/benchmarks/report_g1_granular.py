@@ -347,7 +347,7 @@ table{border-collapse:collapse}td,th{padding:10px;border:1px solid #cbd5e1}code{
     page += (
         '<h1>G1: rigid, RFT and MPM comparisons</h1><p><a href="/report/">Go2 comparison</a> · '
         '<a href="../STATUS.md">G1 status and settings</a> · '
-        '<a href="../refinement/">Force-model investigation and retraining</a></p>'
+        '<a href="../refinement/analysis.html">Force-model investigation and retraining</a></p>'
     )
     page += (
         f'<p class="status">{html.escape(status["stage"])}</p>'

@@ -22,9 +22,12 @@ from pathlib import Path
 import newton
 import numpy as np
 import warp as wp
+from investigate_go2_granular import SOURCE_SHA256 as MODEL_SOURCE_SHA256
 from investigate_go2_granular import make_model
 from newton.solvers import SolverImplicitMPM, SolverRFT
 from scipy.spatial.transform import Rotation
+
+SOURCE_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 
 @wp.kernel
@@ -255,7 +258,8 @@ def run(args):
         settled_rms_speed_m_s=float(rows[settled, 1].mean()),
         momentum_balance_relative=float(np.linalg.norm(balances, axis=1).mean() / (total_mass * 9.81 * frame_dt)),
         geometry_sha256=hashlib.sha256(args.geometry_file.read_bytes()).hexdigest(),
-        worker_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        worker_sha256=SOURCE_SHA256,
+        model_source_sha256=MODEL_SOURCE_SHA256,
         wrench_frame="world force XYZ, world torque XYZ about prescribed ankle origin",
         force_sampling="all collider impulses over every substep of each 5 ms frame",
         warmup_seconds=0.01,
@@ -284,6 +288,9 @@ if __name__ == "__main__":
     parser.add_argument("--voxel_size", type=float, default=0.01)
     parser.add_argument("--substeps", type=int, default=8)
     parser.add_argument("--iterations", type=int, default=200)
+    parser.add_argument(
+        "--particles_per_cell", type=int, default=2, help="Particles per voxel axis; 2 gives eight per voxel."
+    )
     parser.add_argument("--tolerance", type=float, default=1e-4)
     parser.add_argument("--settle", type=float, default=0.5)
     parser.add_argument("--depth", type=float, default=0.04)

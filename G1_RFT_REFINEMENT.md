@@ -1,29 +1,42 @@
 # G1 force matching and transfer investigation
 
-The original study is preserved in `results/g1-rft-mpm/`. This follow-up separates numerical reference quality, RFT force approximation and learned robustness. MPM supplies no training transitions. Commands retain their full 0.1–1.0 m/s range.
+The original study is preserved in `results/g1-rft-mpm/`. This follow-up separates numerical reference quality, RFT force approximation and learned robustness. MPM supplies no training transitions.
 
-[Live investigation](http://localhost:18010/g1/refinement/) · [Original comparison](http://localhost:18010/g1/report/)
+[Live report](http://localhost:18010/g1/refinement/analysis.html) · [Learning curves](http://localhost:18010/g1/refinement/training.html) · [Original comparison](http://localhost:18010/g1/report/)
 
-## Current evidence
+## Force-model correction
 
-The exact finalized G1 foot collider is approximately 203 × 65 × 19 mm, with its authored offset from the ankle. Its exported mesh has outward triangle winding and positive enclosed volume. The fixture uses the same mesh for MPM and RFT, prescribed ankle poses and velocities, and sums every substep's collider impulse and moment. No rigid-body integrator or direct foot/floor contact contributes to the measured wrench. All material is prepared for 0.5 s with the foot out of the bed.
+The experimental near-rest bearing extension supplied pressure on withdrawing surface patches. A prescribed closed 40 mm cycle on the exact G1 foot produced net input work of **−0.662 J**, returning more energy than supplied. Newton commit `277c30238619349d343104191d8e40582fa7ac70` releases bearing pressure on outward-moving patches. The same cycle now dissipates **3.876 J**. All 19 RFT regression tests pass, including CPU/CUDA coverage; the focused work-cycle regression fails before the fix and passes afterward.
 
-The first 10 mm APIC fixture has finite particle states and a momentum-balance residual of about 2.2 × 10⁻⁵ of the bed-weight impulse. During insertion, mean vertical forces are approximately 76 N in MPM and 85 N in the original RFT closure. During the subsequent prescribed hold, MPM relaxes to approximately zero while the original experimental bearing term supplies about 227 N upward. This is preliminary evidence; refinement checks remain in progress. A prescribed hold is distinct from a freely loaded foot reaching equilibrium.
+Original Go2/G1 checkpoints used Newton `32f455bc4430f0954ae564fb40681fbaca95e7f3`. Their recordings remain historical observations. The defect could enable learned exploitation, but does not establish the sole cause of transfer failure. The correction concerns the added bearing extension, rather than the published flowing RFT law.
 
-The first 10-to-5 mm comparison misses the fixed 10% phase-mean convergence criterion in insertion force and two small torque measurements. Halving the timestep at 5 mm changes phase-mean forces and torques by less than 3.1%; the timestep, iteration-budget and domain-size checks pass. The 8 mm grid still misses one phase-force check. A 3.33 mm check is running. The gate normalizes near-zero phase means by 20 N and 1 Nm, giving absolute allowances of 2 N and 0.1 Nm. Both force and torque must pass. Pointwise histories remain available for inspection; this gate establishes numerical self-convergence only.
+## Matched fixtures and numerical reference
 
-On four saved G1 walking snapshots, the original RFT triangulation differs from the finest surface integration by about 2.0% in force and 5.8% in torque. The probe preserves the original field's free-surface and bottom planes; omitting those planes invalidates this finite-layer check. This is evidence about numerical integration, separate from force-model accuracy.
+Both solvers use the finalized G1 collision mesh, approximately **203 × 65 × 19 mm**, with its authored ankle offset. Winding is outward and enclosed volume positive. Prescribed insertion, unloaded hold, drag, pitch, roll and withdrawal apply identical poses and velocities. Forces and moments sum every substep's collider impulse about the ankle origin. Direct rigid foot/floor reactions are excluded. Material is prepared for 0.5 s before loading.
 
-An exploratory fit selects parameters using insertion, hold and drag. Rotation and unloading are held out. The initial fit rejects the large near-rest bearing contribution but still fails held-out force/torque agreement. These results are not a validated calibration and do not justify treating MPM as physical ground truth.
+The 10 → 5 mm grid change fails the fixed 10% phase-mean force/torque gate; **5 → 3.33 mm passes**. Timestep (8 → 16 substeps), stress-iteration (200 → 400) and domain-size checks pass. Normalization floors of 20 N and 1 Nm allow 2 N and 0.1 Nm near zero. Reducing sampling from eight particles per voxel to one fails strongly and is unsuitable as a cheap replacement. These are isolated-foot self-convergence results, not validation of whole-robot MPM or physical sand.
 
-## Work status
+On four saved walking snapshots, the original RFT triangulation differs from the finest integration by approximately 2.0% in force and 5.8% in torque. The benchmark preserves the field's free-surface and bottom planes.
 
-| Stage | Status |
-|---|---|
-| Matched G1-foot insertion, hold, drag, pitch, roll and withdrawal | Seven numerical profiles complete; finer-grid check running |
-| MPM convergence and RFT calibration | Time, iteration and domain checks pass; grid and force-fit acceptance pending |
-| More full-range RFT training and held-out MPM transfer | Original-model control is running with 4,096 environments and 1,000 additional iterations |
+A vertical prismatic fixture separates inertial mass from applied load. At 158.13 N, fine MPM settles to 95.4 mm at a 5 mm grid and 101.5 mm at 3.33 mm, a 6.1% change, without backing-floor contact. At a 10 mm grid, inertial masses of 16 kg and 1 kg settle stably under the same load. This does not prove whole-biped coupling stability.
 
-Both training continuations start from the original `model_2998.pt` actor and critic with a reset optimizer and seed 42. The original-model control retains the initial force law and ranges. The force-informed variant will combine the candidate closure and wider strength/interface-response ranges; this combination is exploratory. Both receive the complete material ranges at every reset from the first episode and retain the same commands, observations, actuators and rewards. The 64-environment continuation smoke test passes. A separate eight-environment profile smoke check confirms independent reset samples, zero bearing and the requested strength/interface ranges.
+## Force-informed profile
 
-The fixtures and analysis live in `scripts/benchmarks/export_g1_granular_probe.py`, `investigate_g1_granular.py`, `run_g1_foot_study.py` and `calibrate_g1_rft.py`. Raw records and the live page are under ignored `logs/go2_granular/g1/refinement/`. The original robot environment and archived numerical results have not been overwritten.
+The corrected RFT fit uses moving insertion/drag wrenches and a simulated loaded-foot response. Unloaded holds, rotations and withdrawal remain held out. Selected strength multiplier: **0.7102**; bearing multiplier: **0.45**; bulk friction: **0.4**; effective interface/internal ratio: **0.3**; velocity regularization: **0.04 m/s**. Corrected RFT settles to 97.4 mm with four substeps, 4.1% from fine MPM. Eight substeps give 93.1 mm, a 4.6% change from the four-substep result.
+
+**Held-out wrench matching still fails.** This is an exploratory force-informed approximation, not a validated equivalent material. The fitted RFT interface ratio is effective; MPM retains ratio 1.0. A local memoryless closure cannot represent evolving cavities or plastic loading history.
+
+## Training and inference protocol
+
+Both continuations start from the same original `model_2998.pt` actor and critic, reset the optimizer, use seed 42 and **4,096 environments**, and receive **1,000 additional PPO iterations**. Commands remain **0.1–1.0 m/s** throughout. Full material ranges apply from the first reset; there is no command curriculum.
+
+- Additional-training control: original Newton revision, bearing and material ranges.
+- Corrected force-informed variant: corrected Newton revision and the fitted nominal profile. At reset, density is 1,400–1,800 kg/m³, internal friction 0.3–0.5, interface/internal ratio 0.1–1.0, depth 0–118 mm, strength multiplier 0.355–1.065 and bearing multiplier 0.225–0.675. The ±50% multiplier ranges are experimental choices, not confidence intervals inferred from data.
+
+The observation/action contract, actuators and rewards are unchanged. Native checks cover standing, 0.5/1.0 m/s tracking and three banks of 128 randomized environments. MPM inference compares nominal, shallow/loose and dense materials at both commands. Fixed-policy videos are published only after their complete frames and commands are verified. Whole-robot MPM remains a feasible coarse reference; isolated-foot convergence does not establish whole-robot convergence.
+
+## Reproduction and outputs
+
+Source fixtures and analysis are under `scripts/benchmarks/`: `export_g1_granular_probe.py`, `investigate_g1_granular.py`, `investigate_g1_loaded_foot.py`, `benchmark_g1_bearing.py`, `run_g1_foot_study.py`, `calibrate_g1_loaded_rft.py`, `run_g1_rft_refinement.py`, `run_g1_transfer_checks.py` and `report_g1_refinement.py`.
+
+Live data is under ignored `logs/go2_granular/g1/refinement/`. Training uses separate locked environments to retain the original-model control. The corrected runtime is `/home/horde/.cache/rft-study/g1-fixed-venv`; launch with `UV_PROJECT_ENVIRONMENT` pointing there and `uv run --no-sync`. `fixed-runtime.json` records the immutable Newton revision and kernel hash. Training and inference status records contain exact commands and checkpoints. Final measurements and the reproducible archive will be added after inference completes.

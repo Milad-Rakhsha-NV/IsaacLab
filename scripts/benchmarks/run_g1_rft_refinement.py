@@ -98,6 +98,9 @@ def main():
     parser.add_argument("--iterations", type=int, default=1000)
     parser.add_argument("--num_envs", type=int, default=4096)
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument(
+        "--python_environment", type=Path, help="Separate uv environment for the corrected Newton revision."
+    )
     args = parser.parse_args()
     profile = json.loads(args.profile.read_text()) if args.profile else {}
     if args.variant == "matched" and not profile:
@@ -135,6 +138,8 @@ def main():
         str(INITIAL),
         *overrides,
     ]
+    if args.python_environment:
+        command = ["env", f"UV_PROJECT_ENVIRONMENT={args.python_environment.resolve()}", *command]
     record = dict(
         family=family,
         iterations=args.iterations,
@@ -144,6 +149,7 @@ def main():
         optimizer_restored=False,
         command=command,
         profile=profile,
+        python_environment=str(args.python_environment) if args.python_environment else None,
         stage="Training",
     )
     status["runs"][label] = record

@@ -114,13 +114,45 @@ def particle_statistics(
     wp.atomic_add(out, 6, m * p[2])
 
 
-def make_model(args, probe_mesh=None):
+def make_model(args, probe_mesh=None, probe_mass=None):
     """Build an exact-volume particle grid, a prescribed intruder, and a backing floor."""
     builder = newton.ModelBuilder()
     SolverImplicitMPM.register_custom_attributes(builder)
-    probe = builder.add_body(
-        xform=wp.transform(wp.vec3(0.0, 0.0, 0.08), wp.quat_identity()), is_kinematic=True, label="probe"
-    )
+    if probe_mass is None:
+        probe = builder.add_body(
+            xform=wp.transform(wp.vec3(0.0, 0.0, 0.08), wp.quat_identity()), is_kinematic=True, label="probe"
+        )
+    else:
+        low, high = probe_mesh.vertices.min(0), probe_mesh.vertices.max(0)
+        center, size = (low + high) / 2, high - low
+        inertia = (
+            probe_mass
+            / 12
+            * np.array([size[1] ** 2 + size[2] ** 2, size[0] ** 2 + size[2] ** 2, size[0] ** 2 + size[1] ** 2])
+        )
+        pose = wp.transform(wp.vec3(-float(center[0]), -float(center[1]), -float(low[2]) + 0.01), wp.quat_identity())
+        probe = builder.add_link(
+            xform=pose,
+            mass=probe_mass,
+            com=wp.vec3(*center),
+            inertia=wp.mat33(np.diag(inertia)),
+            lock_inertia=True,
+            label="probe",
+        )
+        joint = builder.add_joint_prismatic(
+            parent=-1,
+            child=probe,
+            parent_xform=pose,
+            axis=(0.0, 0.0, 1.0),
+            target_ke=0.0,
+            target_kd=0.0,
+            damping=0.0,
+            armature=0.0,
+            friction=0.0,
+            limit_lower=-1.0,
+            limit_upper=1.0,
+        )
+        builder.add_articulation([joint])
     material = newton.ModelBuilder.ShapeConfig(mu=args.friction * args.roughness, density=0.0)
     if probe_mesh is not None:
         builder.add_shape_mesh(probe, mesh=probe_mesh, cfg=material)
@@ -150,7 +182,8 @@ def make_model(args, probe_mesh=None):
             cfg=wall_cfg,
         )
     extent = np.array([length, width, args.bed_depth])
-    counts = np.ceil(extent / (args.voxel_size / 2) - 1e-9).astype(int)
+    divisions = getattr(args, "particles_per_cell", 2)
+    counts = np.ceil(extent / (args.voxel_size / divisions) - 1e-9).astype(int)
     spacing = extent / counts
     lower = np.array([-length / 2, -width / 2, -args.bed_depth])
     axes = [lower[i] + (np.arange(counts[i]) + 0.5) * spacing[i] for i in range(3)]

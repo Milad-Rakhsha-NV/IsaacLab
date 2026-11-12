@@ -48,6 +48,7 @@ with launch_simulation(cfg):
         model = env.rft.model
         com = model.body_com.numpy()
         state = model.state()
+        bottom = env.rft.surface_bottom.numpy()
         results = []
         for segments in (12, 24, 48):
             surfaces, inventory = collision_surfaces(model, cfg.sim.physics.solver_cfg.body_pattern, segments)
@@ -60,7 +61,7 @@ with launch_simulation(cfg):
                 max_edge_length=edge,
                 config=env.rft.config,
                 surface_height=env.rft.surface_height.numpy().tolist(),
-                surface_bottom=env.rft.surface_bottom.numpy().tolist(),
+                surface_bottom=bottom.tolist() if np.isfinite(bottom).all() else None,
             )
             wrenches = []
             for frame in indices:

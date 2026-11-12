@@ -88,6 +88,7 @@ def publish(status):
         "img{width:100%}td,th{padding:8px;border:1px solid #ccc}table{border-collapse:collapse}</style>"
         '<h1>G1 force-model investigation</h1><p><a href="../report/">Baseline policy report</a> · '
         '<a href="training.html">Retraining status and curves</a></p>'
+        '<p><a href="analysis.html">Force calibration and loaded-foot response</a></p>'
         f"<p>{html.escape(status['stage'])}</p>"
         "<p>Exact finalized G1 foot mesh, prescribed ankle poses, all substep collider impulses. "
         "No policy or rigid integrator. The rigid bottom acts on material only. "
@@ -115,6 +116,12 @@ def main():
         "apic-10mm-8-wide": dict(voxel_size=0.01, substeps=8, iterations=200, domain_scale=1.5),
         "apic-8mm-8": dict(voxel_size=0.008, substeps=8, iterations=200),
         "apic-3p33mm-8": dict(voxel_size=1 / 300, substeps=8, iterations=200),
+        "apic-5mm-8-ppc1": dict(voxel_size=0.005, substeps=8, iterations=200, particles_per_cell=1),
+        "apic-5mm-16-ppc1": dict(voxel_size=0.005, substeps=16, iterations=200, particles_per_cell=1),
+        "apic-8mm-8-ppc1": dict(voxel_size=0.008, substeps=8, iterations=200, particles_per_cell=1),
+        "apic-20mm-8-s2": dict(voxel_size=0.02, substeps=8, iterations=200, collider_basis="S2"),
+        "apic-10mm-8-s2": dict(voxel_size=0.01, substeps=8, iterations=200, collider_basis="S2"),
+        "apic-5mm-8-s2": dict(voxel_size=0.005, substeps=8, iterations=200, collider_basis="S2"),
     }
     selected = args.cases or list(profiles)
     worker = Path("scripts/benchmarks/investigate_g1_granular.py")
@@ -160,6 +167,12 @@ def main():
             ("domain", "apic-10mm-8", "apic-10mm-8-wide"),
             ("grid_8mm", "apic-8mm-8", "apic-5mm-8"),
             ("grid_fine", "apic-5mm-8", "apic-3p33mm-8"),
+            ("particle_sampling", "apic-5mm-8", "apic-5mm-8-ppc1"),
+            ("particle_time", "apic-5mm-8-ppc1", "apic-5mm-16-ppc1"),
+            ("grid_8mm_ppc1", "apic-8mm-8-ppc1", "apic-5mm-8-ppc1"),
+            ("s2_20mm", "apic-20mm-8-s2", "apic-3p33mm-8"),
+            ("s2_10mm", "apic-10mm-8-s2", "apic-3p33mm-8"),
+            ("s2_5mm", "apic-5mm-8-s2", "apic-3p33mm-8"),
         ):
             if all((ROOT / "probes" / p / "summary.json").exists() for p in (a, b)):
                 status["checks"][label] = compare(ROOT / "probes" / a, ROOT / "probes" / b)
