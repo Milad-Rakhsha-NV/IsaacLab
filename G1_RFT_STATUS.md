@@ -53,6 +53,19 @@ Criteria require zero falls, valid foot placement in every environment, mean tra
 
 Rigid passes every gate. RFT passes no-falls, standing, capacity, stepping and full-curriculum gates. It fails the aggregate foot-placement gate because one of 384 randomized environments violates the lateral clearance threshold. Its 1.0 m/s nominal tracking error and loaded-foot velocities exceed the acceptance limits. Finishing the training budget therefore does not establish complete locomotion validation.
 
+## Zero-layer checks
+
+Zero depth recovers rigid-floor dynamics for a given policy; the chosen policy still determines the gait. With the fixed rigid policy, the zero-layer RFT and rigid-floor trajectories agree over 10 s to about 2.2 × 10⁻⁵ rad in joint position and 2.1 × 10⁻⁵ m in displacement after aligning clone origins. Body-frame velocity differs by less than 1.9 × 10⁻⁵ m/s.
+
+A separate ablation keeps the final RFT policy fixed in 16 environments for 20 s. Both zero-layer trials have no falls or foot-placement failures:
+
+| Command | Zero-layer tracking / loaded-foot velocity | 118 mm RFT tracking / loaded-foot velocity |
+|---|---|---|
+| 0.50 m/s | 0.051 / 0.048 m/s | 0.093 / 0.134 m/s |
+| 1.00 m/s | 0.089 / 0.091 m/s | 0.141 / 0.185 m/s |
+
+The increased foot motion appears mainly with the granular field present. These results distinguish the material-dependent response from a gait that also slips excessively on rigid ground; they do not establish physical accuracy of the granular response or change the failed acceptance gates.
+
 ## Inference and recording protocol
 
 The final comparison contains four panels with **two 10 s videos each**, commanding 1.0 and 0.5 m/s with zero lateral velocity and yaw. Each pair uses the same frozen checkpoint and evaluation seed 123:

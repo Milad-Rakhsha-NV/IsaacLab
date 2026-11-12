@@ -24,6 +24,30 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 ROOT = Path("logs/go2_granular/g1")
 
 
+def material_settings(folder: Path) -> str:
+    """State the paired material-bank inputs alongside the response plots."""
+    path = folder / "materials-status.json"
+    if not path.exists():
+        return ""
+    rows = []
+    for case in json.loads(path.read_text())["results"]:
+        if case["policy"] != "rft":
+            continue
+        values = case["settings"]
+        label = case["name"].removesuffix("-rft").replace("-", " ").capitalize()
+        rows.append(
+            f"<tr><td>{html.escape(label)}</td><td>{values['density']:,.0f}</td>"
+            f"<td>{values['friction']:g}</td><td>{values['roughness']:g}</td>"
+            f"<td>{1000 * values['bed_depth']:g}</td></tr>"
+        )
+    return (
+        "<table><tr><th>Setting</th><th>Density [kg/m³]</th><th>Internal friction</th>"
+        "<th>Surface/internal friction ratio</th><th>Initial depth [mm]</th></tr>"
+        + "".join(rows)
+        + "</table><p>Parameters vary together across rows. The RFT reference uses strength multiplier 1.0.</p>"
+    )
+
+
 def validation_measurements(status: dict) -> str:
     """Expose frozen-policy checks and their thresholds independently of training return."""
     labels = {
@@ -211,8 +235,11 @@ def publish() -> None:
                 "<h4>Material sensitivity</h4>"
                 "<p>Both policies use the same material settings for 3 s. Support includes all rigid contacts "
                 "and time after failure. These trials do not establish material equivalence.</p>"
-                f"<img src='../materials_{speed:g}/policy-and-support.png' "
-                "alt='Tracking and support for three materials'>"
+                + material_settings(folder)
+                + (
+                    f"<img src='../materials_{speed:g}/policy-and-support.png' "
+                    "alt='Tracking and support for three materials'>"
+                )
             )
         plots.append("</section>")
     numerical_cases = [case for case in status.get("cases", []) if case["case"].startswith("mpm_startup_")]
