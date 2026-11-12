@@ -24,16 +24,16 @@
     "sha256": "05f9ca2eb80ab72124ac3f854cca245042d93fad09c64e42383330264075c663"
   },
   "motion-rigid-0.5-summary.json": {
-    "bytes": 5143,
-    "sha256": "2ce36d6c905c3d71362e1958e21650f87d2b9c7f1d657b7de9d7e9585afa936b"
+    "bytes": 5144,
+    "sha256": "92ebf98674bc5de3140a9717ad1c781bb8917998880d4bd22486a542b21345a0"
   },
   "motion-rigid-0.5.npz": {
     "bytes": 542496,
     "sha256": "e8554db42f932cdb0e18cfd22bba464d4aaee19f8a73850debfa0d24f79f91d6"
   },
   "motion-rigid-1-summary.json": {
-    "bytes": 5148,
-    "sha256": "48acb44095b81bd2709d36319f1a4c58b2a12932f7c8a0565ec3094acd4921cc"
+    "bytes": 5149,
+    "sha256": "dbb0ad4e4defcf8ad930daf07099d040c7e4d870bee99a834d2a5d6b8b5a9536"
   },
   "motion-rigid-1.npz": {
     "bytes": 540557,

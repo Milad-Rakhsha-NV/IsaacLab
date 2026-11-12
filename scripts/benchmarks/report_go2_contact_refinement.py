@@ -182,7 +182,8 @@ def main(args):
         shutil.copy2(args.source / f"curved-sphere/convergence.{suffix}", output / f"sphere-convergence.{suffix}")
     for speed in ("0.5", "1"):
         shutil.copy2(args.source / f"motion-rigid-{speed}/rollout.npz", output / f"motion-rigid-{speed}.npz")
-        shutil.copy2(args.source / f"motion-rigid-{speed}/summary.json", output / f"motion-rigid-{speed}-summary.json")
+        summary = (args.source / f"motion-rigid-{speed}/summary.json").read_text()
+        (output / f"motion-rigid-{speed}-summary.json").write_text(summary.rstrip() + "\n")
     profile = read(args.profile)
     (output / "profile.json").write_text(json.dumps(profile, indent=2) + "\n")
     source = "recorded-motion-reference.json" if "recorded-motion-reference.json" in files else "recorded-motion.json"
