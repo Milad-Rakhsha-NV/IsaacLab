@@ -37,6 +37,12 @@ class GranularVelocityEnv(DirectRLEnv):
         for name in ("material_difficulty", "curriculum_initial_difficulty"):
             if not 0 <= getattr(cfg, name) <= 1:
                 raise ValueError(f"{name} must lie in [0, 1]")
+        if cfg.bearing_range is not None and (
+            len(cfg.bearing_range) != 2
+            or not all(math.isfinite(value) for value in cfg.bearing_range)
+            or not 0 <= cfg.bearing_range[0] <= cfg.bearing_range[1]
+        ):
+            raise ValueError("bearing_range must contain two ordered, finite, nonnegative multipliers")
         if cfg.curriculum_enabled and (
             not cfg.randomize_material
             or cfg.curriculum_min_episodes < 1
@@ -395,6 +401,10 @@ class GranularVelocityEnv(DirectRLEnv):
             self.material[world, 1] = friction
             self.material[world, 2] = rough * friction
             self.material[world, 3] = density * 9.81 * (894 * friction**3 - 386 * friction**2 + 89 * friction) * factor
+            if self.cfg.bearing_range is not None:
+                bearing = torch.empty(count, device=self.device).uniform_(*self.cfg.bearing_range)
+                nominal = self.cfg.sim.physics.solver_cfg.bearing
+                self.material[world, 6] = nominal + material_level * (bearing - nominal)
             if self.cfg.bed_depth_range is None:
                 wp.to_torch(self.rft.surface_height)[world] = material_level * torch.empty(
                     count, device=self.device

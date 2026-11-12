@@ -23,6 +23,7 @@ def test_g1_full_leg_coupling_and_clone_local_reset():
     cfg.scene.num_envs = 2
     cfg.sim.visualizer_cfgs = []
     cfg.curriculum_enabled = False
+    cfg.bearing_range = (0.2, 0.6)
     with launch_simulation(cfg):
         env = GranularVelocityEnv(cfg)
         try:
@@ -32,6 +33,7 @@ def test_g1_full_leg_coupling_and_clone_local_reset():
             assert env.robot.num_joints == 37
             assert len(env.foot_ids) == 2
             assert env.rft.model.particle_count == 0
+            assert torch.all((env.material[env.world_ids, 6] >= 0.2) & (env.material[env.world_ids, 6] <= 0.6))
             bodies = {row["body_label"].split("/")[-1] for row in env.rft.surface_inventory}
             for side in ("left", "right"):
                 assert {f"{side}_hip_yaw_link", f"{side}_knee_link", f"{side}_ankle_roll_link"} <= bodies
@@ -40,6 +42,14 @@ def test_g1_full_leg_coupling_and_clone_local_reset():
             env._reset_idx(torch.tensor([1], device=env.device))
             torch.testing.assert_close(env.material[env.world_ids[0]], material[env.world_ids[0]], rtol=0, atol=0)
             np.testing.assert_array_equal(env.rft.surface_height.numpy()[env.world_ids[0]], surface[env.world_ids[0]])
+            cfg.material_difficulty = 0.0
+            env._reset_idx(torch.tensor([1], device=env.device))
+            torch.testing.assert_close(
+                env.material[env.world_ids[1], 6],
+                torch.tensor(cfg.sim.physics.solver_cfg.bearing, device=env.device),
+            )
+            cfg.material_difficulty = 1.0
+            env._reset_idx(torch.tensor([1], device=env.device))
             peak = 0.0
             for _ in range(30):
                 observations, reward, _, _, _ = env.step(torch.zeros(2, 37, device=env.device))

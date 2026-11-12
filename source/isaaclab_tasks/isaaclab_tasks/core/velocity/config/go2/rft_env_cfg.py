@@ -104,6 +104,8 @@ class Go2RFTEnvCfg(DirectRLEnvCfg):
     friction_range = (0.3, 0.5)
     roughness_range = (0.6, 1.0)
     strength_multiplier_range = (0.8, 1.2)
+    bearing_range: tuple[float, float] | None = None
+    """Optional reset range for the experimental near-rest bearing multiplier; None keeps the solver value."""
     bed_height_range = (-0.02, 0.02)
     bed_depth: float | None = None
     """Optional finite-layer depth [m]; creates a labeled rigid substrate. None keeps a half-space."""
