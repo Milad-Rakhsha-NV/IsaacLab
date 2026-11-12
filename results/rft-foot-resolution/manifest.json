@@ -1,0 +1,88 @@
+{
+  "created_utc": "2026-11-12T19:28:27.005108+00:00",
+  "source_isaaclab_commit": "1eda167a5c4e63181905008d4c7ddf7a95449a84",
+  "computational_newton_commit": "277c30238619349d343104191d8e40582fa7ac70",
+  "rft_kernel_sha256": "9d1ab18327357585ab6a422febe50dbffd0a954a6cf5b6fc45249697a22f558f",
+  "source_hashes": {
+    "scripts/benchmarks/benchmark_g1_rft_quadrature.py": "5d1f34aadacb1ee6c82cf29d34dfacb293161ad23321a1bf3431a6a590de7777",
+    "scripts/benchmarks/benchmark_go2_foot_resolution.py": "0f7c71091cd595d3bdb51c5303ad9e725e3d6bb5557d2a02aba1d66f80ee42cc",
+    "scripts/benchmarks/report_g1_refinement.py": "e04758a12875f598969f8880cb12c360c75bc4fa24748fcedd7692f658a9f8a9"
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 6688,
+      "sha256": "abf28390c6e7cb37591ed9555de462179ad2e9a5248cec89bbf1ea024e07e388"
+    },
+    {
+      "path": "foot-quadrature-convergence.json",
+      "bytes": 22889,
+      "sha256": "87f2ca8e1a104a660a7c732a3f4d61fdf9d355b0435a034aa72e17a067fad855"
+    },
+    {
+      "path": "foot-quadrature-mesh.png",
+      "bytes": 240209,
+      "sha256": "2f9b891f9cf904a012bc6114da31deb9f9517dc464f5d76ffd134c6ab5c3067d"
+    },
+    {
+      "path": "g1-motion-0.5-summary.json",
+      "bytes": 10483,
+      "sha256": "99bc08b1323d47c9948b66760346f4f4168a0a69d7f516bb55567aaf45a3df0c"
+    },
+    {
+      "path": "g1-motion-0.5.npz",
+      "bytes": 1353307,
+      "sha256": "0216c2e395dac3a7697571eeda8e0fd304c0e678606765262252f8496e6d3a77"
+    },
+    {
+      "path": "g1-motion-1-summary.json",
+      "bytes": 10484,
+      "sha256": "316ea36b11f8acc73280fc73114d3bd0a2ef675231eec560aec674eac698c655"
+    },
+    {
+      "path": "g1-motion-1.npz",
+      "bytes": 1353904,
+      "sha256": "f7938dc0b29f3610704bb7c4197742c9be6f37a22ce450b5413e650ea0035dc2"
+    },
+    {
+      "path": "geometry.json",
+      "bytes": 120300,
+      "sha256": "46c4270887b9f0130c5dac85007e2bb7fa725f4392e3631e729deae7792c61b4"
+    },
+    {
+      "path": "go2-colliders.json",
+      "bytes": 1938,
+      "sha256": "e585142061838e481f11e00de316fc7e8909e083f91390d6d10ec53587ca3c99"
+    },
+    {
+      "path": "go2-foot-convergence.png",
+      "bytes": 114812,
+      "sha256": "ba735f1b68927c8dd6e1b56fe2e472e07342a28566c49b5639a97451f0b796d6"
+    },
+    {
+      "path": "go2-foot-meshes.png",
+      "bytes": 345292,
+      "sha256": "2dbeb4df93411b93fd4d3abdcd86d1f700e45a8ba3232581e98d1ebe33c7a439"
+    },
+    {
+      "path": "go2-foot-resolution.json",
+      "bytes": 16867,
+      "sha256": "896756f3a36de4b435e5d69184455652ced7bef989c186e74601908c3d3e4a4c"
+    },
+    {
+      "path": "go2-foot-resolution.npz",
+      "bytes": 148839,
+      "sha256": "7555d2689401b336a2fe81fdde0c70f9253fe1496fffa41e56d7926d5c5d9b1f"
+    },
+    {
+      "path": "index.html",
+      "bytes": 6040,
+      "sha256": "59d8f4c1241dc63c4ee383a4bc69913833e7e2af3e3c63def00af746a56ea816"
+    },
+    {
+      "path": "rft-profile.json",
+      "bytes": 1159,
+      "sha256": "de333eb3415e3bef462be9d0edc9fa0b5735c975f3f627d1114f3ddc76096252"
+    }
+  ]
+}

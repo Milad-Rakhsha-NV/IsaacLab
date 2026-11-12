@@ -1,0 +1,1021 @@
+{
+  "results": [
+    {
+      "max_edge_length": null,
+      "triangles_per_foot": 12,
+      "sole_triangles_per_foot": [
+        2,
+        2
+      ],
+      "feet": [
+        {
+          "body": "/World/envs/env_0/Robot/left_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.012387383729219437,
+            "torque_relative_error": 0.05697884410619736,
+            "loaded_force_error_p95": 0.10297422856092453,
+            "loaded_torque_error_p95": 0.22046777606010437,
+            "maximum_force_error": 0.4133164584636688,
+            "maximum_torque_error": 0.8286799788475037
+          },
+          "sole_only": {
+            "force_relative_error": 0.007568373344838619,
+            "torque_relative_error": 0.04668492451310158,
+            "loaded_force_error_p95": 0.12981195747852325,
+            "loaded_torque_error_p95": 0.23760239779949188,
+            "maximum_force_error": 0.2843254804611206,
+            "maximum_torque_error": 0.49208059906959534
+          }
+        },
+        {
+          "body": "/World/envs/env_0/Robot/right_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.050833676010370255,
+            "torque_relative_error": 0.16203917562961578,
+            "loaded_force_error_p95": 0.18317396938800812,
+            "loaded_torque_error_p95": 0.3873487412929535,
+            "maximum_force_error": 0.7304620742797852,
+            "maximum_torque_error": 2.0061299800872803
+          },
+          "sole_only": {
+            "force_relative_error": 0.050860751420259476,
+            "torque_relative_error": 0.18005430698394775,
+            "loaded_force_error_p95": 0.24568237364292145,
+            "loaded_torque_error_p95": 0.5212770104408264,
+            "maximum_force_error": 0.9557536244392395,
+            "maximum_torque_error": 2.3035595417022705
+          }
+        }
+      ]
+    },
+    {
+      "max_edge_length": 0.04,
+      "triangles_per_foot": 528,
+      "sole_triangles_per_foot": [
+        128,
+        128
+      ],
+      "feet": [
+        {
+          "body": "/World/envs/env_0/Robot/left_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.0005699759349226952,
+            "torque_relative_error": 0.003267263062298298,
+            "loaded_force_error_p95": 0.003765704110264778,
+            "loaded_torque_error_p95": 0.007851292379200459,
+            "maximum_force_error": 0.018923860043287277,
+            "maximum_torque_error": 0.1144225150346756
+          },
+          "sole_only": {
+            "force_relative_error": 0.0005700697074644268,
+            "torque_relative_error": 0.0035956494975835085,
+            "loaded_force_error_p95": 0.010386777110397816,
+            "loaded_torque_error_p95": 0.0211984533816576,
+            "maximum_force_error": 0.04906066134572029,
+            "maximum_torque_error": 0.13599629700183868
+          }
+        },
+        {
+          "body": "/World/envs/env_0/Robot/right_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.002651493763551116,
+            "torque_relative_error": 0.0051327962428331375,
+            "loaded_force_error_p95": 0.007727448828518391,
+            "loaded_torque_error_p95": 0.011000536382198334,
+            "maximum_force_error": 0.07331576943397522,
+            "maximum_torque_error": 0.10061300545930862
+          },
+          "sole_only": {
+            "force_relative_error": 0.002738220151513815,
+            "torque_relative_error": 0.00575890252366662,
+            "loaded_force_error_p95": 0.008965552784502506,
+            "loaded_torque_error_p95": 0.013140499591827393,
+            "maximum_force_error": 0.05482986196875572,
+            "maximum_torque_error": 0.10729137808084488
+          }
+        }
+      ]
+    },
+    {
+      "max_edge_length": 0.02,
+      "triangles_per_foot": 2112,
+      "sole_triangles_per_foot": [
+        512,
+        512
+      ],
+      "feet": [
+        {
+          "body": "/World/envs/env_0/Robot/left_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.00011352165893185884,
+            "torque_relative_error": 0.0006733198533765972,
+            "loaded_force_error_p95": 0.000841991335619241,
+            "loaded_torque_error_p95": 0.0016135723562911153,
+            "maximum_force_error": 0.00530227879062295,
+            "maximum_torque_error": 0.015775317326188087
+          },
+          "sole_only": {
+            "force_relative_error": 0.00010973897587973624,
+            "torque_relative_error": 0.0007459603948518634,
+            "loaded_force_error_p95": 0.0024985885247588158,
+            "loaded_torque_error_p95": 0.004416073206812143,
+            "maximum_force_error": 0.014116737060248852,
+            "maximum_torque_error": 0.022600971162319183
+          }
+        },
+        {
+          "body": "/World/envs/env_0/Robot/right_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.0009358818642795086,
+            "torque_relative_error": 0.002285800175741315,
+            "loaded_force_error_p95": 0.003647280391305685,
+            "loaded_torque_error_p95": 0.0053669908083975315,
+            "maximum_force_error": 0.053652066737413406,
+            "maximum_torque_error": 0.08419044315814972
+          },
+          "sole_only": {
+            "force_relative_error": 0.0009648691047914326,
+            "torque_relative_error": 0.0025748040061444044,
+            "loaded_force_error_p95": 0.0036463718861341476,
+            "loaded_torque_error_p95": 0.006198979448527098,
+            "maximum_force_error": 0.053652308881282806,
+            "maximum_torque_error": 0.084187351167202
+          }
+        }
+      ]
+    },
+    {
+      "max_edge_length": 0.01,
+      "triangles_per_foot": 8448,
+      "sole_triangles_per_foot": [
+        2048,
+        2048
+      ],
+      "feet": [
+        {
+          "body": "/World/envs/env_0/Robot/left_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.0,
+            "torque_relative_error": 0.0,
+            "loaded_force_error_p95": 0.0,
+            "loaded_torque_error_p95": 0.0,
+            "maximum_force_error": 0.0,
+            "maximum_torque_error": 0.0
+          },
+          "sole_only": {
+            "force_relative_error": 0.0,
+            "torque_relative_error": 0.0,
+            "loaded_force_error_p95": 0.0,
+            "loaded_torque_error_p95": 0.0,
+            "maximum_force_error": 0.0,
+            "maximum_torque_error": 0.0
+          }
+        },
+        {
+          "body": "/World/envs/env_0/Robot/right_ankle_roll_link",
+          "whole_foot": {
+            "force_relative_error": 0.0,
+            "torque_relative_error": 0.0,
+            "loaded_force_error_p95": 0.0,
+            "loaded_torque_error_p95": 0.0,
+            "maximum_force_error": 0.0,
+            "maximum_torque_error": 0.0
+          },
+          "sole_only": {
+            "force_relative_error": 0.0,
+            "torque_relative_error": 0.0,
+            "loaded_force_error_p95": 0.0,
+            "loaded_torque_error_p95": 0.0,
+            "maximum_force_error": 0.0,
+            "maximum_torque_error": 0.0
+          }
+        }
+      ]
+    }
+  ],
+  "trajectories": [
+    {
+      "path": "logs/go2_granular/g1/refinement/diagnostics/quadrature-motion-0.5/rollout.npz",
+      "velocity_source": "recorded exact world-space COM twists",
+      "frames": [
+        8,
+        23,
+        31,
+        33,
+        37,
+        38,
+        41,
+        42,
+        49,
+        55,
+        61,
+        63,
+        71,
+        73,
+        77,
+        78,
+        82,
+        88,
+        89,
+        97,
+        100,
+        107,
+        118,
+        119,
+        126,
+        139,
+        140,
+        148,
+        149,
+        152,
+        153,
+        154,
+        160,
+        165,
+        166,
+        169,
+        171,
+        182,
+        184,
+        185,
+        186,
+        187,
+        193,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        212,
+        213,
+        219,
+        225,
+        229,
+        231,
+        233,
+        241,
+        252,
+        261,
+        263,
+        267,
+        272,
+        276,
+        284,
+        290,
+        292,
+        294,
+        296,
+        297,
+        301,
+        302,
+        306,
+        309,
+        312,
+        313,
+        317,
+        321,
+        326,
+        327,
+        328,
+        330,
+        332,
+        335,
+        336,
+        346,
+        347,
+        358,
+        359,
+        361,
+        369,
+        374,
+        380,
+        381,
+        382,
+        383,
+        385,
+        387,
+        389,
+        392,
+        398,
+        401,
+        405,
+        407,
+        413,
+        427,
+        429,
+        433,
+        443,
+        447,
+        448,
+        455,
+        465,
+        474,
+        477,
+        479,
+        484,
+        494,
+        495,
+        496,
+        497
+      ],
+      "sha256": "0216c2e395dac3a7697571eeda8e0fd304c0e678606765262252f8496e6d3a77"
+    },
+    {
+      "path": "logs/go2_granular/g1/refinement/diagnostics/quadrature-motion-1/rollout.npz",
+      "velocity_source": "recorded exact world-space COM twists",
+      "frames": [
+        9,
+        14,
+        21,
+        22,
+        26,
+        31,
+        37,
+        39,
+        40,
+        45,
+        50,
+        53,
+        54,
+        57,
+        58,
+        61,
+        66,
+        70,
+        72,
+        73,
+        74,
+        78,
+        79,
+        84,
+        92,
+        101,
+        111,
+        114,
+        119,
+        120,
+        124,
+        128,
+        131,
+        133,
+        138,
+        144,
+        145,
+        147,
+        150,
+        151,
+        155,
+        163,
+        164,
+        176,
+        178,
+        185,
+        190,
+        195,
+        196,
+        197,
+        203,
+        206,
+        208,
+        211,
+        218,
+        221,
+        225,
+        229,
+        235,
+        237,
+        238,
+        239,
+        240,
+        244,
+        247,
+        250,
+        251,
+        252,
+        253,
+        260,
+        263,
+        264,
+        271,
+        286,
+        287,
+        295,
+        302,
+        303,
+        306,
+        307,
+        320,
+        329,
+        335,
+        349,
+        355,
+        366,
+        372,
+        375,
+        386,
+        395,
+        398,
+        399,
+        400,
+        401,
+        410,
+        411,
+        414,
+        426,
+        432,
+        440,
+        444,
+        445,
+        446,
+        449,
+        454,
+        458,
+        460,
+        467,
+        470,
+        480,
+        481,
+        483,
+        485,
+        486,
+        487,
+        488,
+        493,
+        495,
+        496,
+        498
+      ],
+      "sha256": "f7938dc0b29f3610704bb7c4197742c9be6f37a22ce450b5413e650ea0035dc2"
+    }
+  ],
+  "material_cases": [
+    {
+      "height": 0.118,
+      "density": 1600.0,
+      "friction": 0.4,
+      "roughness": 0.3,
+      "strength": 0.7101565161611183,
+      "bearing": 0.45
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.003,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.01,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.03,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.06,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.3,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 0.1,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.225
+    },
+    {
+      "height": 0.118,
+      "density": 1800.0,
+      "friction": 0.5,
+      "roughness": 1.0,
+      "strength": 1.0652347742416775,
+      "bearing": 0.675
+    }
+  ],
+  "motion_samples": 240,
+  "independent_foot_states": 480,
+  "original_model_parity": [
+    {
+      "sample": 0,
+      "maximum_absolute_difference": 0.0
+    },
+    {
+      "sample": 80,
+      "maximum_absolute_difference": 0.0
+    },
+    {
+      "sample": 120,
+      "maximum_absolute_difference": 0.0
+    },
+    {
+      "sample": 239,
+      "maximum_absolute_difference": 3.814697265625e-06
+    }
+  ],
+  "foot_inventory": [
+    {
+      "shape": 6,
+      "body": 6,
+      "body_label": "/World/envs/env_0/Robot/left_ankle_roll_link",
+      "label": "/World/envs/env_0/Robot/left_ankle_roll_link/Cube",
+      "kind": "CONVEX_MESH",
+      "scale": [
+        0.20310921967029572,
+        0.06546924263238907,
+        0.018507879227399826
+      ],
+      "local_pose": [
+        0.035917047411203384,
+        2.220446049250313e-16,
+        -0.025170065462589264,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 7,
+      "body": 13,
+      "body_label": "/World/envs/env_0/Robot/right_ankle_roll_link",
+      "label": "/World/envs/env_0/Robot/right_ankle_roll_link/Cube",
+      "kind": "CONVEX_MESH",
+      "scale": [
+        0.20310921967029572,
+        0.06546924263238907,
+        0.018507879227399826
+      ],
+      "local_pose": [
+        0.035917047411203384,
+        2.220446049250313e-16,
+        -0.025170065462589264,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 12
+    }
+  ],
+  "foot_surfaces": [
+    {
+      "body": "/World/envs/env_0/Robot/left_ankle_roll_link",
+      "vertices": [
+        [
+          -0.06563755869865417,
+          -0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          0.13747166097164154,
+          -0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          -0.06563755869865417,
+          0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          0.13747166097164154,
+          0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          -0.06563755869865417,
+          -0.032734621316194534,
+          -0.034424006938934326
+        ],
+        [
+          0.13747166097164154,
+          -0.032734621316194534,
+          -0.034424006938934326
+        ],
+        [
+          -0.06563755869865417,
+          0.032734621316194534,
+          -0.034424006938934326
+        ],
+        [
+          0.13747166097164154,
+          0.032734621316194534,
+          -0.034424006938934326
+        ]
+      ],
+      "indices": [
+        3,
+        2,
+        0,
+        3,
+        0,
+        1,
+        5,
+        1,
+        0,
+        5,
+        0,
+        4,
+        5,
+        3,
+        1,
+        5,
+        7,
+        3,
+        6,
+        0,
+        2,
+        6,
+        4,
+        0,
+        6,
+        2,
+        3,
+        6,
+        3,
+        7,
+        6,
+        5,
+        4,
+        6,
+        7,
+        5
+      ]
+    },
+    {
+      "body": "/World/envs/env_0/Robot/right_ankle_roll_link",
+      "vertices": [
+        [
+          -0.06563755869865417,
+          -0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          0.13747166097164154,
+          -0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          -0.06563755869865417,
+          0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          0.13747166097164154,
+          0.032734621316194534,
+          -0.01591612584888935
+        ],
+        [
+          -0.06563755869865417,
+          -0.032734621316194534,
+          -0.034424006938934326
+        ],
+        [
+          0.13747166097164154,
+          -0.032734621316194534,
+          -0.034424006938934326
+        ],
+        [
+          -0.06563755869865417,
+          0.032734621316194534,
+          -0.034424006938934326
+        ],
+        [
+          0.13747166097164154,
+          0.032734621316194534,
+          -0.034424006938934326
+        ]
+      ],
+      "indices": [
+        3,
+        2,
+        0,
+        3,
+        0,
+        1,
+        5,
+        1,
+        0,
+        5,
+        0,
+        4,
+        5,
+        3,
+        1,
+        5,
+        7,
+        3,
+        6,
+        0,
+        2,
+        6,
+        4,
+        0,
+        6,
+        2,
+        3,
+        6,
+        3,
+        7,
+        6,
+        5,
+        4,
+        6,
+        7,
+        5
+      ]
+    }
+  ],
+  "wall_seconds": 14.607608056045137,
+  "rft_kernel_sha256": "9d1ab18327357585ab6a422febe50dbffd0a954a6cf5b6fc45249697a22f558f",
+  "torque_reference": "world-space moment about the actual foot body COM",
+  "normalization": "Pooled L2 error; loaded p95 uses 20 N / 1 N m denominator floors and reference force >1 N.",
+  "interpretation": "Surface quadrature self-convergence on exact current-policy poses/twists. This is not physical validation. Only feet are counted. Sole-only forces include bottom-face triangles; whole-foot forces also include side/top faces. The 10 mm edge mesh is the numerical reference. Density/strength scale traction with inertial correction disabled."
+}

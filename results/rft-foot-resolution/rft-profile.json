@@ -1,0 +1,43 @@
+{
+  "label": "Corrected force-informed RFT with reset randomization",
+  "calibration_accepted": false,
+  "reference": "calibration-final/calibration.json",
+  "nominal_material": {
+    "density": 1600,
+    "friction": 0.4,
+    "roughness": 0.3
+  },
+  "solver": {
+    "bulk_density": 1600,
+    "internal_friction": 0.4,
+    "surface_friction": 0.12,
+    "strength_multiplier": 0.7101565161611183,
+    "velocity_regularization": 0.04,
+    "bearing": 0.45
+  },
+  "environment": {
+    "curriculum_enabled": false,
+    "material_difficulty": 1.0,
+    "density_range": [
+      1400.0,
+      1800.0
+    ],
+    "friction_range": [
+      0.3,
+      0.5
+    ],
+    "roughness_range": [
+      0.1,
+      1.0
+    ],
+    "strength_multiplier_range": [
+      0.35507825808055915,
+      1.0652347742416775
+    ],
+    "bearing_range": [
+      0.225,
+      0.675
+    ]
+  },
+  "interpretation": "Corrected Newton 277c302 bearing releases on withdrawal. Force-informed exploratory profile: loaded depth within 4.1% of fine MPM calibration; held-out wrench matching fails. Effective interface ratio 0.3 differs from MPM interface ratio 1.0. No material equivalence is claimed."
+}

@@ -1,0 +1,587 @@
+{
+  "results": [
+    {
+      "kind": "uv",
+      "resolution": 12,
+      "label": "uv 12",
+      "raw_triangles_per_foot": 144,
+      "integrated_triangles_per_foot": 132,
+      "lower_hemisphere_triangles": 66,
+      "maximum_edge_m": 0.01555634941905737,
+      "sphere_area_relative_error": 0.05610865354537964,
+      "force_relative_error": 0.08744072169065475,
+      "torque_relative_error": 0.1889142394065857,
+      "force_error_p95": 0.23201261460781097,
+      "torque_error_p95": 0.31002315878868103,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.047826413065195084,
+          "torque_error_p95": 0.014192236587405205
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.23612567782402039,
+          "torque_error_p95": 0.055716048926115036
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.22421656548976898,
+          "torque_error_p95": 0.20795437693595886
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.2546440362930298,
+          "torque_error_p95": 0.44800812005996704
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.5257886648178101,
+          "torque_error_p95": 0.9214759469032288
+        }
+      ]
+    },
+    {
+      "kind": "uv",
+      "resolution": 24,
+      "label": "uv 24",
+      "raw_triangles_per_foot": 576,
+      "integrated_triangles_per_foot": 552,
+      "lower_hemisphere_triangles": 276,
+      "maximum_edge_m": 0.008052559569478035,
+      "sphere_area_relative_error": 0.014214873313903809,
+      "force_relative_error": 0.028484666720032692,
+      "torque_relative_error": 0.0850377082824707,
+      "force_error_p95": 0.09574618190526962,
+      "torque_error_p95": 0.10758134722709656,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.022701865062117577,
+          "torque_error_p95": 0.0067576696164906025
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.07379989326000214,
+          "torque_error_p95": 0.02497926354408264
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.09574618190526962,
+          "torque_error_p95": 0.09861956536769867
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.1393979787826538,
+          "torque_error_p95": 0.19826602935791016
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.2843326926231384,
+          "torque_error_p95": 0.4259819984436035
+        }
+      ]
+    },
+    {
+      "kind": "uv",
+      "resolution": 32,
+      "label": "uv 32",
+      "raw_triangles_per_foot": 1024,
+      "integrated_triangles_per_foot": 992,
+      "lower_hemisphere_triangles": 496,
+      "maximum_edge_m": 0.006069787312299013,
+      "sphere_area_relative_error": 0.00801163911819458,
+      "force_relative_error": 0.01690022088587284,
+      "torque_relative_error": 0.05992281064391136,
+      "force_error_p95": 0.06573764234781265,
+      "torque_error_p95": 0.09532838314771652,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.013492979109287262,
+          "torque_error_p95": 0.004469452891498804
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.04207892715930939,
+          "torque_error_p95": 0.013979244977235794
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.06573764234781265,
+          "torque_error_p95": 0.061692457646131516
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.10428430140018463,
+          "torque_error_p95": 0.14436885714530945
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.21082943677902222,
+          "torque_error_p95": 0.3047786355018616
+        }
+      ]
+    },
+    {
+      "kind": "uv",
+      "resolution": 48,
+      "label": "uv 48",
+      "raw_triangles_per_foot": 2304,
+      "integrated_triangles_per_foot": 2256,
+      "lower_hemisphere_triangles": 1128,
+      "maximum_edge_m": 0.004061022307723761,
+      "sphere_area_relative_error": 0.0035657286643981934,
+      "force_relative_error": 0.008760598488152027,
+      "torque_relative_error": 0.03677321970462799,
+      "force_error_p95": 0.0224711112678051,
+      "torque_error_p95": 0.05928292125463486,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.006216766778379679,
+          "torque_error_p95": 0.0016848772065714002
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.018796974793076515,
+          "torque_error_p95": 0.0065067666582763195
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.0224711112678051,
+          "torque_error_p95": 0.032725706696510315
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.06730151176452637,
+          "torque_error_p95": 0.09085386246442795
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.13504737615585327,
+          "torque_error_p95": 0.18819959461688995
+        }
+      ]
+    },
+    {
+      "kind": "uv",
+      "resolution": 64,
+      "label": "uv 64",
+      "raw_triangles_per_foot": 4096,
+      "integrated_triangles_per_foot": 4032,
+      "lower_hemisphere_triangles": 2016,
+      "maximum_edge_m": 0.0030495785176753998,
+      "sphere_area_relative_error": 0.002006709575653076,
+      "force_relative_error": 0.005829231347888708,
+      "torque_relative_error": 0.0256375540047884,
+      "force_error_p95": 0.012628770433366299,
+      "torque_error_p95": 0.0382787249982357,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0034938319586217403,
+          "torque_error_p95": 0.000980194192379713
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.01045443769544363,
+          "torque_error_p95": 0.00453268364071846
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.012628770433366299,
+          "torque_error_p95": 0.017732901498675346
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.048409976065158844,
+          "torque_error_p95": 0.06439441442489624
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.09671252220869064,
+          "torque_error_p95": 0.1319114714860916
+        }
+      ]
+    },
+    {
+      "kind": "uv",
+      "resolution": 96,
+      "label": "uv 96",
+      "raw_triangles_per_foot": 9216,
+      "integrated_triangles_per_foot": 9120,
+      "lower_hemisphere_triangles": 4560,
+      "maximum_edge_m": 0.0020348685793578625,
+      "sphere_area_relative_error": 0.0008921027183532715,
+      "force_relative_error": 0.003385701682418585,
+      "torque_relative_error": 0.015219422988593578,
+      "force_error_p95": 0.013076809234917164,
+      "torque_error_p95": 0.020219316706061363,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0015126345679163933,
+          "torque_error_p95": 0.00047733462997712195
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.004505533259361982,
+          "torque_error_p95": 0.002431402914226055
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.013076809234917164,
+          "torque_error_p95": 0.01803143322467804
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.029211001470685005,
+          "torque_error_p95": 0.038263529539108276
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.05806997790932655,
+          "torque_error_p95": 0.0777345821261406
+        }
+      ]
+    },
+    {
+      "kind": "uv",
+      "resolution": 192,
+      "label": "uv 192",
+      "raw_triangles_per_foot": 36864,
+      "integrated_triangles_per_foot": 36672,
+      "lower_hemisphere_triangles": 18336,
+      "maximum_edge_m": 0.0010179801611229777,
+      "sphere_area_relative_error": 0.00022304058074951172,
+      "force_relative_error": 0.0010425332002341747,
+      "torque_relative_error": 0.004937157034873962,
+      "force_error_p95": 0.0023447531275451183,
+      "torque_error_p95": 0.004407385364174843,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.00030371788307093084,
+          "torque_error_p95": 0.00010540467337705195
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0009038240532390773,
+          "torque_error_p95": 0.0005789073184132576
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.0023447531275451183,
+          "torque_error_p95": 0.00281002139672637
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.0097788255661726,
+          "torque_error_p95": 0.012622647918760777
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.019350582733750343,
+          "torque_error_p95": 0.02548687346279621
+        }
+      ]
+    },
+    {
+      "kind": "icosphere",
+      "resolution": 2,
+      "label": "icosphere 2",
+      "raw_triangles_per_foot": 320,
+      "integrated_triangles_per_foot": 320,
+      "lower_hemisphere_triangles": 152,
+      "maximum_edge_m": 0.007148233707994223,
+      "sphere_area_relative_error": 0.018821775913238525,
+      "force_relative_error": 0.0308133065700531,
+      "torque_relative_error": 0.07829546183347702,
+      "force_error_p95": 0.08450587838888168,
+      "torque_error_p95": 0.10835152119398117,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.02424328401684761,
+          "torque_error_p95": 0.006913299206644297
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.08068666607141495,
+          "torque_error_p95": 0.026098811998963356
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.0834849551320076,
+          "torque_error_p95": 0.09077762067317963
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.12430417537689209,
+          "torque_error_p95": 0.17258048057556152
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.2555588483810425,
+          "torque_error_p95": 0.376434862613678
+        }
+      ]
+    },
+    {
+      "kind": "icosphere",
+      "resolution": 3,
+      "label": "icosphere 3",
+      "raw_triangles_per_foot": 1280,
+      "integrated_triangles_per_foot": 1280,
+      "lower_hemisphere_triangles": 624,
+      "maximum_edge_m": 0.003622238291427493,
+      "sphere_area_relative_error": 0.004764914512634277,
+      "force_relative_error": 0.009234381839632988,
+      "torque_relative_error": 0.03340902179479599,
+      "force_error_p95": 0.022657638415694237,
+      "torque_error_p95": 0.053838059306144714,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.006643201690167189,
+          "torque_error_p95": 0.0016729270573705435
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.020541589707136154,
+          "torque_error_p95": 0.005363748408854008
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.02006552182137966,
+          "torque_error_p95": 0.018244575709104538
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.06132613867521286,
+          "torque_error_p95": 0.08045309782028198
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.12354278564453125,
+          "torque_error_p95": 0.16759781539440155
+        }
+      ]
+    },
+    {
+      "kind": "icosphere",
+      "resolution": 4,
+      "label": "icosphere 4",
+      "raw_triangles_per_foot": 5120,
+      "integrated_triangles_per_foot": 5120,
+      "lower_hemisphere_triangles": 2528,
+      "maximum_edge_m": 0.0018172876443713903,
+      "sphere_area_relative_error": 0.0011950135231018066,
+      "force_relative_error": 0.003210984403267503,
+      "torque_relative_error": 0.013628752902150154,
+      "force_error_p95": 0.006143845617771149,
+      "torque_error_p95": 0.017440717667341232,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0016287940088659525,
+          "torque_error_p95": 0.00037796274409629405
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0049257539212703705,
+          "torque_error_p95": 0.002233833307400346
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.006143845617771149,
+          "torque_error_p95": 0.007340587209910154
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.026565860956907272,
+          "torque_error_p95": 0.03389913588762283
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.052899591624736786,
+          "torque_error_p95": 0.06923498958349228
+        }
+      ]
+    },
+    {
+      "kind": "icosphere",
+      "resolution": 5,
+      "label": "icosphere 5",
+      "raw_triangles_per_foot": 20480,
+      "integrated_triangles_per_foot": 20480,
+      "lower_hemisphere_triangles": 10176,
+      "maximum_edge_m": 0.0009094197885133326,
+      "sphere_area_relative_error": 0.0002989768981933594,
+      "force_relative_error": 0.000985410064458847,
+      "torque_relative_error": 0.004308221396058798,
+      "force_error_p95": 0.002194402040913701,
+      "torque_error_p95": 0.006950998678803444,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.00033229979453608394,
+          "torque_error_p95": 8.018028165679425e-05
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0010242937132716179,
+          "torque_error_p95": 0.0006193129811435938
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.002194402040913701,
+          "torque_error_p95": 0.0029413008596748114
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.009107823483645916,
+          "torque_error_p95": 0.011218336410820484
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.017131870612502098,
+          "torque_error_p95": 0.022575749084353447
+        }
+      ]
+    },
+    {
+      "kind": "uv",
+      "resolution": 384,
+      "label": "uv 384",
+      "raw_triangles_per_foot": 147456,
+      "integrated_triangles_per_foot": 147072,
+      "lower_hemisphere_triangles": 73536,
+      "maximum_edge_m": 0.0005090589984320104,
+      "sphere_area_relative_error": 5.5730342864990234e-05,
+      "force_relative_error": 0.0,
+      "torque_relative_error": 0.0,
+      "force_error_p95": 0.0,
+      "torque_error_p95": 0.0,
+      "per_depth": [
+        {
+          "depth_m": 0.001,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.003,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.01,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.025,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        },
+        {
+          "depth_m": 0.044,
+          "force_error_p95": 0.0,
+          "torque_error_p95": 0.0
+        }
+      ]
+    }
+  ],
+  "radius_m": 0.022,
+  "depths_m": [
+    0.001,
+    0.003,
+    0.01,
+    0.025,
+    0.044
+  ],
+  "velocities_m_s": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -0.1
+    ],
+    [
+      0.3,
+      0,
+      -0.02
+    ],
+    [
+      1,
+      0,
+      -0.1
+    ],
+    [
+      0,
+      0,
+      0.1
+    ]
+  ],
+  "angular_velocities_rad_s": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      8,
+      0
+    ]
+  ],
+  "orientations_rpy_rad": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0.3,
+      0.2,
+      0.1
+    ],
+    [
+      0.7,
+      0.4,
+      0.3
+    ]
+  ],
+  "materials": [
+    {
+      "internal_friction": 0.3,
+      "roughness": 0.6
+    },
+    {
+      "internal_friction": 0.3,
+      "roughness": 1.0
+    },
+    {
+      "internal_friction": 0.5,
+      "roughness": 0.6
+    },
+    {
+      "internal_friction": 0.5,
+      "roughness": 1.0
+    }
+  ],
+  "density_kg_m3": 1600,
+  "bearing": 0.87574,
+  "velocity_regularization_m_s": 0.04,
+  "prescribed_states_per_material": 150,
+  "reference_segments": 384,
+  "wall_seconds": 15.57462748105172,
+  "rft_kernel_sha256": "9d1ab18327357585ab6a422febe50dbffd0a954a6cf5b6fc45249697a22f558f",
+  "source_sha256": "0f7c71091cd595d3bdb51c5303ad9e725e3d6bb5557d2a02aba1d66f80ee42cc",
+  "interpretation": "Prescribed centered sphere probes, not robot-policy validation or material validation. Refinement changes curved geometry and its quadrature together. Torques are about the sphere center. Percentiles use 1 N / 0.01 Nm denominator floors. Near-zero-area pole triangles remain in solver counts."
+}

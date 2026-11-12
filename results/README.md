@@ -4,6 +4,7 @@
 |---|---|---|
 | Go2 | [Archive and reproducibility](go2-rft-mpm/README.md) | [Go2 report](go2-rft-mpm/report/index.html) |
 | G1 | [Archive and reproducibility](g1-rft-mpm/README.md) | [G1 report](g1-rft-mpm/report/index.html) |
+| Go2 / G1 foot resolution | [Geometry, convergence and limits](rft-foot-resolution/README.md) | [Foot-resolution report](rft-foot-resolution/index.html) |
 
 MPM supplies no training transitions. Go2 uses independently trained rigid and RFT policies. G1 fine-tunes an accepted rigid policy in RFT. The studies also use different MPM feedback settings, documented in their reports. Their cross-robot outcomes are not a controlled comparison. Material equivalence and MPM force convergence remain unvalidated.
 

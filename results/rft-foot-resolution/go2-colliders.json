@@ -1,0 +1,94 @@
+{
+  "source": "results/go2-rft-mpm/max1/rft_walk_validation/surfaces.json",
+  "source_sha256": "e5c8fa4052a33b814a6c52aafaf1b14dfda13d35ec006d2ae04a6c8a7efa2762",
+  "surfaces": [
+    {
+      "shape": 2,
+      "body": 4,
+      "body_label": "/World/envs/env_0/Robot/FL_foot",
+      "label": "/World/envs/env_0/Robot/FL_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 3,
+      "body": 8,
+      "body_label": "/World/envs/env_0/Robot/FR_foot",
+      "label": "/World/envs/env_0/Robot/FR_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 5,
+      "body": 14,
+      "body_label": "/World/envs/env_0/Robot/RL_foot",
+      "label": "/World/envs/env_0/Robot/RL_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 6,
+      "body": 18,
+      "body_label": "/World/envs/env_0/Robot/RR_foot",
+      "label": "/World/envs/env_0/Robot/RR_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    }
+  ]
+}
