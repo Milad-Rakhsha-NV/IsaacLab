@@ -335,8 +335,9 @@ code{overflow-wrap:anywhere}.status{padding:16px;background:#dbeafe}</style>
 <p class="status"><a href="../../go2-contact-refinement/">Go2 contact-resolution follow-up</a>:
 128 triangles per spherical foot, selective lower-calf refinement, accuracy, cost and static-support checks.
 The policy videos below retain their original solver and coarse training surfaces.
-<a href="../../go2-contact-refinement/low-speed/">Latest contact-model validation</a>:
-fixed foot/calf overlap correction, matched MPM foot loads, and low-speed integration diagnostics.</p>
+<a href="../../go2-contact-refinement/low-speed/static-contact/">Latest articulated RFT checks</a>:
+stationary support video, MPM loading comparisons, and 4096-world cost. Material matching remains open;
+no replacement policy has been trained.</p>
 <p>The rigid and RFT runs use the same robot, self-collision, posture and foot-placement criteria.
 Their standing, tracking, slip and stepping acceptance checks are reported separately.</p>
 <p>The Go2 knee-to-sole length is approximately 236 mm. Each resetting environment samples

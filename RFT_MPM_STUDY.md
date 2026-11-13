@@ -11,14 +11,19 @@ Both repositories use branch **`milad/rft-mpm`**:
 
 The archived Go2 and initial G1 experiments used Newton `32f455bc4430f0954ae564fb40681fbaca95e7f3`.
 The G1 follow-up uses corrected revision `277c30238619349d343104191d8e40582fa7ac70`. The current dependency
-pins `f59677bd8c5037d68d4196c323ea0b4459c18a9c`, adding the fixed-link boundary correction after
-`6cf5b879d576c19279183ee9da0dc4de039a080f` introduced opt-in curved-patch integration for the
+pins `e73147c247a5df0a366548aaaac709e882b9f1cf`, adding projected near-rest reactions and native
+coupling-history rewind after the fixed-link boundary correction in `f59677bd8c5037d68d4196c323ea0b4459c18a9c`.
+Revision `6cf5b879d576c19279183ee9da0dc4de039a080f` introduced opt-in curved-patch integration for the
 [Go2 contact-resolution follow-up](GO2_RFT_REFINEMENT.md). Existing snapshots retain their original solver
 provenance and separate runtimes. The [G1 force-verification follow-up](G1_RFT_REFINEMENT.md) identifies and
 corrects energy generation in the added bearing extension, establishes a refined isolated-foot MPM
 reference and evaluates additional training with force-informed reset ranges.
 
-**Current validation remains failed for prolonged static support and held-out wrench matching.** Corrected RFT exhibits timestep-dependent creep under a sustained load. The revised policy can obtain most standing support from its rigid backing floor. Learned transfer performance must therefore be read as an exploratory surrogate-training result, rather than validation of an equivalent granular material.
+**Held-out material matching remains failed.** The default explicit model still creeps under a
+sustained load. The opt-in projected mode now passes tested stationary support checks, including a
+ten-second full Go2 stance without a floor, but an insertion-only calibration still misses the lateral
+MPM response. Historical policies can obtain standing support from their rigid backing floor.
+Learned transfer remains an exploratory surrogate-training result, not validation of an equivalent material.
 
 Current implementation work focuses on Go2; G1 remains on hold. The initial resolution audit at Newton
 `6cf5b879` kept **128 triangles
@@ -35,8 +40,11 @@ The [low-speed follow-up](GO2_RFT_LOW_SPEED.md) identifies an additional foot/ca
 containment now removes internal patches across body frames; one prescribed stance loses 54.02 N of
 false bearing support. All 23 Newton RFT and six Isaac Lab cases pass. Matched standalone Go2-sphere
 MPM probes sustain an 18.42 N load, while slow-insertion response fits need 0.34–0.38 of nominal RFT
-strength in shallow beds. A scalar implicit reaction removes numerical support drift, but the articulated
-replacement remains unaccepted. No new training or policy videos are included in this update.
+strength in shallow beds. A projected articulated reaction solve now selects near-rest support and
+friction. The [new report and stationary support video](results/go2-contact-refinement/low-speed/static-contact/index.html)
+include timestep/iteration checks, lateral and unloading MPM fixtures, and 4096-world cost. The 10 N
+lateral material match fails, so no new policy training has started. Reset randomization now preserves
+the configured calibrated nominal material; G1 remains on hold.
 
 ## Implementation
 

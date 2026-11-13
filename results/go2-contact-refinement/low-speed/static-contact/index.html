@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Go2 — articulated RFT support and material checks</title>
+<style>body{font:17px/1.6 system-ui;max-width:1100px;margin:35px auto;padding:0 24px;background:#f4f6f9;color:#172033}
+section{background:white;padding:24px;margin:24px 0;border-radius:12px}h1,h2{line-height:1.25}
+img,video{width:100%;height:auto}table{border-collapse:collapse;width:100%}
+td,th{padding:8px;text-align:left;border-bottom:1px solid #ddd}
+code{overflow-wrap:anywhere}a{color:#0369a1}.status{border-left:5px solid #d97706}</style>
+<h1>Go2: articulated RFT support and MPM checks</h1><p>13 November 2026 ·
+<a href="../">Geometry and previous low-speed investigation</a> · <a href="results.json">Numerical summary</a></p>
+<section class="status"><h2>Support selection is implemented; material matching remains open</h2>
+<p>The new projected reaction solve holds a loaded foot and the full Go2 articulation without a backing floor.
+The explicit moving law remains the default. The extension selects compressive pressure and Coulomb friction
+near rest, and rewinds native solver history between trials.</p>
+<p><strong>No replacement policy has been trained.</strong> The current insertion-fit material still misses the
+stronger lateral MPM response. Historical walking-policy videos use their original solver and checkpoints.</p></section>
+<section><h2>Stationary Go2 supported only by RFT</h2>
+<video controls preload="metadata" poster="static-go2-video/preview.jpg" src="static-go2-video/stance.mp4"></video>
+<p>This 10-second recording uses fixed joint PD targets, with no learned controller, rigid backing floor,
+or lower clipping plane. The field is an unbounded half-space whose surface is at 118 mm.
+Green arrows show interval-averaged granular body forces. All limbs remain coupled; each whole spherical
+foot has 128 parameter triangles and 4608 analytic integration nodes.</p>
+<p>This isolates numerical support using nominal RFT strength, density 1600 kg/m³ and friction 0.4.
+It is not the calibrated 118 mm-deep MPM material. Four reaction iterations, a 0.20 m/s transition and
+1.25 ms rigid steps are used. Final support is about 147.34 N, equal to robot weight.</p>
+<img src="articulated-stance.png" alt="Go2 stance: body height, foot speed, support and reaction residual">
+<p>The 0.02 m/s transition chatters. At 0.20 m/s, four and sixteen iterations settle within 0.34 mm
+in body height; halving the four-iteration timestep changes height by 0.32 mm. Foot motion reaches the
+sub-micrometre-per-second range. Zero residual on a flowing patch does not certify stable dynamics.</p></section>
+<section><h2>Holding and unloading</h2>
+<img src="holding-and-unloading.png" alt="Loaded sphere depth and speed, plus withdrawal force">
+<p>The isolated sphere has radius 22 mm, inertial mass 1 kg and independent downward load 18.42 N.
+The 118 mm layer has a separate rigid backing floor. A 0.373 strength multiplier matches a previous
+slow-insertion force fit. Starting both from 52.32 mm depth produces different settled depths:
+106.37 mm in RFT and 79.73 mm in the fine MPM reference. RFT initialized at the settled MPM depth
+stops near 82.47 mm. Stationary support alone therefore does not establish equivalent loading history.</p>
+<p>In the two-axis unloading comparison the foot is first held under load for one second, then pulled
+upward with 5 N. Both methods leave the bed; granular force vanishes after the whole sphere clears it.
+Compressive resistance on a buried upper surface is physically different from adhesion on a withdrawing
+lower surface. The flat-plate regression separately checks release, friction threshold and dissipation.</p></section>
+<section><h2>Independent sideways-load comparison</h2>
+<img src="lateral-comparison.png" alt="RFT and MPM displacement and sinking under 1 N and 10 N">
+<table><tr><th>Method and sideways load</th><th>Displacement (mm)</th><th>Sole depth (mm)</th>
+<th>Near backing floor</th></tr><tr><td>RFT · 1 N sideways</td><td>0.000</td><td>83.95</td><td>No</td></tr><tr><td>MPM · 10 mm cells · 1 N sideways</td><td>0.100</td><td>85.25</td><td>No</td></tr><tr><td>RFT · 10 N sideways</td><td>34.168</td><td>118.05</td><td>Yes</td></tr><tr><td>MPM · 10 mm cells · 10 N sideways</td><td>12.750</td><td>100.74</td><td>No</td></tr><tr><td>MPM · 5 mm cells · 10 N sideways</td><td>17.126</td><td>95.19</td><td>No</td></tr></table>
+<p>The two translational DOFs are vertical and forward; orientation is constrained. MPM is slowly inserted
+to 52.32 mm and released for one second before the sideways force starts. RFT begins near the previous
+settled MPM depth and is also held for one second. The coarse MPM and RFT depths and applied load
+are close when pushing begins;
+MPM retains its particle/material history. RFT has no compaction or ploughed-terrain history.</p>
+<p><strong>The 10 N case is a failed material comparison.</strong> RFT obtains most vertical support from the
+floor after sinking; that support is not credited to the granular model. Refining MPM cells from 10 to
+5 mm changes displacement from 12.75 to 17.13 mm (34%) and the starting sole depth from 84.3 to 77.2 mm;
+the RFT trial starts near 84.0 mm. The reference is not yet grid converged or perfectly state matched.
+These short fixture comparisons do not certify whole-robot MPM convergence.</p></section>
+<section><h2>Cost at 4096 environments</h2><p>The four-iteration profile measures
+<strong>5,734 environment transitions/s</strong>, versus
+21,347 for the corrected explicit profile:
+3.72 times the control-step cost. GPU memory used is about 4.83 GiB.</p>
+<p>At that measured rate, 1500 PPO iterations of 24 control steps need approximately 7.1 hours
+of simulation collection alone, before neural-network updates. MPM is used only for validation. Inner
+reaction trials account for this cost; moving-force evaluation itself remains about 11–21 ms
+on the common pose.</p></section>
+<section><h2>Implementation and validation</h2><p>Newton revision <code>e73147c247a5df0a366548aaaac709e882b9f1cf</code> contains
+the reaction solve and native history rewind. The Isaac Lab adapter resets reaction warm starts only
+in selected environments. Material curriculum resets now preserve configured nominal density, friction,
+roughness and strength. CPU/GPU checks cover static holding, frictional slip, unloading dissipation,
+empty-layer rigid equivalence, selected-world reset and CUDA graph replay.</p>
+<p>Passed: 33 focused Newton cases, 50 additional proxy regressions and 10 Isaac Lab cases. The new native
+clock/activation regression fails before the history fix and passes afterwards. These numerical checks
+do not resolve the material mismatch above.</p><p>Next: fit or revise the lateral/normal closure using the
+grid-checked MPM probes, validate the combined profile, then address collection cost before a 4096-world
+training run with reset material randomization and full commands through 1 m/s. G1 remains on hold.</p>
+<details><summary>Raw measurements and provenance</summary><ul><li><a href="projected-go2-stance-narrow/summary.json">projected-go2-stance-narrow settings</a> · <a href="projected-go2-stance-narrow/trace.npz">trace</a></li><li><a href="projected-go2-stance-wide/summary.json">projected-go2-stance-wide settings</a> · <a href="projected-go2-stance-wide/trace.npz">trace</a></li><li><a href="projected-go2-stance-4/summary.json">projected-go2-stance-4 settings</a> · <a href="projected-go2-stance-4/trace.npz">trace</a></li><li><a href="projected-go2-stance-8sub/summary.json">projected-go2-stance-8sub settings</a> · <a href="projected-go2-stance-8sub/trace.npz">trace</a></li><li><a href="projected-go2-stance-weak-wide/summary.json">projected-go2-stance-weak-wide settings</a> · <a href="projected-go2-stance-weak-wide/trace.npz">trace</a></li><li><a href="static-go2-video/summary.json">static-go2-video settings</a> · <a href="static-go2-video/trace.npz">trace</a></li><li><a href="projected-sphere-32x4/summary.json">projected-sphere-32x4 settings</a> · <a href="projected-sphere-32x4/trace.npz">trace</a></li><li><a href="projected-sphere-at-mpm-depth/summary.json">projected-sphere-at-mpm-depth settings</a> · <a href="projected-sphere-at-mpm-depth/trace.npz">trace</a></li><li><a href="projected-sphere-4x4/summary.json">projected-sphere-4x4 settings</a> · <a href="projected-sphere-4x4/trace.npz">trace</a></li><li><a href="preloaded-mpm-18N-5mm-i400/summary.json">preloaded-mpm-18N-5mm-i400 settings</a> · <a href="preloaded-mpm-18N-5mm-i400/trace.npz">trace</a></li><li><a href="static-rft-lateral-1N/summary.json">static-rft-lateral-1N settings</a> · <a href="static-rft-lateral-1N/trace.npz">trace</a></li><li><a href="static-mpm-lateral-1N/summary.json">static-mpm-lateral-1N settings</a> · <a href="static-mpm-lateral-1N/trace.npz">trace</a></li><li><a href="static-rft-lateral-10N/summary.json">static-rft-lateral-10N settings</a> · <a href="static-rft-lateral-10N/trace.npz">trace</a></li><li><a href="static-mpm-lateral-10N/summary.json">static-mpm-lateral-10N settings</a> · <a href="static-mpm-lateral-10N/trace.npz">trace</a></li><li><a href="static-mpm-lateral-10N-5mm/summary.json">static-mpm-lateral-10N-5mm settings</a> · <a href="static-mpm-lateral-10N-5mm/trace.npz">trace</a></li><li><a href="static-rft-unload/summary.json">static-rft-unload settings</a> · <a href="static-rft-unload/trace.npz">trace</a></li><li><a href="static-mpm-unload/summary.json">static-mpm-unload settings</a> · <a href="static-mpm-unload/trace.npz">trace</a></li></ul><p><a href="profile.json">Experimental profile (training not cleared)</a> · <a href="performance.json">4096-world timing</a> · <a href="manifest.json">Artifact hashes</a></p></details></section></html>

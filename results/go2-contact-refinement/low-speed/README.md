@@ -4,7 +4,9 @@ Open [index.html](index.html) for the fixed foot/calf boundary correction, actua
 matched MPM load probes, insertion-force fits, scalar reaction diagnostic, and 4096-environment cost.
 The [study notes](../../../GO2_RFT_LOW_SPEED.md) describe interpretation and outstanding gates.
 
-**No replacement near-rest articulated coupling or new policy training is accepted by these records.**
+The newer [articulated reaction solve and support video](static-contact/index.html) pass tested numerical
+support checks. Independent lateral material matching remains open, and no new training has started.
+The earlier scalar and explicit investigations below retain their original provenance.
 All earlier policy videos retain their original solver and training surfaces.
 
 - `compound-comparison.json` and `compound-{before,after}.*`: identical prescribed Go2 geometry/motion,

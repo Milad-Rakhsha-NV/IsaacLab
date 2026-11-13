@@ -296,8 +296,9 @@ report</a>
 <p>13 November 2026. This update follows the GM-Loco comparison. The feet retain 128 triangles over each
 complete sphere, with curved quadrature; lower-leg colliders remain coupled.</p>
 <p class="status">
-<strong>Geometry correction verified. New training has not started.</strong> Near-rest articulated coupling
-and material-response matching still need to pass before retraining. G1 remains on hold.</p>
+<strong>Geometry correction verified. New training has not started.</strong>
+<a href="static-contact/">Latest: articulated RFT reaction solve, support video and MPM loading checks</a>.
+The newer mode passes stationary support checks; material matching remains open. G1 remains on hold.</p>
 <section>
 <h2>Fixed foot/calf overlaps were adding internal forces</h2>
 <p>The foot sphere and calf cylinders are separate bodies connected by a fixed joint. Their overlapping
@@ -377,9 +378,10 @@ MPM validation.</p>
 </section>
 <section>
 <h2>Implementation and training status</h2>
-<p>The fixed-link boundary bug is corrected and regression-tested. Direct implicit and projected articulated
-coupling prototypes were investigated, but no replacement has been cleared for training. The published RFT
-coefficients are retained. There are no new checkpoints or policy videos in this update.</p>
+<p>The fixed-link boundary bug is corrected and regression-tested. The newer
+<a href="static-contact/">projected articulated reaction mode</a> is implemented and passes tested stationary
+support checks. Material matching remains open. Published RFT coefficients are retained; the new support
+video uses fixed PD joint targets. No replacement walking policy has been trained.</p>
 <p>The next policy study remains one 4096-environment run, full forward commands through 1.0 m/s, reset
 randomization and a material-only curriculum. Physics acceptance comes first. Short observation history and
 wider calibrated material variation follow that acceptance.</p>

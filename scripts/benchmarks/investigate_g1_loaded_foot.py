@@ -29,22 +29,44 @@ SOURCE_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 
 @wp.kernel
-def apply_load(body_f: wp.array[wp.spatial_vector], extra: float):
-    body_f[0] += wp.spatial_vector(0.0, 0.0, extra, 0.0, 0.0, 0.0)
+def apply_load(
+    body_f: wp.array[wp.spatial_vector],
+    clock: wp.array[float],
+    mass: float,
+    load: float,
+    load_after: float,
+    switch_time: float,
+    lateral: float,
+    lateral_start: float,
+    dt: float,
+    external: wp.array[float],
+    applied_impulse: wp.array[wp.float64],
+):
+    current_load = wp.where(clock[0] >= switch_time, load_after, load)
+    horizontal = wp.where(clock[0] >= lateral_start, lateral, 0.0)
+    extra = mass * 9.81 - current_load
+    external[0] = extra
+    external[1] = horizontal
+    body_f[0] += wp.spatial_vector(horizontal, 0.0, extra, 0.0, 0.0, 0.0)
+    applied_impulse[0] += wp.float64(dt) * wp.float64(current_load)
+    applied_impulse[1] += wp.float64(dt) * wp.float64(horizontal)
+    clock[0] += dt
 
 
 @wp.kernel
 def record_delivered_impulse(
-    forces: wp.array[wp.spatial_vector], external: float, dt: float, impulse: wp.array[wp.float64]
+    forces: wp.array[wp.spatial_vector], external: wp.array[float], dt: float, impulse: wp.array[wp.float64]
 ):
     # Coupling iterations are alternative solves of one interval. Retain the
     # final source solve, rather than summing impulses from all trials.
-    impulse[0] = wp.float64(dt) * wp.float64(forces[0][2] - external)
+    impulse[0] = wp.float64(dt) * wp.float64(forces[0][2] - external[0])
+    impulse[1] = wp.float64(dt) * wp.float64(forces[0][0] - external[1])
 
 
 @wp.kernel
 def accumulate_delivered_impulse(substep: wp.array[wp.float64], frame: wp.array[wp.float64]):
-    frame[0] += substep[0]
+    i = wp.tid()
+    frame[i] += substep[i]
 
 
 class _LoadedFootMuJoCo(SolverMuJoCo):
@@ -98,13 +120,15 @@ def run(args):
         mesh = newton.Mesh(
             np.array(foot["vertices"], np.float32), np.array(foot["indices"], np.int32), compute_inertia=False
         )
-    model, _, _ = make_model(args, probe_mesh=mesh, probe_mass=args.mass)
+    model, _, _ = make_model(args, probe_mesh=mesh, probe_mass=args.mass, probe_lateral=args.free_lateral)
     state = model.state()
     newton.eval_fk(model, model.joint_q, model.joint_qd, state)
     control = model.control()
-    delivered_impulse = wp.zeros(1, dtype=wp.float64, device=model.device)
+    delivered_impulse = wp.zeros(2, dtype=wp.float64, device=model.device)
     delivered_substep = wp.zeros_like(delivered_impulse)
-    external = args.mass * 9.81 - args.load
+    external = wp.zeros(2, device=model.device)
+    load_clock = wp.zeros(1, device=model.device)
+    applied_impulse = wp.zeros(2, dtype=wp.float64, device=model.device)
     dt = 0.005 / args.substeps
     mpm = None
     preload_rows = []
@@ -283,6 +307,9 @@ def run(args):
                 * args.strength_multiplier,
                 velocity_regularization=args.velocity_regularization,
                 bearing=args.bearing,
+                static_contact_iterations=args.static_contact_iterations,
+                static_contact_speed=args.static_contact_speed,
+                static_contact_strength=args.static_contact_strength,
             ),
         )
     pipeline = newton.CollisionPipeline(model, soft_contact_max=0)
@@ -290,13 +317,31 @@ def run(args):
 
     def advance():
         delivered_impulse.zero_()
+        applied_impulse.zero_()
         for _ in range(args.substeps):
             state.clear_forces()
-            wp.launch(apply_load, dim=1, inputs=[state.body_f, args.mass * 9.81 - args.load])
+            wp.launch(
+                apply_load,
+                dim=1,
+                inputs=[
+                    state.body_f,
+                    load_clock,
+                    args.mass,
+                    args.load,
+                    args.load if args.load_after is None else args.load_after,
+                    args.load_switch_time,
+                    args.lateral_force,
+                    args.lateral_start_time,
+                    dt,
+                    external,
+                    applied_impulse,
+                ],
+                device=model.device,
+            )
             pipeline.collide(state, contacts)
             solver.step(state, state, control, contacts, dt)
             wp.launch(
-                accumulate_delivered_impulse, dim=1, inputs=[delivered_substep, delivered_impulse], device=model.device
+                accumulate_delivered_impulse, dim=2, inputs=[delivered_substep, delivered_impulse], device=model.device
             )
 
     previous = float(state.body_qd.numpy()[0, 2])
@@ -308,9 +353,14 @@ def run(args):
             0.005,
             float(first_pose[2]),
             float(first_velocity[2]),
-            args.mass * (float(first_velocity[2]) - previous) / 0.005 + args.load,
+            args.mass * (float(first_velocity[2]) - previous) / 0.005 + float(applied_impulse.numpy()[0]) / 0.005,
             -(float(first_pose[2]) + minimum_local_z),
             float(delivered_impulse.numpy()[0]) / 0.005,
+            float(first_pose[0]),
+            float(first_velocity[0]),
+            float(applied_impulse.numpy()[1]) / 0.005,
+            float(applied_impulse.numpy()[0]) / 0.005,
+            float(delivered_impulse.numpy()[1]) / 0.005,
         ]
     ]
     with wp.ScopedCapture(device=args.device) as cap:
@@ -322,11 +372,23 @@ def run(args):
         q, v = state.body_q.numpy()[0], state.body_qd.numpy()[0]
         if not np.isfinite(q).all() or not np.isfinite(v).all():
             raise RuntimeError("Nonfinite loaded-foot state")
-        support = args.mass * (v[2] - previous) / 0.005 + args.load
+        support = args.mass * (v[2] - previous) / 0.005 + float(applied_impulse.numpy()[0]) / 0.005
         previous = float(v[2])
         depth = -(float(q[2]) + minimum_local_z)
         rows.append(
-            [(frame + 1) * 0.005, float(q[2]), float(v[2]), support, depth, float(delivered_impulse.numpy()[0]) / 0.005]
+            [
+                (frame + 1) * 0.005,
+                float(q[2]),
+                float(v[2]),
+                support,
+                depth,
+                float(delivered_impulse.numpy()[0]) / 0.005,
+                float(q[0]),
+                float(v[0]),
+                float(applied_impulse.numpy()[1]) / 0.005,
+                float(applied_impulse.numpy()[0]) / 0.005,
+                float(delivered_impulse.numpy()[1]) / 0.005,
+            ]
         )
         if mpm is not None:
             mpm.check_sparse_grid_rebuild_status()
@@ -366,6 +428,11 @@ def run(args):
             "total_support_N",
             "sole_depth_m",
             "delivered_granular_support_N",
+            "center_x_m",
+            "horizontal_speed_m_s",
+            "applied_horizontal_force_N",
+            "applied_downward_load_N",
+            "delivered_horizontal_granular_force_N",
         ],
         preload_columns=["time_s", "center_z_m", "mpm_support_N"],
         final_sole_depth_m=float(rows[-1, 4]),
@@ -382,7 +449,8 @@ def run(args):
         backing_floor_proximity=bool(rows[:, 4].max() >= args.bed_depth - 0.002),
         interpretation=(
             "Total support inferred from momentum; includes rigid bottom contact if reached. "
-            "One vertical DOF; load is independent of inertial mass."
+            f"{'Vertical and lateral DOFs' if args.free_lateral else 'One vertical DOF'}; "
+            "load is independent of inertial mass."
         ),
     )
     np.savez_compressed(args.output / "trace.npz", trace=rows, preload=np.asarray(preload_rows))
@@ -410,10 +478,18 @@ if __name__ == "__main__":
     p.add_argument("--field", choices=("rft", "mpm"), default="mpm")
     p.add_argument("--mass", type=float, default=16.0)
     p.add_argument("--load", type=float, default=158.13)
+    p.add_argument("--load_after", type=float)
+    p.add_argument("--load_switch_time", type=float, default=1e30)
+    p.add_argument("--free_lateral", action="store_true")
+    p.add_argument("--lateral_force", type=float, default=0.0)
+    p.add_argument("--lateral_start_time", type=float, default=1.0)
     p.add_argument("--seconds", type=float, default=2.0)
     p.add_argument("--passes", type=int, default=1)
     p.add_argument("--relaxation", type=float, default=1.0)
     p.add_argument("--bearing", type=float, default=0.87574)
+    p.add_argument("--static_contact_iterations", type=int, default=0)
+    p.add_argument("--static_contact_speed", type=float, default=0.02)
+    p.add_argument("--static_contact_strength", type=float, default=1.0)
     p.add_argument("--velocity_regularization", type=float, default=0.04)
     p.add_argument("--strength_multiplier", type=float, default=1.0)
     p.add_argument("--voxel_size", type=float, default=0.01)

@@ -1,0 +1,46 @@
+{
+  "newton_revision": "e73147c247a5df0a366548aaaac709e882b9f1cf",
+  "historical_vertical_mpm_revision": "f59677bd8c5037d68d4196c323ea0b4459c18a9c",
+  "training_started": false,
+  "training_ready": false,
+  "lateral": [
+    {
+      "case": "static-rft-lateral-1N",
+      "title": "RFT \u00b7 1 N sideways",
+      "displacement_mm": 0.0001894781398025392,
+      "sole_depth_mm": 83.95464357733725,
+      "floor_contact": false
+    },
+    {
+      "case": "static-mpm-lateral-1N",
+      "title": "MPM \u00b7 10 mm cells \u00b7 1 N sideways",
+      "displacement_mm": 0.10005540309521166,
+      "sole_depth_mm": 85.252717256546,
+      "floor_contact": false
+    },
+    {
+      "case": "static-rft-lateral-10N",
+      "title": "RFT \u00b7 10 N sideways",
+      "displacement_mm": 34.16816515477777,
+      "sole_depth_mm": 118.04953229427336,
+      "floor_contact": true
+    },
+    {
+      "case": "static-mpm-lateral-10N",
+      "title": "MPM \u00b7 10 mm cells \u00b7 10 N sideways",
+      "displacement_mm": 12.750076497468399,
+      "sole_depth_mm": 100.74280214309691,
+      "floor_contact": false
+    },
+    {
+      "case": "static-mpm-lateral-10N-5mm",
+      "title": "MPM \u00b7 5 mm cells \u00b7 10 N sideways",
+      "displacement_mm": 17.125957889220444,
+      "sole_depth_mm": 95.19238781929015,
+      "floor_contact": false
+    }
+  ],
+  "step_cost_ratio": 3.7225882446985064,
+  "collection_only_1500_iterations_hours": 7.142873592985173,
+  "numerical_validation": "33 focused Newton cases, 50 additional proxy regressions, 10 Isaac Lab cases"
+}

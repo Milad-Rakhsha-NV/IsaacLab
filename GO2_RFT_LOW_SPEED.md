@@ -3,9 +3,107 @@
 13 November 2026. [Portable report and numerical records](results/go2-contact-refinement/low-speed/index.html).
 This follows the [GM-Loco review](GM_LOCO_REVIEW.md). Go2 remains the target; G1 is on hold.
 
-The fixed-link geometry correction is implemented and tested. **A replacement near-rest coupling model
-has not been accepted, and no new policy training has started.** The next training run retains 4096
-environments, full forward commands through 1.0 m/s, reset randomization and a material-only curriculum.
+The fixed-link geometry correction and an opt-in articulated near-rest reaction solve are implemented.
+**No combined material profile is accepted for training.** Numerical support checks pass, but the
+insertion-calibrated material misses independent lateral MPM response. No new policy training has
+started. The next run retains 4096 environments, full commands through 1.0 m/s, reset randomization,
+a material-only curriculum and short observation history. G1 remains on hold.
+
+## Articulated reaction solve
+
+[Current report, support video and numerical records](results/go2-contact-refinement/low-speed/static-contact/index.html).
+Newton `e73147c247a5df0a366548aaaac709e882b9f1cf` adds bounded normal reactions and Coulomb friction
+near rest. A projected iteration resolves forces against the complete rigid solver, including joint
+drives and rigid contacts. It uses incipient normal-intrusion pressure as a capacity estimate;
+this is an experimental constitutive extension, not the published moving law's exact static yield set.
+The default explicit path is preserved. Reactions are numerical warm starts, not elastic strain or
+terrain history. Only selected worlds' warm starts clear on reset.
+
+Repeated trials previously advanced MuJoCo native time, filtered actuator state and delay history
+multiple times. The coupling interface now saves and restores native integration state between trials.
+Only one accepted interval advances time and contributes granular impulse. A native CPU/GPU regression
+with filtered actuation and two rigid substeps fails before this correction and passes afterwards,
+including CUDA graph replay. Public Newton state and native integration history are restored separately.
+
+The new mode is controlled by `static_contact_iterations`, `static_contact_speed`,
+`static_contact_strength` and `static_contact_relaxation`. Legacy bearing must be zero. Prescribed
+`evaluate()` still reports moving-law loads; static reactions require the load and dynamics context in
+`step()`. [Newton's solver documentation](https://github.com/Milad-Rakhsha/newton/blob/milad/rft-mpm/docs/solvers/rft.rst)
+defines the equations, force units, iteration and residual.
+
+### Numerical support checks
+
+- A freely moving loaded flat plate holds under sub-limit lateral force, slips above the Coulomb limit,
+  releases when lifted and dissipates an unforced lateral velocity. CPU/GPU and two timesteps pass.
+- The isolated 128-triangle Go2 sphere sustains 18.42 N without contacting the floor. Initializing near
+  the settled MPM depth yields approximately 82.47 mm depth with four or sixteen reaction iterations.
+  The ten-second shallow-start case also stops creeping, but settles too deeply: 106.37 mm versus
+  79.73 mm in the fine MPM reference. Removing numerical creep does not match loading history.
+- Full Go2 with fixed joint PD targets holds in an **unbounded RFT half-space, with no backing floor**.
+  A 0.20 m/s transition and four reaction iterations settle to a body height of 290.78 mm; sixteen
+  iterations give 291.12 mm. Halving the four-iteration timestep gives 291.09 mm. Final support is
+  147.34 N, equal to robot weight, and foot speeds are below 1 micrometre/s.
+- A 0.02 m/s transition still chatters. Transition sensitivity is an explicit validation limit.
+  Zero projected residual on inactive/flowing patches does not certify stable dynamics.
+
+The ten-second support video uses nominal RFT strength and a stationary PD controller. It does not
+show a newly trained walking policy or an MPM-matched finite bed. The weaker insertion-fit material
+also reaches rest without a floor, but at deeper immersion than the intended 118 mm layer.
+
+Passed: **33 focused Newton cases**, **50 additional proxy-coupling regressions** and **10 Isaac Lab
+cases**. The focused Newton/Isaac checks also pass in a separate runtime installed from the pinned
+Newton commit, without a working-tree source overlay. Coverage includes empty-layer articulated rigid
+equivalence, masked native/RFT history reset and graph replay. Historical runtimes remain separate.
+
+### Independent MPM loading checks
+
+The new sphere fixture permits vertical and forward translation while constraining orientation.
+It maintains 18.42 N downward load, then applies 1 N or 10 N sideways after one second. MPM is slowly
+preloaded to 52.32 mm and retains its material history. RFT begins near the previously settled MPM
+depth and is held for one second; the two depths are close when lateral loading starts. This tests
+response from similar loaded poses, not identical hidden granular states.
+
+| Sideways load | Method | Displacement over next second | Final sole depth | Backing-floor support |
+|---|---|---:|---:|---|
+| 1 N | RFT, strength scale 0.373 | 0.00019 mm | 83.95 mm | No |
+| 1 N | MPM, 10 mm cells | 0.100 mm | 85.25 mm | No |
+| 10 N | RFT, strength scale 0.373 | 34.17 mm | 118.05 mm | Yes |
+| 10 N | MPM, 10 mm cells | 12.75 mm | 100.74 mm | No |
+| 10 N | MPM, 5 mm cells | 17.13 mm | 95.19 mm | No |
+
+The stronger lateral case remains a failed material comparison. The slow-insertion fit alone
+underestimates resistance during combined loading; widening reset ranges cannot establish a nominal
+material match. The 5 mm-grid check changes lateral displacement by 4.38 mm (34%) and also changes
+the loaded starting depth from about 84.3 to 77.2 mm; the RFT trial starts near 84.0 mm. The reference
+is therefore not yet grid converged or perfectly state matched. These short fixtures do not certify
+whole-robot MPM convergence. Unloading changes the applied load to 5 N upward: both models
+leave the bed and granular force vanishes once the whole sphere is clear. Closed-surface compressive
+withdrawal drag is distinct from adhesion on a withdrawing lower face.
+
+Reset randomization now interpolates from configured nominal density, friction, roughness and
+strength, preserving a calibrated nominal material at zero curriculum difficulty. The previous
+hard-coded nominal values would discard that calibration on reset. Commands retain their full
+distribution throughout the material curriculum.
+
+### Cost and remaining gate
+
+At 4096 environments, four reaction iterations measure **5734 transitions/s**, or **0.714 s per control
+step**, using about **4.83 GiB** GPU memory. The corrected explicit profile measured 21,347
+transitions/s: the new solve costs 3.72 times as much. Collection for 1500 PPO iterations of 24 steps
+would take about 7.1 hours at this rate, excluding optimizer work. Force evaluation itself stays near
+11–21 ms on the common pose; repeated rigid trials account for the increased step cost.
+
+The combined lateral/normal material closure and collection cost remain gates before retraining.
+`scripts/benchmarks/configs/go2_rft_static_contact.json` is explicitly marked `training_ready: false`.
+The existing policy videos and checkpoints retain their original solver provenance.
+
+Rebuild the portable report from the checked-in numerical archive:
+
+```bash
+uv run python scripts/benchmarks/report_go2_static_contact.py \
+  --input results/go2-contact-refinement/low-speed/static-contact \
+  --output /tmp/go2-static-contact-report
+```
 
 ## Fixed foot/calf boundaries
 

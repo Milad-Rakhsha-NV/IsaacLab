@@ -2079,8 +2079,8 @@
     },
     {
       "path": "report/index.html",
-      "bytes": 18055,
-      "sha256": "81f7882fff1a0c562a070ca494649eb1628b5bebd6facb0536690122b13529bd"
+      "bytes": 18062,
+      "sha256": "5a8810389b9b2a7e8a0e2e8051fa1bc6a96b1dcaf585ce094cf71f757b80fd33"
     },
     {
       "path": "report/mpm-startup-recheck.png",
@@ -2219,5 +2219,5 @@
     }
   ],
   "navigation_updated_utc": "2026-11-13T07:19:07.809555+00:00",
-  "contact_validation_report": "../go2-contact-refinement/low-speed/index.html"
+  "contact_validation_report": "../go2-contact-refinement/low-speed/static-contact/index.html"
 }

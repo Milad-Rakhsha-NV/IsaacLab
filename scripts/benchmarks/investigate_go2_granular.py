@@ -114,7 +114,7 @@ def particle_statistics(
     wp.atomic_add(out, 6, m * p[2])
 
 
-def make_model(args, probe_mesh=None, probe_mass=None):
+def make_model(args, probe_mesh=None, probe_mass=None, *, probe_lateral=False):
     """Build an exact-volume particle grid, a prescribed intruder, and a backing floor."""
     builder = newton.ModelBuilder()
     SolverImplicitMPM.register_custom_attributes(builder)
@@ -144,10 +144,12 @@ def make_model(args, probe_mesh=None, probe_mass=None):
             lock_inertia=True,
             label="probe",
         )
-        joint = builder.add_joint_prismatic(
+        joint_args = dict(
             parent=-1,
             child=probe,
             parent_xform=pose,
+        )
+        dof_args = dict(
             axis=(0.0, 0.0, 1.0),
             target_ke=0.0,
             target_kd=0.0,
@@ -157,6 +159,16 @@ def make_model(args, probe_mesh=None, probe_mass=None):
             limit_lower=-1.0,
             limit_upper=1.0,
         )
+        if probe_lateral:
+            joint = builder.add_joint_d6(
+                **joint_args,
+                linear_axes=[
+                    builder.JointDofConfig(**dof_args),
+                    builder.JointDofConfig(**(dof_args | dict(axis=(1.0, 0.0, 0.0)))),
+                ],
+            )
+        else:
+            joint = builder.add_joint_prismatic(**joint_args, **dof_args)
         builder.add_articulation([joint])
     material = newton.ModelBuilder.ShapeConfig(mu=args.friction * args.roughness, density=0.0)
     if probe_mesh is not None:

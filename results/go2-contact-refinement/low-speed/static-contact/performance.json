@@ -1,0 +1,738 @@
+{
+  "num_envs": 4096,
+  "steps": 30,
+  "wall_seconds": 21.42862077895552,
+  "environment_steps_per_second": 5734.38679360443,
+  "control_step_seconds": 0.7142873592985173,
+  "common_motion_rft_evaluation_seconds": {
+    "shallow": 0.010795039919903502,
+    "deep": 0.021373258800012992
+  },
+  "performance_motion": "logs/go2_granular/go2/refinement/motion-rigid-1/rollout.npz",
+  "performance_motion_frame": 100,
+  "performance_motion_sha256": "a74985ae7a7fb96a77b8e33617a8344e5cbdb6dec27552c7b89ef5f7629d0a73",
+  "gpu_used_bytes": 5182259200,
+  "gpu_total_bytes": 33689829376,
+  "triangles_per_robot": 2032,
+  "analytic_points_per_robot": 50688,
+  "inventory": [
+    {
+      "shape": 2,
+      "body": 4,
+      "body_label": "/World/envs/env_0/Robot/FL_foot",
+      "label": "/World/envs/env_0/Robot/FL_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+        "sphere_subdivisions": 2,
+        "segments": null,
+        "axial_segments": 1,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 3,
+      "body": 8,
+      "body_label": "/World/envs/env_0/Robot/FR_foot",
+      "label": "/World/envs/env_0/Robot/FR_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+        "sphere_subdivisions": 2,
+        "segments": null,
+        "axial_segments": 1,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 4,
+      "body": 10,
+      "body_label": "/World/envs/env_0/Robot/Head_lower",
+      "label": "/World/envs/env_0/Robot/Head_lower/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.04699999839067459,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 144
+    },
+    {
+      "shape": 5,
+      "body": 14,
+      "body_label": "/World/envs/env_0/Robot/RL_foot",
+      "label": "/World/envs/env_0/Robot/RL_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+        "sphere_subdivisions": 2,
+        "segments": null,
+        "axial_segments": 1,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 6,
+      "body": 18,
+      "body_label": "/World/envs/env_0/Robot/RR_foot",
+      "label": "/World/envs/env_0/Robot/RR_foot/collisions/mesh_0",
+      "kind": "SPHERE",
+      "scale": [
+        0.02199999988079071,
+        0.0,
+        0.0
+      ],
+      "local_pose": [
+        -0.0020000000949949026,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+        "sphere_subdivisions": 2,
+        "segments": null,
+        "axial_segments": 1,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 7,
+      "body": 0,
+      "body_label": "/World/envs/env_0/Robot/base",
+      "label": "/World/envs/env_0/Robot/base/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.18809999525547028,
+        0.04675000160932541,
+        0.05700000002980232
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 8,
+      "body": 2,
+      "body_label": "/World/envs/env_0/Robot/FL_thigh",
+      "label": "/World/envs/env_0/Robot/FL_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 9,
+      "body": 6,
+      "body_label": "/World/envs/env_0/Robot/FR_thigh",
+      "label": "/World/envs/env_0/Robot/FR_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 10,
+      "body": 12,
+      "body_label": "/World/envs/env_0/Robot/RL_thigh",
+      "label": "/World/envs/env_0/Robot/RL_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 11,
+      "body": 16,
+      "body_label": "/World/envs/env_0/Robot/RR_thigh",
+      "label": "/World/envs/env_0/Robot/RR_thigh/collisions/mesh_0",
+      "kind": "BOX",
+      "scale": [
+        0.10649999976158142,
+        0.012249999679625034,
+        0.017000000923871994
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        -0.10649999976158142,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 12
+    },
+    {
+      "shape": 12,
+      "body": 1,
+      "body_label": "/World/envs/env_0/Robot/FL_hip",
+      "label": "/World/envs/env_0/Robot/FL_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 13,
+      "body": 3,
+      "body_label": "/World/envs/env_0/Robot/FL_calf",
+      "label": "/World/envs/env_0/Robot/FL_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.012000000104308128,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.00800000037997961,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.10480690747499466,
+        0.0,
+        0.9944925904273987
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 14,
+      "body": 3,
+      "body_label": "/World/envs/env_0/Robot/FL_calf",
+      "label": "/World/envs/env_0/Robot/FL_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 3,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 15,
+      "body": 3,
+      "body_label": "/World/envs/env_0/Robot/FL_calf",
+      "label": "/World/envs/env_0/Robot/FL_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 96,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 2,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 16,
+      "body": 5,
+      "body_label": "/World/envs/env_0/Robot/FR_hip",
+      "label": "/World/envs/env_0/Robot/FR_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        -0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 17,
+      "body": 7,
+      "body_label": "/World/envs/env_0/Robot/FR_calf",
+      "label": "/World/envs/env_0/Robot/FR_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.013000000268220901,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.009999999776482582,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.09983330219984055,
+        0.0,
+        0.9950041770935059
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 18,
+      "body": 7,
+      "body_label": "/World/envs/env_0/Robot/FR_calf",
+      "label": "/World/envs/env_0/Robot/FR_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 3,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 19,
+      "body": 7,
+      "body_label": "/World/envs/env_0/Robot/FR_calf",
+      "label": "/World/envs/env_0/Robot/FR_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 96,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 2,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 20,
+      "body": 9,
+      "body_label": "/World/envs/env_0/Robot/Head_upper",
+      "label": "/World/envs/env_0/Robot/Head_upper/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.05000000074505806,
+        0.04500000178813934,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 21,
+      "body": 11,
+      "body_label": "/World/envs/env_0/Robot/RL_hip",
+      "label": "/World/envs/env_0/Robot/RL_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 22,
+      "body": 13,
+      "body_label": "/World/envs/env_0/Robot/RL_calf",
+      "label": "/World/envs/env_0/Robot/RL_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.013000000268220901,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.009999999776482582,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.09983330219984055,
+        0.0,
+        0.9950041770935059
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 23,
+      "body": 13,
+      "body_label": "/World/envs/env_0/Robot/RL_calf",
+      "label": "/World/envs/env_0/Robot/RL_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 3,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 24,
+      "body": 13,
+      "body_label": "/World/envs/env_0/Robot/RL_calf",
+      "label": "/World/envs/env_0/Robot/RL_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 96,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 2,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 25,
+      "body": 15,
+      "body_label": "/World/envs/env_0/Robot/RR_hip",
+      "label": "/World/envs/env_0/Robot/RR_hip/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.04600000008940697,
+        0.019999999552965164,
+        0.0
+      ],
+      "local_pose": [
+        0.0,
+        -0.07999999821186066,
+        0.0,
+        0.7071068286895752,
+        0.0,
+        0.0,
+        0.7071068286895752
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 26,
+      "body": 17,
+      "body_label": "/World/envs/env_0/Robot/RR_calf",
+      "label": "/World/envs/env_0/Robot/RR_calf/collisions/mesh_0",
+      "kind": "CYLINDER",
+      "scale": [
+        0.013000000268220901,
+        0.05999999865889549,
+        0.0
+      ],
+      "local_pose": [
+        0.009999999776482582,
+        0.0,
+        -0.05999999865889549,
+        0.0,
+        -0.09983330219984055,
+        0.0,
+        0.9950041770935059
+      ],
+      "triangles": 48
+    },
+    {
+      "shape": 27,
+      "body": 17,
+      "body_label": "/World/envs/env_0/Robot/RR_calf",
+      "label": "/World/envs/env_0/Robot/RR_calf/collisions/mesh_1",
+      "kind": "CYLINDER",
+      "scale": [
+        0.010999999940395355,
+        0.032499998807907104,
+        0.0
+      ],
+      "local_pose": [
+        0.019999999552965164,
+        0.0,
+        -0.14800000190734863,
+        0.0,
+        0.024998333305120468,
+        0.0,
+        0.9996874928474426
+      ],
+      "triangles": 128,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 3,
+        "primitive_quadrature_order": 6
+      }
+    },
+    {
+      "shape": 28,
+      "body": 17,
+      "body_label": "/World/envs/env_0/Robot/RR_calf",
+      "label": "/World/envs/env_0/Robot/RR_calf/collisions/mesh_2",
+      "kind": "CYLINDER",
+      "scale": [
+        0.01549999974668026,
+        0.014999999664723873,
+        0.0
+      ],
+      "local_pose": [
+        0.008013331331312656,
+        0.0,
+        -0.18745021522045135,
+        0.0,
+        0.2619093358516693,
+        0.0,
+        0.9650924801826477
+      ],
+      "triangles": 96,
+      "resolution": {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+        "sphere_subdivisions": null,
+        "segments": 16,
+        "axial_segments": 2,
+        "primitive_quadrature_order": 6
+      }
+    }
+  ],
+  "profile": {
+    "description": "Experimental articulated near-rest reaction solve with the corrected Go2 collision boundary.",
+    "training_ready": false,
+    "validation_status": "Stationary reaction checks pass in tested fixtures; lateral material matching fails, so training is blocked on physical calibration",
+    "solver": {
+      "surface_height": 0.118,
+      "surface_bottom": 0.0,
+      "segments": 12,
+      "max_edge_length": null,
+      "surface_resolution": [
+        {
+          "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+          "sphere_subdivisions": 2,
+          "primitive_quadrature_order": 6
+        },
+        {
+          "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+          "segments": 16,
+          "axial_segments": 3,
+          "primitive_quadrature_order": 6
+        },
+        {
+          "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+          "segments": 16,
+          "axial_segments": 2,
+          "primitive_quadrature_order": 6
+        }
+      ],
+      "bearing": 0.0,
+      "velocity_regularization": 0.0,
+      "strength_multiplier": 0.373,
+      "static_contact_iterations": 4,
+      "static_contact_speed": 0.2,
+      "static_contact_strength": 1.0,
+      "static_contact_relaxation": 0.5
+    }
+  },
+  "interpretation": "4096 native Go2 worlds; zero-action throughput only, no training. Control-step trajectories can differ. RFT evaluations use identical recorded poses/twists and layer heights, at two vertical offsets. GPU usage includes the CUDA context and other processes.",
+  "source_sha256": "0ff9dead2b8192af219b27e5a04b2f5b0d2bec17c7842acda16c00329cd56491",
+  "newton_kernel_sha256": "9dc728b6421276d9bdd573d7d50b225e9f7c413610f1f39a6bfa3cdcdd234085"
+}

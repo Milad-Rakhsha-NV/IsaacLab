@@ -1,0 +1,72 @@
+{
+  "settings": {
+    "profile": "scripts/benchmarks/configs/go2_rft_static_contact.json",
+    "output": "logs/go2_granular/go2/low-speed/projected-go2-stance-wide",
+    "num_envs": 4,
+    "seconds": 5.0,
+    "iterations": 16,
+    "transition_speed": 0.2,
+    "root_height": 0.32,
+    "strength_multiplier": 1.0
+  },
+  "profile": {
+    "description": "Experimental articulated near-rest reaction solve with the corrected Go2 collision boundary.",
+    "training_ready": false,
+    "validation_status": "Physics investigation only; moving/static material calibration and cost gates must pass before training",
+    "solver": {
+      "surface_height": 0.118,
+      "surface_bottom": 0.0,
+      "segments": 12,
+      "max_edge_length": null,
+      "surface_resolution": [
+        {
+          "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+          "sphere_subdivisions": 2,
+          "primitive_quadrature_order": 6
+        },
+        {
+          "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+          "segments": 16,
+          "axial_segments": 3,
+          "primitive_quadrature_order": 6
+        },
+        {
+          "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+          "segments": 16,
+          "axial_segments": 2,
+          "primitive_quadrature_order": 6
+        }
+      ],
+      "bearing": 0.0,
+      "velocity_regularization": 0.0,
+      "strength_multiplier": 0.373,
+      "static_contact_iterations": 16,
+      "static_contact_speed": 0.02,
+      "static_contact_strength": 1.0,
+      "static_contact_relaxation": 0.5
+    }
+  },
+  "no_backing_floor": true,
+  "interpretation": "Fixed joint PD targets, not a learned policy. Body height may settle through compliant joint motion.",
+  "wall_seconds": 27.414053510990925,
+  "trace_columns": [
+    "time_s",
+    "root_z_m",
+    "max_base_speed_m_s",
+    "max_foot_com_speed_m_s",
+    "max_projected_residual_m_s",
+    "failures",
+    "mean_vertical_RFT_force_N"
+  ],
+  "newton_source": "/home/horde/Documents/Repos/newton-go2-rft/newton/__init__.py",
+  "source_sha256": "df0539e97f415185d373038d88c6c8ad454ef10e7822f58220a73fe1b4234141",
+  "final": [
+    5.0,
+    0.2911212742328644,
+    6.90938994907242e-09,
+    3.3301154189757654e-07,
+    3.648746087492327e-07,
+    0.0,
+    147.3363950382248
+  ]
+}

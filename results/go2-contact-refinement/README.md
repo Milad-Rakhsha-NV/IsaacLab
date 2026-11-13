@@ -1,5 +1,9 @@
 # Go2 contact-resolution follow-up
 
+The [current articulated support and MPM checks](low-speed/static-contact/index.html) include a new
+reaction solve and ten-second Go2 support video. Numerical stance checks pass; lateral material matching
+remains open. The earlier explicit contact-resolution results below retain their original provenance.
+
 Selected foot integration: 0.51% pooled force and 0.94% pooled torque difference from the reference. Individual outliers remain; these are numerical differences, not material-model accuracy.
 
 The profile is a numerical candidate, with 128 triangles over each spherical foot and selective lower-calf
@@ -13,7 +17,7 @@ Run follow-up audits from the repository root using the current Newton pin. The 
 above retain their original revision; these commands use a separate runtime:
 
 ```bash
-export UV_PROJECT_ENVIRONMENT="$HOME/.cache/rft-study/go2-fixed-union-venv"
+export UV_PROJECT_ENVIRONMENT="$HOME/.cache/rft-study/go2-static-contact-venv"
 uv sync --locked
 uv run --no-sync python scripts/benchmarks/benchmark_go2_contact_profile.py \
     --mode performance --legacy --performance_motion results/go2-contact-refinement/motion-rigid-1.npz \
