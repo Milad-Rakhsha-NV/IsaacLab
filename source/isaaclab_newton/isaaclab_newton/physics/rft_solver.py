@@ -221,6 +221,14 @@ class RFTSolver(MJWarpSolver):
         )
         orders = [row.get("resolution", {}).get("primitive_quadrature_order", 0) for row in inventory]
         quadrature = {"surface_quadrature_orders": orders} if any(orders) else {}
+        static_config = {}
+        if cfg.static_contact_iterations:
+            static_config = {
+                "static_contact_iterations": cfg.static_contact_iterations,
+                "static_contact_speed": cfg.static_contact_speed,
+                "static_contact_strength": cfg.static_contact_strength,
+                "static_contact_relaxation": cfg.static_contact_relaxation,
+            }
         solver = SolverRFT(
             model,
             surfaces,
@@ -237,6 +245,7 @@ class RFTSolver(MJWarpSolver):
                 strength=strength * cfg.strength_multiplier,
                 velocity_regularization=cfg.velocity_regularization,
                 bearing=cfg.bearing,
+                **static_config,
             ),
         )
         solver.surface_inventory = inventory
@@ -256,7 +265,15 @@ class RFTSolver(MJWarpSolver):
 
     @classmethod
     def reset(cls, cfg: RFTSolverCfg, solver: SolverRFT, state: State, world_mask: wp.array) -> None:
-        MJWarpSolver.reset(cfg, solver.rigid_solver, state, world_mask)
+        rigid = solver.rigid_solver
+        # Native CPU MuJoCo owns only template world zero. Other selected
+        # worlds must not rewind its history; RFT warm starts remain per-world.
+        if rigid.use_mujoco_cpu and not world_mask.numpy()[0]:
+            if cfg.static_contact_iterations:
+                solver.reset_reactions(world_mask)
+            return
+        solver.reset(state, world_mask=world_mask, flags=0)
+        MJWarpSolver._synchronize_reset_state(rigid, state, world_mask)
 
     @classmethod
     def check_step(cls, cfg: RFTSolverCfg, solver: SolverRFT, captured: bool, debug: bool) -> None:

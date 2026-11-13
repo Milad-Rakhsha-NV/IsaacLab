@@ -9,8 +9,11 @@ import newton
 import numpy as np
 import pytest
 import warp as wp
-from isaaclab_newton.physics.rft_solver import collision_surfaces
-from isaaclab_newton.physics.rft_solver_cfg import RFTSurfaceResolutionCfg
+from isaaclab_newton.physics.rft_solver import RFTSolver, collision_surfaces
+from isaaclab_newton.physics.rft_solver_cfg import RFTSolverCfg, RFTSurfaceResolutionCfg
+from newton.solvers import SolverMuJoCo, SolverRFT
+
+from isaaclab.test.utils import test_devices
 
 pytestmark = pytest.mark.kitless
 
@@ -92,3 +95,50 @@ def test_resolution_rules_reject_missing_or_conflicting_targets(patterns, messag
         collision_surfaces(
             model, ".*", 12, resolutions=[dict(shape_pattern=p, sphere_subdivisions=2) for p in patterns]
         )
+
+
+@pytest.mark.parametrize("device", test_devices())
+def test_static_reaction_reset_preserves_other_worlds(device):
+    """The Isaac Lab reset adapter clears RFT and native history in the same selected world."""
+    builder = newton.ModelBuilder()
+    for _ in range(2):
+        builder.begin_world()
+        pose = wp.transform(wp.vec3(0, 0, -0.1), wp.quat_identity())
+        body = builder.add_link(xform=pose, mass=1.0, inertia=wp.mat33(np.eye(3)))
+        joint = builder.add_joint_prismatic(parent=-1, child=body, parent_xform=pose, axis=(0, 0, 1))
+        builder.add_articulation([joint])
+        builder.end_world()
+    model = builder.finalize(device=device)
+    cfg = RFTSolverCfg(use_mujoco_cpu=device == "cpu", update_data_interval=2, static_contact_iterations=16)
+    rigid = SolverMuJoCo(model, use_mujoco_cpu=cfg.use_mujoco_cpu, update_data_interval=2, separate_worlds=True)
+    plate = newton.Mesh(
+        np.array([[-0.1, -0.1, 0], [-0.1, 0.1, 0], [0.1, 0.1, 0], [0.1, -0.1, 0]]),
+        [0, 1, 2, 0, 2, 3],
+        compute_inertia=False,
+    )
+    solver = SolverRFT(
+        model,
+        [(0, plate), (1, plate)],
+        rigid_solver=rigid,
+        config=SolverRFT.Config(strength=1e5, static_contact_iterations=16),
+    )
+    state = model.state()
+    newton.eval_fk(model, model.joint_q, model.joint_qd, state)
+    for _ in range(8):
+        solver.step(state, state, None, None, 0.005)
+    before = solver._pressure.numpy()
+    worlds = model.body_world.numpy()[solver.triangle_body.numpy()]
+    assert (before[worlds == 0] > 0).all()
+    if not cfg.use_mujoco_cpu:
+        assert (before[worlds == 1] > 0).all()
+    data = rigid.mj_data if cfg.use_mujoco_cpu else rigid.mjw_data
+    warm = wp.array(data.qacc_warmstart, copy=False, device=device)
+    warm.fill_(42.0)
+    mask = wp.array([False, True, False], dtype=wp.bool, device=device)
+    RFTSolver.reset(cfg, solver, state, mask)
+    after = solver._pressure.numpy()
+    np.testing.assert_array_equal(after[worlds == 0], before[worlds == 0])
+    np.testing.assert_array_equal(after[worlds == 1], 0)
+    np.testing.assert_array_equal(warm.numpy().reshape(-1)[0], 42.0)
+    if not cfg.use_mujoco_cpu:
+        np.testing.assert_array_equal(warm.numpy().reshape(-1)[1], 0.0)

@@ -34,6 +34,21 @@ class GranularVelocityEnv(DirectRLEnv):
         from isaaclab_newton.physics.mjwarp_solver_cfg import MJWarpSolverCfg
         from isaaclab_newton.physics.rft_solver_cfg import RFTSolverCfg
 
+        if cfg.randomize_material and isinstance(cfg.sim.physics.solver_cfg, RFTSolverCfg):
+            nominal_strength = cfg.sim.physics.solver_cfg.strength_multiplier
+            if (
+                not math.isfinite(nominal_strength)
+                or nominal_strength <= 0
+                or not all(math.isfinite(value) and value > 0 for value in cfg.strength_multiplier_range)
+            ):
+                raise ValueError("Strength randomization requires finite positive nominal and target multipliers")
+            if (
+                cfg.sim.physics.solver_cfg.static_contact_iterations
+                and cfg.bearing_range is not None
+                and any(cfg.bearing_range)
+            ):
+                raise ValueError("Static reaction coupling requires zero legacy bearing in every randomized world")
+
         for name in ("material_difficulty", "curriculum_initial_difficulty"):
             if not 0 <= getattr(cfg, name) <= 1:
                 raise ValueError(f"{name} must lie in [0, 1]")
@@ -387,16 +402,21 @@ class GranularVelocityEnv(DirectRLEnv):
             self.commands[env_ids[stand]] = 0
         world = self.world_ids[env_ids]
         if self.cfg.randomize_material:
+            nominal = self.cfg.sim.physics.solver_cfg
             density = torch.empty(count, device=self.device).uniform_(*self.cfg.density_range)
             friction = torch.empty(count, device=self.device).uniform_(*self.cfg.friction_range)
             rough = torch.empty(count, device=self.device).uniform_(*self.cfg.roughness_range)
             factor = torch.empty(count, device=self.device).uniform_(
                 math.log(self.cfg.strength_multiplier_range[0]), math.log(self.cfg.strength_multiplier_range[1])
             )
-            density = 1600 + material_level * (density - 1600)
-            friction = 0.4 + material_level * (friction - 0.4)
-            rough = 1 + material_level * (rough - 1)
-            factor = (material_level * factor).exp()
+            density = nominal.bulk_density + material_level * (density - nominal.bulk_density)
+            friction = nominal.internal_friction + material_level * (friction - nominal.internal_friction)
+            nominal_roughness = (
+                nominal.surface_friction / nominal.internal_friction if nominal.internal_friction else 1.0
+            )
+            rough = nominal_roughness + material_level * (rough - nominal_roughness)
+            nominal_log_strength = math.log(nominal.strength_multiplier)
+            factor = (nominal_log_strength + material_level * (factor - nominal_log_strength)).exp()
             self.material[world, 0] = density
             self.material[world, 1] = friction
             self.material[world, 2] = rough * friction

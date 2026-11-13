@@ -51,6 +51,8 @@ class RFTSolverCfg(MJWarpSolverCfg):
 
     ``bearing`` enables an experimental near-rest normal-pressure closure, not
     the published flowing RFT law. It provides no exact tangential sticking.
+    ``static_contact_iterations`` instead enables a projected reaction solve;
+    it requires zero legacy bearing and independent material validation.
     """
 
     class_type: type | str = "{DIR}.rft_solver:RFTSolver"
@@ -62,6 +64,14 @@ class RFTSolverCfg(MJWarpSolverCfg):
     strength_multiplier: float = 1.0
     velocity_regularization: float = 0.02
     bearing: float = 0.0
+    static_contact_iterations: int = 0
+    """Near-rest projected reaction trials; zero retains the legacy explicit interaction."""
+    static_contact_speed: float = 0.02
+    """Upper speed [m/s] of the experimental sticking-to-flow transition."""
+    static_contact_strength: float = 1.0
+    """Multiplier on normal-intrusion pressure capacity in the near-rest closure."""
+    static_contact_relaxation: float = 0.5
+    """Numerical relaxation for the reaction solve, in (0, 1]."""
     surface_height: float = 0.0
     surface_bottom: float | None = None
     segments: int = 12

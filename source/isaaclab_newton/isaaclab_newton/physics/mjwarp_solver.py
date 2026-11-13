@@ -107,6 +107,11 @@ class MJWarpSolver(NewtonSolver):
         if solver.use_mujoco_cpu and not world_mask.numpy()[0]:
             return
         solver.reset(state, world_mask=world_mask, flags=0)
+        cls._synchronize_reset_state(solver, state, world_mask)
+
+    @classmethod
+    def _synchronize_reset_state(cls, solver: SolverMuJoCo, state: State, world_mask: wp.array) -> None:
+        """Import authored reset coordinates when regular per-step imports are disabled."""
         if solver.update_data_interval != 1:
             # Newton has no public masked import. With sleeping disabled,
             # reset(flags=0) skips it, so reuse the pinned solver's conversion.

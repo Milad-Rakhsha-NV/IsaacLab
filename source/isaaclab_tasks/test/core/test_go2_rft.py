@@ -184,6 +184,21 @@ def test_go2_rft_articulation_and_masked_material_reset():
             assert env.contact_forces.data.net_normal_forces_w.torch.norm(dim=-1).max() < 1e-4
             assert env.gait_body_contact[:, env.foot_sensor_ids].all()
             assert float(env.extras["log"]["Metrics/undesired_rigid_contacts"]) == 0
+            # A calibrated nominal material must survive reset at zero DR
+            # difficulty, rather than reverting to hard-coded old defaults.
+            cfg.curriculum_enabled = False
+            cfg.randomize_material = True
+            cfg.material_difficulty = 0.0
+            material_cfg = cfg.sim.physics.solver_cfg
+            material_cfg.bulk_density = 1450.0
+            material_cfg.internal_friction = 0.45
+            material_cfg.surface_friction = 0.315
+            material_cfg.strength_multiplier = 0.373
+            env._reset_idx(torch.arange(4, device=env.device))
+            mu = material_cfg.internal_friction
+            strength = 1450 * 9.81 * (894 * mu**3 - 386 * mu**2 + 89 * mu) * 0.373
+            expected = torch.tensor([1450.0, 0.45, 0.315, strength], device=env.device)
+            torch.testing.assert_close(env.material[env.world_ids, :4], expected.expand(4, -1), rtol=2e-6, atol=1e-5)
         finally:
             env.close()
 
@@ -192,7 +207,10 @@ def test_zero_layer_recovers_rigid_articulation():
     """With prescribed identical actions, an empty layer adds no force to rigid-flat dynamics."""
     trajectories = []
     actions = np.random.default_rng(17).normal(0, 0.1, size=(100, 2, 12)).astype(np.float32)
-    for cfg in (Go2RigidEnvCfg(), Go2RFTEnvCfg()):
+    static_cfg = Go2RFTEnvCfg()
+    static_cfg.sim.physics.solver_cfg.bearing = 0.0
+    static_cfg.sim.physics.solver_cfg.static_contact_iterations = 4
+    for cfg in (Go2RigidEnvCfg(), Go2RFTEnvCfg(), static_cfg):
         cfg.seed = 17
         cfg.scene.num_envs = 2
         cfg.scene.env_spacing = 240.0  # Exercise clones beyond the original 100 m visual bed.
@@ -243,3 +261,4 @@ def test_zero_layer_recovers_rigid_articulation():
             finally:
                 env.close()
     np.testing.assert_allclose(trajectories[0], trajectories[1], rtol=0, atol=5e-4)
+    np.testing.assert_allclose(trajectories[0], trajectories[2], rtol=0, atol=5e-4)
