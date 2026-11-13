@@ -1,5 +1,8 @@
 # Go2 RFT contact-resolution investigation
 
+The [subsequent contact-model investigation](GO2_RFT_LOW_SPEED.md) adds fixed-link boundary rejection
+and matched MPM load probes. Measurements below retain their original Newton revision and profile.
+
 The selective surface implementation and numerical measurements are complete. **The candidate is not
 cleared for training:** prolonged static support fails, calf force percentiles exceed the proposed target
 in some material cases, and direct force-evaluation cost exceeds the initial twofold target. G1 remains on hold.

@@ -123,7 +123,12 @@ def make_model(args, probe_mesh=None, probe_mass=None):
             xform=wp.transform(wp.vec3(0.0, 0.0, 0.08), wp.quat_identity()), is_kinematic=True, label="probe"
         )
     else:
-        low, high = probe_mesh.vertices.min(0), probe_mesh.vertices.max(0)
+        if probe_mesh is not None:
+            low, high = probe_mesh.vertices.min(0), probe_mesh.vertices.max(0)
+        elif args.geometry == "sphere":
+            low, high = np.full(3, -0.022), np.full(3, 0.022)
+        else:
+            low, high = -np.array([0.025, 0.025, 0.0025]), np.array([0.025, 0.025, 0.0025])
         center, size = (low + high) / 2, high - low
         inertia = (
             probe_mass

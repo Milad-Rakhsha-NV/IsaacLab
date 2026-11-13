@@ -1,0 +1,80 @@
+{
+  "cases": [
+    {
+      "case": "down",
+      "total_force_N": [
+        5.232315540313721,
+        -0.0008740797638893127,
+        190.38351440429688
+      ],
+      "foot_force_N": [
+        -0.000586031936109066,
+        0.0004882439970970154,
+        179.88021850585938
+      ],
+      "calf_force_N": [
+        5.232901573181152,
+        -0.0013622641563415527,
+        10.5032958984375
+      ]
+    },
+    {
+      "case": "drag",
+      "total_force_N": [
+        -68.31149291992188,
+        -0.001918502151966095,
+        29.06407356262207
+      ],
+      "foot_force_N": [
+        -58.74742889404297,
+        -0.001651683822274208,
+        27.90447425842285
+      ],
+      "calf_force_N": [
+        -9.564064025878906,
+        -0.00026682019233703613,
+        1.1595995426177979
+      ]
+    },
+    {
+      "case": "rest",
+      "total_force_N": [
+        5.886779308319092,
+        -0.0030660773627460003,
+        132.6986846923828
+      ],
+      "foot_force_N": [
+        1.897217589430511e-05,
+        -0.000466690631583333,
+        126.72346496582031
+      ],
+      "calf_force_N": [
+        5.886760711669922,
+        -0.0025994181632995605,
+        5.975231170654297
+      ]
+    }
+  ],
+  "body_labels": [
+    "/sample_0/World/envs/env_0/Robot/base",
+    "/sample_0/World/envs/env_0/Robot/FL_hip",
+    "/sample_0/World/envs/env_0/Robot/FL_thigh",
+    "/sample_0/World/envs/env_0/Robot/FL_calf",
+    "/sample_0/World/envs/env_0/Robot/FL_foot",
+    "/sample_0/World/envs/env_0/Robot/FR_hip",
+    "/sample_0/World/envs/env_0/Robot/FR_thigh",
+    "/sample_0/World/envs/env_0/Robot/FR_calf",
+    "/sample_0/World/envs/env_0/Robot/FR_foot",
+    "/sample_0/World/envs/env_0/Robot/Head_upper",
+    "/sample_0/World/envs/env_0/Robot/Head_lower",
+    "/sample_0/World/envs/env_0/Robot/RL_hip",
+    "/sample_0/World/envs/env_0/Robot/RL_thigh",
+    "/sample_0/World/envs/env_0/Robot/RL_calf",
+    "/sample_0/World/envs/env_0/Robot/RL_foot",
+    "/sample_0/World/envs/env_0/Robot/RR_hip",
+    "/sample_0/World/envs/env_0/Robot/RR_thigh",
+    "/sample_0/World/envs/env_0/Robot/RR_calf",
+    "/sample_0/World/envs/env_0/Robot/RR_foot"
+  ],
+  "retain_fixed_links": true
+}

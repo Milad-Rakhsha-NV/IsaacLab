@@ -24,6 +24,8 @@ from isaaclab.app import launch_simulation
 from isaaclab_tasks.core.velocity.config.go2.rft_env import Go2RFTEnv
 from isaaclab_tasks.core.velocity.config.go2.rft_env_cfg import Go2RFTCurriculumEnvCfg
 
+SOURCE_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+
 
 def errors(values, reference):
     """Keep absolute floors visible when normalizing small contact loads."""
@@ -42,15 +44,49 @@ def errors(values, reference):
     return result
 
 
-def copy_geometry(original, inventory, count):
+def copy_geometry(original, inventory, count, *, retain_fixed_links=True):
     """Batch unchanged bodies and collider unions without articulation integration."""
     builder = newton.ModelBuilder()
     com = original.body_com.numpy()
+    fixed_children = {}
+    fixed_parents = set()
+    for kind, parent, child, enabled, parent_pose, child_pose in zip(
+        original.joint_type.numpy(),
+        original.joint_parent.numpy(),
+        original.joint_child.numpy(),
+        original.joint_enabled.numpy(),
+        original.joint_X_p.numpy(),
+        original.joint_X_c.numpy(),
+        strict=True,
+    ):
+        if retain_fixed_links and enabled and kind == newton.JointType.FIXED and parent >= 0:
+            fixed_children.setdefault(int(parent), []).append((int(child), parent_pose, child_pose))
+            fixed_parents.add(int(child))
     for sample in range(count):
         bodies = [
-            builder.add_body(com=wp.vec3(c), mass=1.0, inertia=wp.mat33(np.eye(3)), label=f"/sample_{sample}{label}")
+            builder.add_link(com=wp.vec3(c), mass=1.0, inertia=wp.mat33(np.eye(3)), label=f"/sample_{sample}{label}")
             for c, label in zip(com, original.body_label, strict=True)
         ]
+        # Preserve rigid compounds: independent free bodies would lose the
+        # foot/calf exterior-union semantics in the force-only snapshot model.
+        for root in range(len(bodies)):
+            if root in fixed_parents:
+                continue
+            joints = [builder.add_joint_free(child=bodies[root])]
+            pending = [root]
+            while pending:
+                parent = pending.pop()
+                for child, parent_pose, child_pose in fixed_children.get(parent, []):
+                    joints.append(
+                        builder.add_joint_fixed(
+                            parent=bodies[parent],
+                            child=bodies[child],
+                            parent_xform=wp.transform(wp.vec3(parent_pose[:3]), wp.quat(parent_pose[3:])),
+                            child_xform=wp.transform(wp.vec3(child_pose[:3]), wp.quat(child_pose[3:])),
+                        )
+                    )
+                    pending.append(child)
+            builder.add_articulation(joints)
         for row in inventory:
             position, quaternion = row["local_pose"][:3], row["local_pose"][3:]
             kwargs = dict(
@@ -69,6 +105,55 @@ def copy_geometry(original, inventory, count):
             else:
                 raise ValueError(f"Unhandled Go2 collider: {row['kind']}")
     return builder.finalize(device=original.device)
+
+
+def compound_audit(args, env, profile):
+    """Compare independent-body and rigid-compound boundaries on the same pose."""
+    original = env.rft.model
+    _, inventory = collision_surfaces(original, ".*", 12)
+    poses = env.sim.backend_manager.backend.state_0.body_q.numpy().copy()
+    poses[:, 2] -= 0.16
+    reports = {}
+    for retain, name in ((False, "before"), (True, "after")):
+        model = copy_geometry(original, inventory, 1, retain_fixed_links=retain)
+        surfaces, rows = collision_surfaces(model, ".*", 12, resolutions=profile["solver"]["surface_resolution"])
+        solver = SolverRFT(
+            model,
+            surfaces,
+            surface_shape_ids=[row["shape"] for row in rows],
+            surface_quadrature_orders=[row.get("resolution", {}).get("primitive_quadrature_order", 0) for row in rows],
+            config=env.rft.config,
+            surface_height=0.118,
+            surface_bottom=0.0,
+        )
+        state = model.state()
+        state.body_q.assign(poses)
+        arrays, cases = {}, []
+        for label, velocity in (("down", (0, 0, -0.1)), ("drag", (0.1, 0, 0)), ("rest", (0, 0, 0))):
+            state.body_qd.assign(np.tile([*velocity, 0, 0, 0], (model.body_count, 1)))
+            force = solver.evaluate(state).numpy().copy()
+            arrays[label] = force
+            cases.append(
+                dict(
+                    case=label,
+                    total_force_N=force[:, :3].sum(0).tolist(),
+                    foot_force_N=force[[i for i, n in enumerate(model.body_label) if n.endswith("_foot")], :3]
+                    .sum(0)
+                    .tolist(),
+                    calf_force_N=force[[i for i, n in enumerate(model.body_label) if n.endswith("_calf")], :3]
+                    .sum(0)
+                    .tolist(),
+                )
+            )
+        reports[name] = dict(cases=cases, body_labels=model.body_label, retain_fixed_links=retain)
+        np.savez_compressed(args.output.parent / f"compound-{name}.npz", body_pose=poses, **arrays)
+        (args.output.parent / f"compound-{name}.json").write_text(json.dumps(reports[name], indent=2) + "\n")
+    return dict(
+        comparison=reports,
+        profile=profile,
+        interpretation="One prescribed pose, translated 160 mm down from reset; fixed geometry and motion. "
+        "The detached model reproduces previous per-body union semantics without changing the force fit.",
+    )
 
 
 def motion_audit(args, env, profile):
@@ -166,7 +251,8 @@ def motion_audit(args, env, profile):
         ),
         interpretation="Exact common rigid-policy motion; no policy or material validation. "
         "Reference refines curved quadrature on the same selected contact geometry. "
-        "Unselected surfaces remain unchanged. Normalization floors: 1 N and 0.01 Nm.",
+        "Unselected surfaces remain unchanged; fixed-joint collider compounds are retained. "
+        "Normalization floors: 1 N and 0.01 Nm.",
     )
 
 
@@ -246,8 +332,13 @@ def main(args):
         env = Go2RFTEnv(cfg)
         try:
             env.reset()
-            result = performance(args, env, profile) if args.mode == "performance" else motion_audit(args, env, profile)
-            result["source_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+            if args.mode == "performance":
+                result = performance(args, env, profile)
+            elif args.mode == "compound":
+                result = compound_audit(args, env, profile)
+            else:
+                result = motion_audit(args, env, profile)
+            result["source_sha256"] = SOURCE_SHA256
             result["newton_kernel_sha256"] = hashlib.sha256(
                 (Path(newton.__file__).parent / "_src/solvers/rft/kernels.py").read_bytes()
             ).hexdigest()
@@ -258,7 +349,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("motion", "performance"), default="motion")
+    parser.add_argument("--mode", choices=("motion", "performance", "compound"), default="motion")
     parser.add_argument("--profile", type=Path, default=Path("scripts/benchmarks/configs/go2_rft_contact_128.json"))
     parser.add_argument("--trajectories", nargs="+", type=Path, default=[])
     parser.add_argument("--samples", type=int, default=48)

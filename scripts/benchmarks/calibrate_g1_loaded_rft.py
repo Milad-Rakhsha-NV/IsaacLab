@@ -113,6 +113,10 @@ def main(args):
             domain_scale=1.0,
             settle=0.5,
             particles_per_cell=2,
+            velocity_regularization=0.04,
+            preload_depth=None,
+            preload_speed=0.02,
+            preload_hold=0.1,
         )
         loaded_foot(SimpleNamespace(**settings))
         result = json.loads((folder / "summary.json").read_text())

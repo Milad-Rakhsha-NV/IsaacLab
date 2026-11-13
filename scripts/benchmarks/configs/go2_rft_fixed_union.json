@@ -1,0 +1,30 @@
+{
+  "description": "Go2 fixed-link exterior union with 128-triangle spherical feet and refined distal-calf quadrature.",
+  "training_ready": false,
+  "validation_status": "Fixed-link boundary corrected; near-rest coupling and matched material validation remain required before training",
+  "solver": {
+    "surface_height": 0.118,
+    "surface_bottom": 0.0,
+    "segments": 12,
+    "max_edge_length": null,
+    "surface_resolution": [
+      {
+        "shape_pattern": ".*/Robot/[^/]+_foot/.*",
+        "sphere_subdivisions": 2,
+        "primitive_quadrature_order": 6
+      },
+      {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_1",
+        "segments": 16,
+        "axial_segments": 3,
+        "primitive_quadrature_order": 6
+      },
+      {
+        "shape_pattern": ".*/Robot/[^/]+_calf/collisions/mesh_2",
+        "segments": 16,
+        "axial_segments": 2,
+        "primitive_quadrature_order": 6
+      }
+    ]
+  }
+}

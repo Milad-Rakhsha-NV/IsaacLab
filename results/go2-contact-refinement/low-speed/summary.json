@@ -1,0 +1,60 @@
+{
+  "mpm": [
+    {
+      "case": "preloaded-mpm-18N-10mm",
+      "newton_revision": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+      "label": "118 mm bed \u00b7 10 mm cells \u00b7 4 passes",
+      "final_depth_mm": 77.758249014616,
+      "insertion_strength_ratio": 0.346258742042037,
+      "insertion_fit_relative_error": 0.06898020539388977,
+      "release_timestamp_correction_s": -0.005
+    },
+    {
+      "case": "preloaded-mpm-18N-10mm-p1",
+      "newton_revision": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+      "label": "118 mm bed \u00b7 10 mm cells \u00b7 1 pass",
+      "final_depth_mm": 77.9251345694065,
+      "insertion_strength_ratio": 0.34408536345903806,
+      "insertion_fit_relative_error": 0.06364168770150032,
+      "release_timestamp_correction_s": 0.0
+    },
+    {
+      "case": "preloaded-mpm-18N-5mm-p1",
+      "newton_revision": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+      "label": "118 mm bed \u00b7 5 mm cells \u00b7 1 pass",
+      "final_depth_mm": 79.8053556382656,
+      "insertion_strength_ratio": 0.3761140029321835,
+      "insertion_fit_relative_error": 0.047214001528426496,
+      "release_timestamp_correction_s": 0.0
+    },
+    {
+      "case": "preloaded-mpm-18N-10mm-deep",
+      "newton_revision": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+      "label": "236 mm bed \u00b7 10 mm cells \u00b7 1 pass",
+      "final_depth_mm": 86.19266760349272,
+      "insertion_strength_ratio": 0.28459339360494756,
+      "insertion_fit_relative_error": 0.09671014141034769,
+      "release_timestamp_correction_s": 0.0
+    },
+    {
+      "case": "preloaded-mpm-18N-5mm-i400",
+      "newton_revision": "f59677bd8c5037d68d4196c323ea0b4459c18a9c",
+      "label": "118 mm bed \u00b7 5 mm cells \u00b7 400-iteration cap",
+      "final_depth_mm": 79.72726610302924,
+      "insertion_strength_ratio": 0.37293775455165407,
+      "insertion_fit_relative_error": 0.046180766568073295,
+      "release_timestamp_correction_s": 0.0
+    }
+  ],
+  "mpm_revisions": {
+    "preloaded-mpm-18N-10mm": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+    "preloaded-mpm-18N-10mm-p1": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+    "preloaded-mpm-18N-5mm-p1": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+    "preloaded-mpm-18N-10mm-deep": "6cf5b879d576c19279183ee9da0dc4de039a080f",
+    "preloaded-mpm-18N-5mm-i400": "f59677bd8c5037d68d4196c323ea0b4459c18a9c"
+  },
+  "newton_revision": "f59677bd8c5037d68d4196c323ea0b4459c18a9c",
+  "newton_kernel_sha256": "8a6fbbdc971230f6e170ea99f62dcc7b7f06a8cf0fe738debb75994617ba7b44",
+  "source_sha256": "019084982abf882a82b57c1aeefc7dd3db0c93c95be76b191d371a4b7d83f2d3",
+  "training_ready": false
+}

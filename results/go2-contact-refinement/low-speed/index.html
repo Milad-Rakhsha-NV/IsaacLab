@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Go2 — contact model validation</title>
+<style>body{
+font:17px/1.6 system-ui;
+max-width:1100px;
+margin:36px auto;
+padding:0 24px;
+background:#f4f6f9;
+color:#172033}
+section{
+background:white;
+margin:22px 0;
+padding:24px;
+border-radius:12px}
+h1,h2{
+line-height:1.25}
+img{
+width:100%}
+table{
+border-collapse:collapse;
+width:100%}
+td,th{
+padding:9px;
+text-align:left;
+border-bottom:1px solid #ddd}
+a{
+color:#0369a1}
+.status{
+padding:18px;
+background:#fff3cd;
+border-radius:8px}
+</style>
+</head>
+<body>
+<a href="../index.html">Contact-resolution report</a> · <a href="../../go2-rft-mpm/report/">Go2 policy
+report</a>
+<h1>Go2 contact model validation</h1>
+<p>13 November 2026. This update follows the GM-Loco comparison. The feet retain 128 triangles over each
+complete sphere, with curved quadrature; lower-leg colliders remain coupled.</p>
+<p class="status">
+<strong>Geometry correction verified. New training has not started.</strong> Near-rest articulated coupling
+and material-response matching still need to pass before retraining. G1 remains on hold.</p>
+<section>
+<h2>Fixed foot/calf overlaps were adding internal forces</h2>
+<p>The foot sphere and calf cylinders are separate bodies connected by a fixed joint. Their overlapping
+internal surfaces were counted as exposed to sand. The correction groups enabled fixed links for containment
+checks, using each collider's owning-body frame. It preserves the collision shapes, triangle counts, masses
+and inertias.</p>
+<img src="fixed-link-section.png" alt="Go2 foot and calf section showing their overlap">
+<p>The red dashed calf boundary lies inside the foot collider. It belongs to the interior of the fixed assembly.</p>
+<img src="fixed-link-boundary.png" alt="Vertical loads before and after excluding internal fixed-link
+surfaces">
+<p>In this prescribed buried pose, resting vertical support decreases from 186.72 to 132.70 N: 54.02 N was
+supplied by internal patches. This is a controlled geometry comparison, not a new policy result. The
+regression fails before the fix and passes after it for planar and curved integration. All 23 Newton RFT cases
+and six Isaac Lab geometry/native-coupling cases pass.</p>
+</section>
+<section>
+<h2>Force accuracy and cost after correcting the boundary</h2>
+<p>The final profile retains 128 triangles per foot and uses order-six curved quadrature on the selected
+foot and distal-calf surfaces. Other surfaces retain their previous resolution. On 64 recorded Go2
+poses/twists crossed with 16 field cases, comparison with order-24 integration gives:</p>
+<table><tr><th>Region</th><th>Pooled force difference</th><th>Pooled torque difference</th>
+<th>Force difference, 95th percentile</th></tr><tr><td>Feet</td><td>0.52%</td><td>0.94%</td><td>1.43%</td></tr><tr><td>Calves</td><td>0.53%</td><td>0.48%</td><td>1.80%</td></tr></table>
+<p>Relative differences use 1 N and 0.01 Nm denominator floors. These are numerical integration checks;
+percentiles pool the recorded cases. Individual and per-case outliers, and material-response accuracy,
+require separate assessment.</p>
+<p>At 4096 environments the profile measures 21,347 transitions/s
+with zero actions. Direct RFT evaluations of common states take
+11.6 ms in the shallow case and
+23.9 ms in the deep case.
+This measures simulation throughput; PPO training has not run.</p>
+</section>
+<section>
+<h2>MPM provides sustained support, with measurable substrate influence</h2>
+<p>A 44 mm-diameter spherical foot is inserted slowly to 52.3 mm sole depth, held briefly, then released under
+an 18.42 N load. The probe has one vertical DOF and 1 kg inertial mass; load is applied independently. It
+isolates the foot, without a calf or robot controller. MPM uses density 1600 kg/m³, internal and interface
+friction 0.4, APIC transfer, zero cohesion/dilatancy and the stiff elastic limit.</p>
+<img src="mpm-reference.png" alt="MPM settling at different grid sizes and bed depths, with prescribed
+insertion forces">
+<table>
+<tr>
+<th>MPM configuration</th>
+<th>Final sole depth</th>
+<th>Insertion-only RFT scale</th>
+</tr><tr><td>118 mm bed · 10 mm cells · 4 passes</td><td>77.76 mm</td><td>0.346</td></tr><tr><td>118 mm bed · 10 mm cells · 1 pass</td><td>77.93 mm</td><td>0.344</td></tr><tr><td>118 mm bed · 5 mm cells · 1 pass</td><td>79.81 mm</td><td>0.376</td></tr><tr><td>236 mm bed · 10 mm cells · 1 pass</td><td>86.19 mm</td><td>0.285</td></tr><tr><td>118 mm bed · 5 mm cells · 400-iteration cap</td><td>79.73 mm</td><td>0.373</td></tr></table>
+<p>The shallow 10 mm cases ran about ten seconds after release; the finer and deep-bed cases ran three seconds
+and reached negligible final speed. All five hold the load without rigid floor contact. The deep-bed delivered
+force balances the rigid foot's vertical momentum to a 95th-percentile force error of 1.4 micro-Newtons.</p>
+<p>Increasing coupling passes changes depth by only 0.17 mm. Refining cells from 10 to 5 mm changes depth by
+1.88 mm and the fitted insertion scale by about 9%. Doubling the MPM iteration cap from 200 to 400 on the
+5 mm grid changes settled depth by about 0.08 mm and the insertion-fit scale from 0.376 to 0.373.
+These results provide a numerical reference with remaining
+grid uncertainty. The 236 mm bed produces greater settling, so clipping an RFT layer at its bottom does not
+reproduce confinement by itself.</p>
+<p>A separate 36.83 N coarse-grid probe reaches 109.43 mm sole depth after three seconds and is still settling
+at 0.33 mm/s. Its 8.6 mm substrate clearance is smaller than one cell. It does not certify a converged
+nominal-load hold.</p>
+</section>
+<section>
+<h2>Equal material inputs have not matched the force response</h2>
+<p>For insertion from 15 to 50 mm depth, nominal published RFT needs a fitted strength multiplier of about
+0.34–0.38 in the shallow MPM cases and 0.28 in the coarse deep bed. The finer shallow fit uses 0.376 with 4.7%
+normalized fitting error. This is a single-geometry, single-direction calibration result; it does not
+establish a universal coefficient. Tangential sliding, unloading, lower-leg geometry and further reference
+checks remain necessary before choosing the training distribution.</p>
+</section>
+<section>
+<h2>The explicit update causes a separate numerical sinking error</h2>
+<p>The RFT sphere starts at rest at an admissible depth. Explicit forces overshoot as velocity changes sign,
+causing repeated velocity reversals and net sinking. In a scalar diagnostic, selecting a reaction inside the
+two directional RFT limits satisfies momentum balance and holds an admissible load.</p>
+<img src="support-integration.png" alt="Explicit RFT sinking compared with the scalar implicit reaction">
+<p>The implicit 1D case has zero drift and zero positive granular work in these holds at four and eight
+substeps. It uses an unbounded bed. The 118 mm line is only a reference. It is not an articulated solver or an
+MPM validation.</p>
+<img src="load-cycle.png" alt="Load removal, reversal and overload in the scalar reaction diagnostic">
+</section>
+<section>
+<h2>Implementation and training status</h2>
+<p>The fixed-link boundary bug is corrected and regression-tested. Direct implicit and projected articulated
+coupling prototypes were investigated, but no replacement has been cleared for training. The published RFT
+coefficients are retained. There are no new checkpoints or policy videos in this update.</p>
+<p>The next policy study remains one 4096-environment run, full forward commands through 1.0 m/s, reset
+randomization and a material-only curriculum. Physics acceptance comes first. Short observation history and
+wider calibrated material variation follow that acceptance.</p>
+<p>
+<a href="summary.json">Numerical summary</a> · <a href="manifest.json">Artifact hashes</a>
+</p>
+</section>
+</body>
+</html>

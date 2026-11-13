@@ -220,6 +220,7 @@ td,th{{padding:9px;border-bottom:1px solid #cbd5e1;text-align:left}}
 .status{{padding:18px;background:#fef3c7}}a{{color:#1d4ed8}}
 code{{overflow-wrap:anywhere}}.table{{overflow-x:auto}}</style>
 <h1>Go2 contact-resolution follow-up</h1>
+<p><a href="low-speed/">Latest: fixed-link boundary correction and matched MPM foot validation</a></p>
 <p><a href="../go2-rft-mpm/report/">Original policy comparison</a> ·
 <a href="README.md">Methods and reproduction</a></p>
 <p class="status"><strong>Geometry and numerical implementation complete. New training has not started.</strong>
@@ -293,10 +294,11 @@ policy recordings retain their original implementation and geometry.
 Open `index.html` alongside its PNGs. JSON and NPZ files retain the measurements, common motion samples,
 material settings, source hashes and geometry. `manifest.json` verifies every archived artifact.
 
-Reproduce from the repository root using the Newton revision pinned in `pyproject.toml`:
+Run follow-up audits from the repository root using the current Newton pin. The archived measurements
+above retain their original revision; these commands use a separate runtime:
 
 ```bash
-export UV_PROJECT_ENVIRONMENT="$HOME/.cache/rft-study/go2-contact128-venv"
+export UV_PROJECT_ENVIRONMENT="$HOME/.cache/rft-study/go2-fixed-union-venv"
 uv sync --locked
 uv run --no-sync python scripts/benchmarks/benchmark_go2_contact_profile.py \\
     --mode performance --legacy --performance_motion results/go2-contact-refinement/motion-rigid-1.npz \\

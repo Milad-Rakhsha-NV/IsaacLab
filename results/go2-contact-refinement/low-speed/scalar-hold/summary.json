@@ -1,0 +1,175 @@
+{
+  "results": [
+    {
+      "method": "bearing",
+      "substeps": 4,
+      "load_N": 18.417051,
+      "initial_directional_limits_N": [
+        -1.2394481897354126,
+        31.04810905456543
+      ],
+      "depth_2s_m": 0.06805188240802346,
+      "depth_final_m": 0.08836828557217047,
+      "creep_m": 0.020316403164147012,
+      "positive_granular_work_J": 1.1159012614931993
+    },
+    {
+      "method": "bearing",
+      "substeps": 4,
+      "load_N": 36.834103,
+      "initial_directional_limits_N": [
+        -5.036746978759766,
+        62.795902252197266
+      ],
+      "depth_2s_m": 0.12682530953241003,
+      "depth_final_m": 0.16871092198492152,
+      "creep_m": 0.04188561245251149,
+      "positive_granular_work_J": 4.957384043582546
+    },
+    {
+      "method": "bearing",
+      "substeps": 8,
+      "load_N": 18.417051,
+      "initial_directional_limits_N": [
+        -1.2394481897354126,
+        31.04810905456543
+      ],
+      "depth_2s_m": 0.06134515365940531,
+      "depth_final_m": 0.0791289364869432,
+      "creep_m": 0.017783782827537897,
+      "positive_granular_work_J": 0.319892120595673
+    },
+    {
+      "method": "bearing",
+      "substeps": 8,
+      "load_N": 36.834103,
+      "initial_directional_limits_N": [
+        -5.036746978759766,
+        62.795902252197266
+      ],
+      "depth_2s_m": 0.11656143508426517,
+      "depth_final_m": 0.15043738012219685,
+      "creep_m": 0.033875945037931676,
+      "positive_granular_work_J": 1.2806472402584272
+    },
+    {
+      "method": "flow",
+      "substeps": 4,
+      "load_N": 18.417051,
+      "initial_directional_limits_N": [
+        -1.2394481897354126,
+        31.04810905456543
+      ],
+      "depth_2s_m": 0.05835752528942783,
+      "depth_final_m": 0.06333615780173898,
+      "creep_m": 0.0049786325123111555,
+      "positive_granular_work_J": 2.17947073817443
+    },
+    {
+      "method": "flow",
+      "substeps": 4,
+      "load_N": 36.834103,
+      "initial_directional_limits_N": [
+        -5.036746978759766,
+        62.795902252197266
+      ],
+      "depth_2s_m": 0.11299640712480813,
+      "depth_final_m": 0.12472376557863998,
+      "creep_m": 0.011727358453831854,
+      "positive_granular_work_J": 9.951583480577147
+    },
+    {
+      "method": "flow",
+      "substeps": 8,
+      "load_N": 18.417051,
+      "initial_directional_limits_N": [
+        -1.2394481897354126,
+        31.04810905456543
+      ],
+      "depth_2s_m": 0.0557615299380809,
+      "depth_final_m": 0.06218242394587807,
+      "creep_m": 0.006420894007797169,
+      "positive_granular_work_J": 0.9227613062115884
+    },
+    {
+      "method": "flow",
+      "substeps": 8,
+      "load_N": 36.834103,
+      "initial_directional_limits_N": [
+        -5.036746978759766,
+        62.795902252197266
+      ],
+      "depth_2s_m": 0.10738322767647765,
+      "depth_final_m": 0.121458347673815,
+      "creep_m": 0.014075119997337349,
+      "positive_granular_work_J": 4.186525130241541
+    },
+    {
+      "method": "implicit_1d",
+      "substeps": 4,
+      "load_N": 18.417051,
+      "initial_directional_limits_N": [
+        -1.2394481897354126,
+        31.04810905456543
+      ],
+      "depth_2s_m": 0.0523165184,
+      "depth_final_m": 0.0523165184,
+      "creep_m": 0.0,
+      "positive_granular_work_J": 0.0
+    },
+    {
+      "method": "implicit_1d",
+      "substeps": 4,
+      "load_N": 36.834103,
+      "initial_directional_limits_N": [
+        -5.036746978759766,
+        62.795902252197266
+      ],
+      "depth_2s_m": 0.09913303669999998,
+      "depth_final_m": 0.09913303669999998,
+      "creep_m": 0.0,
+      "positive_granular_work_J": 0.0
+    },
+    {
+      "method": "implicit_1d",
+      "substeps": 8,
+      "load_N": 18.417051,
+      "initial_directional_limits_N": [
+        -1.2394481897354126,
+        31.04810905456543
+      ],
+      "depth_2s_m": 0.0523165184,
+      "depth_final_m": 0.0523165184,
+      "creep_m": 0.0,
+      "positive_granular_work_J": 0.0
+    },
+    {
+      "method": "implicit_1d",
+      "substeps": 8,
+      "load_N": 36.834103,
+      "initial_directional_limits_N": [
+        -5.036746978759766,
+        62.795902252197266
+      ],
+      "depth_2s_m": 0.09913303669999998,
+      "depth_final_m": 0.09913303669999998,
+      "creep_m": 0.0,
+      "positive_granular_work_J": 0.0
+    }
+  ],
+  "seconds": 10.0,
+  "load_cycle": false,
+  "wall_seconds": 59.097762107965536,
+  "source_sha256": "730ca0b312311cb6c33f7bd324f5c6c9b5b52c0b546f26bf0fdd101f098d3c91",
+  "newton_kernel_sha256": "8a6fbbdc971230f6e170ea99f62dcc7b7f06a8cf0fe738debb75994617ba7b44",
+  "trace_columns": [
+    "time_s",
+    "sole_depth_m",
+    "velocity_m_s",
+    "reaction_N",
+    "load_N",
+    "lower_N",
+    "upper_N"
+  ],
+  "scope": "Scalar vertical integration diagnostic in an unbounded bed; not an articulated solver or MPM calibration"
+}
